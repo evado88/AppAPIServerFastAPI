@@ -8,6 +8,7 @@ from database import get_db
 from models.transactionmodel import Transaction, TransactionDB, TransactionWithDetail
 from models.usermodel import UserDB
 from models.transaction_types_model import TransactionTypeDB
+from models.transaction_sources_model import TransactionSourceDB
 from models.status_types_model import StatusTypeDB
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
@@ -19,25 +20,28 @@ async def create_loan(tran: Transaction, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserDB).where(UserDB.id == tran.user_id))
     user = result.scalars().first()
     if not user:
-        raise HTTPException(status_code=400, detail=f"User with id {tran.user_id} does not exist")
+        raise HTTPException(
+            status_code=400, detail=f"User with id {tran.user_id} does not exist"
+        )
 
     db_tran = TransactionDB(
-        #id
-        type_id = tran.type_id,
-        #user
-        user_id = tran.user_id,
-        #transaction
-        amount = tran.amount,
-        comments = tran.comments,
-        reference = tran.reference,
-        #loan
-        term_months = tran.term_months,
-        interest_rate = tran.interest_rate,
-        #approval
-        status_id = tran.status_id,
-        approval_levels =tran.approval_levels,
-        #service
-        created_by = tran.created_by
+        # id
+        type_id=tran.type_id,
+        # user
+        user_id=tran.user_id,
+        # transaction
+        source_id=tran.source_id,
+        amount=tran.amount,
+        comments=tran.comments,
+        reference=tran.reference,
+        # loan
+        term_months=tran.term_months,
+        interest_rate=tran.interest_rate,
+        # approval
+        status_id=tran.status_id,
+        approval_levels=tran.approval_levels,
+        # service
+        created_by=tran.created_by,
     )
     db.add(db_tran)
     try:
@@ -51,7 +55,13 @@ async def create_loan(tran: Transaction, db: AsyncSession = Depends(get_db)):
 
 @router.get("/", response_model=List[TransactionWithDetail])
 async def list_transactions(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(TransactionDB))
+    result = await db.execute(
+        select(TransactionDB).options(
+            joinedload(TransactionDB.status),
+            joinedload(TransactionDB.type),
+            joinedload(TransactionDB.source),
+        )
+    )
     transactions = result.scalars().all()
     return transactions
 
@@ -63,6 +73,7 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
         .options(
             joinedload(StatusTypeDB),
             joinedload(TransactionTypeDB),
+            joinedload(TransactionSourceDB),
         )
         .all()
     )

@@ -5,6 +5,7 @@ from typing import Optional
 from database import Base
 from models.usermodel import User
 from models.transaction_types_model import TransactionType
+from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
 from datetime import date, datetime
 
@@ -21,6 +22,7 @@ class TransactionDB(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     #transaction
+    source_id = Column(Integer, ForeignKey("list_transaction_sources.id"), nullable=False)
     amount = Column(Float, nullable=False)
     comments = Column(String, nullable=True)
     reference = Column(String, nullable=True)
@@ -49,9 +51,10 @@ class TransactionDB(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
 
-    user = relationship("UserDB", back_populates="transactions", lazy="selectin")
-    type = relationship("TransactionTypeDB", back_populates="transactions", lazy="selectin")
-    status = relationship("StatusTypeDB", back_populates="transactions", lazy="selectin")
+    user = relationship("UserDB", back_populates="transactions", lazy='selectin')
+    type = relationship("TransactionTypeDB", back_populates="transactions", lazy='selectin')
+    source = relationship("TransactionSourceDB", back_populates="transactions", lazy='selectin')
+    status = relationship("StatusTypeDB", back_populates="transactions", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
     #id
@@ -61,6 +64,7 @@ class Transaction(BaseModel):
     #user
     user_id: int
     #transaction
+    source_id: int = Field(..., ge=1, description="Source must be greater than or equal to 1")
     amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
     comments: Optional[str] = None
     reference: Optional[str] = None
@@ -90,3 +94,4 @@ class TransactionWithDetail(Transaction):
     user: User
     type: TransactionType
     status: StatusType
+    source: TransactionSource

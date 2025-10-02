@@ -28,7 +28,7 @@ async def create_status(status: StatusType, db: AsyncSession = Depends(get_db)):
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_db)):
-    statusList = ['Draft', 'Submitteed', ' Review', 'Approved', 'Rejected']
+    statusList = ['Draft', 'Submitted', 'Under Review', 'Approved', 'Rejected']
     statusId = 1
     
     for value in statusList:

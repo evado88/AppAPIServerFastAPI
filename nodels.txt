@@ -26,9 +26,10 @@ Transaction
   "id": 0,
   "type_id": 1,
   "user_id": 1,
+  "source_id": 1,
   "amount": 100,
   "status_id": 1,
   "approval_levels": 2,
-  "comments": "No comment"
+  "comments": "No comment",
   "reference": "TXN1001"
 }
