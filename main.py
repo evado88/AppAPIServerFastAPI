@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from database import engine, Base
-from routes import statustyperoutes, transactionroutes, userroutes, transactiontyperoutes, transactionsourceroutes
+from routes import status_type_routes, transaction_routes, transaction_source_routes, transaction_type_routes, user_routes
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -32,11 +32,11 @@ app.add_middleware(
     )
 
 # include routers
-app.include_router(statustyperoutes.router)
-app.include_router(transactiontyperoutes.router)
-app.include_router(transactionsourceroutes.router)
-app.include_router(userroutes.router)
-app.include_router(transactionroutes.router)
+app.include_router(status_type_routes.router)
+app.include_router(transaction_type_routes.router)
+app.include_router(transaction_source_routes.router)
+app.include_router(user_routes.router)
+app.include_router(transaction_routes.router)
 
 # create tables at startup
 

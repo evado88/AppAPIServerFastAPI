@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from database import get_db
-from models.transactionmodel import Transaction, TransactionDB, TransactionWithDetail
-from models.usermodel import UserDB
+from models.transaction_model import Transaction, TransactionDB, TransactionWithDetail
+from models.user_model import UserDB
 from models.transaction_types_model import TransactionTypeDB
 from models.transaction_sources_model import TransactionSourceDB
 from models.status_types_model import StatusTypeDB
@@ -26,22 +26,23 @@ async def create_loan(tran: Transaction, db: AsyncSession = Depends(get_db)):
 
     db_tran = TransactionDB(
         # id
-        type_id=tran.type_id,
+        type_id = tran.type_id,
         # user
         user_id=tran.user_id,
         # transaction
-        source_id=tran.source_id,
-        amount=tran.amount,
-        comments=tran.comments,
-        reference=tran.reference,
+        date = tran.date,
+        source_id = tran.source_id,
+        amount = tran.amount,
+        comments = tran.comments,
+        reference = tran.reference,
         # loan
-        term_months=tran.term_months,
-        interest_rate=tran.interest_rate,
+        term_months = tran.term_months,
+        interest_rate = tran.interest_rate,
         # approval
-        status_id=tran.status_id,
-        approval_levels=tran.approval_levels,
+        status_id = tran.status_id,
+        approval_levels = tran.approval_levels,
         # service
-        created_by=tran.created_by,
+        created_by = tran.created_by,
     )
     db.add(db_tran)
     try:

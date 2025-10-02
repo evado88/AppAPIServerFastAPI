@@ -26,6 +26,7 @@ Transaction
   "id": 0,
   "type_id": 1,
   "user_id": 1,
+  "date": "2025-10-02 18:24",
   "source_id": 1,
   "amount": 100,
   "status_id": 1,

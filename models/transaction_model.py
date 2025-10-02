@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from typing import Optional
 from database import Base
-from models.usermodel import User
+from models.user_model import User
 from models.transaction_types_model import TransactionType
 from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
@@ -22,6 +22,7 @@ class TransactionDB(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     #transaction
+    date = Column(DateTime(timezone=True), nullable=False)
     source_id = Column(Integer, ForeignKey("list_transaction_sources.id"), nullable=False)
     amount = Column(Float, nullable=False)
     comments = Column(String, nullable=True)
@@ -64,6 +65,7 @@ class Transaction(BaseModel):
     #user
     user_id: int
     #transaction
+    date: datetime = Field(..., description="The date for the transaction")
     source_id: int = Field(..., ge=1, description="Source must be greater than or equal to 1")
     amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
     comments: Optional[str] = None
