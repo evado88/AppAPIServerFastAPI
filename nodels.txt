@@ -34,3 +34,20 @@ Transaction
   "comments": "No comment",
   "reference": "TXN1001"
 }
+
+MonthlyPosting
+{
+  "user_id": 1,
+  "date": "2025-10-02 18:24",
+  "saving": 500,
+  "shares": 1000,
+  "social": 300,
+  "penalty": 200,
+  "loan_interest": 600,
+  "loan_amount_payment": 600,
+  "loan_month_repayment": 1800,
+  "loan_application": 0,
+  "status_id": 1,
+  "approval_levels": 2,
+  "comments": "No comment"
+}

@@ -49,7 +49,7 @@ class UserDB(Base):
     
     #relationships
     transactions = relationship("TransactionDB", back_populates="user")
-
+    postings = relationship("MonthlyPostingDB", back_populates="user")
 
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):

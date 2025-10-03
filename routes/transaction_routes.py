@@ -15,7 +15,7 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
 @router.post("/", response_model=Transaction)
-async def create_loan(tran: Transaction, db: AsyncSession = Depends(get_db)):
+async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == tran.user_id))
     user = result.scalars().first()
@@ -26,23 +26,23 @@ async def create_loan(tran: Transaction, db: AsyncSession = Depends(get_db)):
 
     db_tran = TransactionDB(
         # id
-        type_id = tran.type_id,
+        type_id=tran.type_id,
         # user
         user_id=tran.user_id,
         # transaction
-        date = tran.date,
-        source_id = tran.source_id,
-        amount = tran.amount,
-        comments = tran.comments,
-        reference = tran.reference,
+        date=tran.date,
+        source_id=tran.source_id,
+        amount=tran.amount,
+        comments=tran.comments,
+        reference=tran.reference,
         # loan
-        term_months = tran.term_months,
-        interest_rate = tran.interest_rate,
+        term_months=tran.term_months,
+        interest_rate=tran.interest_rate,
         # approval
-        status_id = tran.status_id,
-        approval_levels = tran.approval_levels,
+        status_id=tran.status_id,
+        approval_levels=tran.approval_levels,
         # service
-        created_by = tran.created_by,
+        created_by=tran.created_by,
     )
     db.add(db_tran)
     try:
@@ -69,13 +69,16 @@ async def list_transactions(db: AsyncSession = Depends(get_db)):
 
 @router.get("/{tran_id}", response_model=TransactionWithDetail)
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
-    transactions = (
-        db.query(TransactionDB)
+    result = await db.execute(
+        select(TransactionDB)
         .options(
-            joinedload(StatusTypeDB),
-            joinedload(TransactionTypeDB),
-            joinedload(TransactionSourceDB),
+            joinedload(TransactionDB.status),
+            joinedload(TransactionDB.type),
+            joinedload(TransactionDB.source),
         )
-        .all()
+        .filter(TransactionDB.id == tran_id)
     )
-    return transactions
+    transaction = result.scalars().first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Transaction with id '{tran_id}' not found")
+    return transaction

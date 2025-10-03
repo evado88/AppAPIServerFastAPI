@@ -22,7 +22,7 @@ class StatusTypeDB(Base):
     
     #relationships
     transactions = relationship("TransactionDB", back_populates="status")
-
+    postings = relationship("MonthlyPostingDB", back_populates="status")
 
 # ---------- Pydantic Schemas ----------
 class StatusType(BaseModel):

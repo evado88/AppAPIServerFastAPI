@@ -10,39 +10,40 @@ from models.status_types_model import StatusType
 from datetime import date, datetime
 
 # ---------- SQLAlchemy Models ----------
-class TransactionDB(Base):
-    __tablename__ = "transactions"
+class MonthlyPostingDB(Base):
+    __tablename__ = "monthly_postings"
 
     #id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     code = Column(String,  nullable=True)
-    type_id = Column(Integer, ForeignKey("list_transaction_types.id"), nullable=False)
-    
+
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    #transaction
+    #posting
     date = Column(DateTime(timezone=True), nullable=False)
-    source_id = Column(Integer, ForeignKey("list_transaction_sources.id"), nullable=False)
-    amount = Column(Float, nullable=False)
-    comments = Column(String, nullable=True)
-    reference = Column(String, nullable=True)
+
+    saving = Column(Float, nullable=False)
+    shares = Column(Float, nullable=False)
+    social = Column(Float, nullable=False)
+    penalty = Column(Float, nullable=False)
     
-    #loans only
-    term_months = Column(Integer, nullable=True)
-    interest_rate = Column(Float, nullable=True)
+    loan_interest = Column(Float, nullable=False)
+    loan_amount_payment = Column(Float, nullable=False)
+    loan_month_repayment = Column(Float, nullable=False)
+    
+    loan_application = Column(Float, nullable=False)
+    
+    comments = Column(String, nullable=True)
     
     #approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
-    
     approval_levels = Column(Integer, nullable=False)
     
     approved1_at = Column(DateTime(timezone=True), nullable=True)
     approved1_by = Column(String, nullable=True)
-    
     approved2_at = Column(DateTime(timezone=True), nullable=True)
     approved2_by = Column(String, nullable=True)
-    
     approved3_at = Column(DateTime(timezone=True), nullable=True)
     approved3_by = Column(String, nullable=True)
     
@@ -52,30 +53,34 @@ class TransactionDB(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
 
-    user = relationship("UserDB", back_populates="transactions", lazy='selectin')
-    type = relationship("TransactionTypeDB", back_populates="transactions", lazy='selectin')
-    source = relationship("TransactionSourceDB", back_populates="transactions", lazy='selectin')
-    status = relationship("StatusTypeDB", back_populates="transactions", lazy='selectin')
+    user = relationship("UserDB", back_populates="postings", lazy='selectin')
+    status = relationship("StatusTypeDB", back_populates="postings", lazy='selectin')
 # ---------- Pydantic Schemas ----------
-class Transaction(BaseModel):
+class MonthlyPosting(BaseModel):
     #id
     id: Optional[int] = None
     code: Optional[str] = None
-    type_id: int = Field(..., ge=1, description="Type must be greater than or equal to 1")
     #user
     user_id: int
-    #transaction
-    date: datetime = Field(..., description="The date for the transaction")
-    source_id: int = Field(..., ge=1, description="Source must be greater than or equal to 1")
-    amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
+    #posting
+    date: datetime = Field(..., description="The date for the monthly posting")
+
+    saving: float = Field(..., gt=0, description="Saving amount must be greater than zero")
+    shares: float = Field(..., gt=0, description="Share amount must be greater than zero")
+    social: float = Field(..., gt=0, description="Social amount must be greater than zero")
+    penalty: float = Field(..., gt=0, description="Penalty amount must be greater than zero")
+    
+    loan_interest: float = Field(..., ge=0, description="Loan interest amount must be greater or equal to zero")
+    loan_amount_payment: float = Field(..., ge=0, description="Loan payment amount must be greater or equal to zero")
+    loan_month_repayment: float = Field(..., ge=0, description="Loan monthly repayment amount must be greater or equal to zero")
+    
+    loan_application: float = Field(..., ge=0, description="Loan application amount must be greater or equal to zero")
+    
     comments: Optional[str] = None
-    reference: Optional[str] = None
-    #loans only
-    term_months: Optional[int] = None
-    interest_rate: Optional[float] = None
     #approval
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
-    approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be btween 1 and 3")
+    approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
+    
     approved1_at: Optional[datetime] = None
     approved1_by: Optional[str] = None
     approved2_at: Optional[datetime] = None
@@ -92,9 +97,7 @@ class Transaction(BaseModel):
         orm_mode = True
 
 
-class TransactionWithDetail(Transaction):
+class MonthlyPostingWithDetail(MonthlyPosting):
     user: User
-    type: TransactionType
     status: StatusType
-    source: TransactionSource
     
