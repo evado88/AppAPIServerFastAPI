@@ -38,6 +38,7 @@ class UserDB(Base):
 
     #account
     status = Column(Integer, default=1, nullable=False)
+    role = Column(Integer, default=1, nullable=False)
     password = Column(String, nullable=False)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     approved_by = Column(String, nullable=True)
@@ -50,7 +51,7 @@ class UserDB(Base):
     #relationships
     transactions = relationship("TransactionDB", back_populates="user")
     postings = relationship("MonthlyPostingDB", back_populates="user")
-
+    config = relationship("SACCOConfigurationDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     #id
@@ -78,6 +79,7 @@ class User(BaseModel):
     bank_acc_no : str = Field(..., min_length=3, max_length=50, description="Account number must be between 3 and 50 characters")
     #account
     status: int =  Field(..., ge=1, description="Status must be greater than or equal to 1")
+    role: int =  Field(..., ge=1, description="Role must be greater than or equal to 1")
     password : str = Field(..., min_length=8, max_length=64, description="Password must be between 8 and 64 characters")
     approved_at: Optional[datetime] = None
     approved_by: Optional[str] = None
@@ -89,3 +91,4 @@ class User(BaseModel):
     
     class Config:
         orm_mode = True
+        
