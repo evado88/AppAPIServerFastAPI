@@ -52,6 +52,10 @@ class UserDB(Base):
     transactions = relationship("TransactionDB", back_populates="user")
     postings = relationship("MonthlyPostingDB", back_populates="user")
     config = relationship("SACCOConfigurationDB", back_populates="user")
+    announcements = relationship("AnnouncementDB", back_populates="user")
+    queries = relationship("MemberQueryDB", back_populates="user")
+    notifications = relationship("NotificationDB", back_populates="user")
+    attendances = relationship("AttendanceDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     #id

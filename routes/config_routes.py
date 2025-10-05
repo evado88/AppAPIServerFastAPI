@@ -35,6 +35,10 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         loan_interest_rate = config.loan_interest_rate,
         loan_repayment_rate = config.loan_repayment_rate,
         loan_saving_ratio = config.loan_saving_ratio,
+        
+        late_posting_rate = config.late_posting_rate,
+        missed_meeting_rate = config.missed_meeting_rate,
+        late_meeting_rate = config.late_meeting_rate
     )
     db.add(db_tran)
     try:

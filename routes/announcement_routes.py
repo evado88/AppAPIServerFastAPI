@@ -1,0 +1,76 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from typing import List
+
+from database import get_db
+from models.annoucement_model import Announcement, AnnouncementDB, AnnouncementWithDetail
+from models.user_model import UserDB
+
+router = APIRouter(prefix="/announcements", tags=["Announcements"])
+
+
+@router.post("/", response_model=Announcement)
+async def post_announcement(announcement: Announcement, db: AsyncSession = Depends(get_db)):
+    # check user exists
+    result = await db.execute(select(UserDB).where(UserDB.id == announcement.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=400, detail=f"User with id {announcement.user_id} does not exist"
+        )
+
+    db_tran = AnnouncementDB(
+        # user
+        user_id = announcement.user_id,
+        # transaction
+        title = announcement.title,
+        content = announcement.content,
+
+        # approval
+        approval_levels = announcement.approval_levels,
+        status_id = announcement.status_id,
+    )
+    db.add(db_tran)
+    try:
+        await db.commit()
+        await db.refresh(db_tran)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Could not create announcement: {e}")
+    return db_tran
+
+
+@router.get("/", response_model=List[AnnouncementWithDetail])
+async def list_announcements(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AnnouncementDB)
+        #.options(
+        #    joinedload(AnnouncementDB.post),
+        #    joinedload(AnnouncementDB.status),
+        #    joinedload(AnnouncementDB.type),
+        #    joinedload(AnnouncementDB.source),
+        #
+        #)
+    )
+    transactions = result.scalars().all()
+    return transactions
+
+
+@router.get("/{announcement_id}", response_model=AnnouncementWithDetail)
+async def get_announcement(announcement_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AnnouncementDB)
+        #.options(
+        #    joinedload(AnnouncementDB.post),
+        #    joinedload(AnnouncementDB.status),
+        #    joinedload(AnnouncementDB.type),
+        #    joinedload(AnnouncementDB.source),
+        #
+        #)
+        .filter(AnnouncementDB.id == announcement_id)
+    )
+    transaction = result.scalars().first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Announcement with id '{announcement_id}' not found")
+    return transaction

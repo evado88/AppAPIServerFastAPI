@@ -53,8 +53,10 @@ class MonthlyPostingDB(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
 
+    #relationships
     user = relationship("UserDB", back_populates="postings", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="postings", lazy='selectin')
+    transactions = relationship("TransactionDB", back_populates="post", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class MonthlyPosting(BaseModel):
     #id

@@ -2,6 +2,7 @@ User model
 
 {
   "status": 1,
+  "role": 1,
   "fname": "John",
   "lname": "Doe",
   "mobile1": "+260978989259",
@@ -62,4 +63,34 @@ Configuration
   "loan_interest_rate": 10,
   "loan_repayment_rate": 10,
   "loan_saving_ratio": 4,
+  "late_posting_rate": 250,
+  "missed_meeting_rate": 100,
+  "late_meeting_rate": 50
+}
+
+Annoucement
+{
+  "user_id": 1,
+  "title":"Meeting, 10th October 2025",
+  "content":"There will be a meeting this coming weekend",
+  "status_id": 1,
+  "approval_levels": 1
+}
+
+Member Queries
+{
+  "user_id": 1,
+  "type_id": 2,
+  "title":"Balance for loan",
+  "content":"Please tell me the balance for my loan",
+  "status_id": 1,
+  "approval_levels": 1
+}
+
+Notification
+{
+  "user_id": 1,
+  "title":"Posting Reminder",
+  "status_id": 1,
+  "content":"Monthly posting are due 12 October 2025. Late posting will attract fee"
 }

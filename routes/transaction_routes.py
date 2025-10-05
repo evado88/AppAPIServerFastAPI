@@ -48,20 +48,23 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
     try:
         await db.commit()
         await db.refresh(db_tran)
-    except Exception:
+    except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Could not create loan")
+        raise HTTPException(status_code=400, detail=f"Could not create loan: {e}")
     return db_tran
 
 
 @router.get("/", response_model=List[TransactionWithDetail])
 async def list_transactions(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(TransactionDB).options(
-            joinedload(TransactionDB.status),
-            joinedload(TransactionDB.type),
-            joinedload(TransactionDB.source),
-        )
+        select(TransactionDB)
+        #.options(
+        #    joinedload(TransactionDB.post),
+        #    joinedload(TransactionDB.status),
+        #    joinedload(TransactionDB.type),
+        #    joinedload(TransactionDB.source),
+        #
+        #)
     )
     transactions = result.scalars().all()
     return transactions
@@ -71,11 +74,13 @@ async def list_transactions(db: AsyncSession = Depends(get_db)):
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
-        .options(
-            joinedload(TransactionDB.status),
-            joinedload(TransactionDB.type),
-            joinedload(TransactionDB.source),
-        )
+        #.options(
+        #    joinedload(TransactionDB.post),
+        #    joinedload(TransactionDB.status),
+        #    joinedload(TransactionDB.type),
+        #    joinedload(TransactionDB.source),
+        #
+        #)
         .filter(TransactionDB.id == tran_id)
     )
     transaction = result.scalars().first()

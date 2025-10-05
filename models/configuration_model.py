@@ -26,6 +26,10 @@ class SACCOConfigurationDB(Base):
     loan_repayment_rate = Column(Float, nullable=False)
     loan_saving_ratio = Column(Float, nullable=False)
     
+    late_posting_rate = Column(Float, nullable=False)
+    missed_meeting_rate = Column(Float, nullable=False)
+    late_meeting_rate = Column(Float, nullable=False)
+    
     #service columns
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
@@ -48,6 +52,11 @@ class SACCOConfiguration(BaseModel):
     loan_repayment_rate: float = Field(..., ge=0, description="The loan repayment rate must be greater than zero")
     loan_saving_ratio: float = Field(..., gt=0, description="The loan saving ratio must be greater than zero")
     
+    late_posting_rate: float = Field(..., ge=0, description="The late posting rate must be greater than zero")
+    missed_meeting_rate: float = Field(..., ge=0, description="The missed meeting rate must be greater than zero")
+    late_meeting_rate: float = Field(..., gt=0, description="The late meeting rate must be greater than zero")
+    
+
     #service columns
     updated_at: Optional[datetime] = None
     updated_by: Optional[str]  = None

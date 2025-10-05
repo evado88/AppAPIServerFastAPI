@@ -7,6 +7,7 @@ from models.user_model import User
 from models.transaction_types_model import TransactionType
 from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
+from models.monthly_post_model import MonthlyPosting
 from datetime import date, datetime
 
 # ---------- SQLAlchemy Models ----------
@@ -22,6 +23,7 @@ class TransactionDB(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     #transaction
+    post_id = Column(Integer, ForeignKey("monthly_postings.id", ondelete="CASCADE"), nullable=True)
     date = Column(DateTime(timezone=True), nullable=False)
     source_id = Column(Integer, ForeignKey("list_transaction_sources.id"), nullable=False)
     amount = Column(Float, nullable=False)
@@ -51,11 +53,13 @@ class TransactionDB(Base):
     created_by = Column(String, nullable=True)
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
-
+    
+    #relationships
     user = relationship("UserDB", back_populates="transactions", lazy='selectin')
     type = relationship("TransactionTypeDB", back_populates="transactions", lazy='selectin')
     source = relationship("TransactionSourceDB", back_populates="transactions", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="transactions", lazy='selectin')
+    post = relationship("MonthlyPostingDB", back_populates="transactions", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
     #id
@@ -65,6 +69,7 @@ class Transaction(BaseModel):
     #user
     user_id: int
     #transaction
+    post_id: Optional[int] = None
     date: datetime = Field(..., description="The date for the transaction")
     source_id: int = Field(..., ge=1, description="Source must be greater than or equal to 1")
     amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
@@ -75,7 +80,7 @@ class Transaction(BaseModel):
     interest_rate: Optional[float] = None
     #approval
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
-    approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be btween 1 and 3")
+    approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
     approved1_at: Optional[datetime] = None
     approved1_by: Optional[str] = None
     approved2_at: Optional[datetime] = None
@@ -97,4 +102,5 @@ class TransactionWithDetail(Transaction):
     type: TransactionType
     status: StatusType
     source: TransactionSource
+    post: Optional[MonthlyPosting] = None
     

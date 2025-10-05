@@ -19,6 +19,7 @@ async def create_user(user: User, db: AsyncSession = Depends(get_db)):
     
     db_user = UserDB(
         #personal details
+        role = user.role,
         fname=user.fname,
         lname=user.lname,
         mobile1=user.mobile1,
