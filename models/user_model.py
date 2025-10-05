@@ -78,7 +78,7 @@ class User(BaseModel):
     
     #account
     role: int =  Field(..., ge=1, le=3, description="Role must be greater than or equal to 1")
-    password: str = Field(..., min_length=8, max_length=80, description="Password must be between 8 and 80 characters")
+    password: str = Field(..., min_length=8, max_length=255, description="Password must be between 8 and 80 characters")
     
     status_id: int =  Field(..., ge=1, description="Status must be greater than or equal to 1")
     stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")

@@ -24,7 +24,7 @@ async def login(
             status_code=401, detail=f"The specified username or password is incorrect"
         )
 
-    if not user.password == assist.encode_sha256(form_data.password):
+    if not assist.verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=401, detail=f"The specified username or password is incorrect"
         )

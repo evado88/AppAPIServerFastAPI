@@ -32,7 +32,7 @@ async def create_user(user: User, db: AsyncSession = Depends(get_db)):
         
         #account
         role = user.role,
-        password = assist.encode_sha256(user.password),
+        password = assist.hash_password(user.password),
         
         #approval
         status_id = user.status_id,
