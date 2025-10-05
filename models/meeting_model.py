@@ -45,6 +45,7 @@ class MeetingDB(Base):
     #relationships
     user = relationship("UserDB", back_populates="meetings", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="meetings", lazy='selectin')
+    attendances = relationship("AttendanceDB", back_populates="meetings", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Meeting(BaseModel):
     #id

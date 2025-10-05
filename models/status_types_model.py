@@ -26,6 +26,7 @@ class StatusTypeDB(Base):
     queries = relationship("MemberQueryDB", back_populates="status")
     notifications = relationship("NotificationDB", back_populates="status")
     announcements = relationship("AnnouncementDB", back_populates="status")
+    meetings = relationship("MeetingDB", back_populates="status")
 # ---------- Pydantic Schemas ----------
 class StatusType(BaseModel):
     #id

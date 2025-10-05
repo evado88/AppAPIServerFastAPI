@@ -56,6 +56,7 @@ class UserDB(Base):
     queries = relationship("MemberQueryDB", back_populates="user")
     notifications = relationship("NotificationDB", back_populates="user")
     attendances = relationship("AttendanceDB", back_populates="user")
+    meetings = relationship("MeetingDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     #id
