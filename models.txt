@@ -1,24 +1,33 @@
-User model
+User model - 1
 {
-  "status": 1,
-  "role": 1,
+  "type": 1,
   "fname": "John",
   "lname": "Doe",
-  "mobile1": "+260978989259",
-  "mobile2": "+260977123456",
-  "id_type": "NRC",
-  "id_no": "139980/10/1",
+  "mobile": "+260978989259",
+  "position": "Clerk",
+  "address": "Libala South",
   "email": "nkoleevans@gmail.com",
-  "dob": "1989-10-27",
-  "guar_fname": "Mary",
-  "guar_lname": "Doeh",
-  "guar_mobile": "+260977123001",
-  "guar_email": "mary.doeh@gmail.com",
-  "bank_name": "ABSA Bank",
-  "bank_branch": "Lusaka Business Centre",
-  "bank_acc_name": "Mary Doeh",
-  "bank_acc_no": "016-1450967",
-  "password": "25d55ad283aa400af464c76d713c07ad"
+  "role": 1,
+  "password": "12345678",
+  "status_id": 1,
+  "stage_id": 1,
+  "approval_levels": 3
+}
+
+User model - 2
+{
+  "type": 1,
+  "fname": "Mary",
+  "lname": "Edward",
+  "mobile": "+260977123001",
+  "position": "Member",
+  "address": "Libala South",
+  "email": "nkoleevans@hotmail.com",
+  "role": 1,
+  "password": "12345678",
+  "status_id": 1,
+  "stage_id": 1,
+  "approval_levels": 3
 }
 
 Transaction

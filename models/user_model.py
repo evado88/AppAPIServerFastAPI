@@ -26,7 +26,7 @@ class UserDB(Base):
     
     #account
     role = Column(Integer, nullable=False)
-    password = Column(Integer, nullable=False)
+    password = Column(String, nullable=False)
             
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
     stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
@@ -49,7 +49,7 @@ class UserDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    stage = relationship("ReviewStageDB", back_populates="user", lazy='selectin')
+    stage = relationship("ReviewStageDB", back_populates="users", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="users", lazy='selectin')
     transactions = relationship("TransactionDB", back_populates="user")
     postings = relationship("MonthlyPostingDB", back_populates="user")
@@ -60,6 +60,7 @@ class UserDB(Base):
     attendances = relationship("AttendanceDB", back_populates="user")
     meetings = relationship("MeetingDB", back_populates="user")
     member = relationship("MemberDB", back_populates="user")
+    kbarticles = relationship("KnowledgeBaseDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     #id
@@ -76,11 +77,14 @@ class User(BaseModel):
     email: EmailStr
     
     #account
-    status_id: int =  Field(..., ge=1, le=3, description="Status must be greater than or equal to 1")
-
+    role: int =  Field(..., ge=1, le=3, description="Role must be greater than or equal to 1")
+    password: str = Field(..., min_length=8, max_length=80, description="Password must be between 8 and 80 characters")
+    
+    status_id: int =  Field(..., ge=1, description="Status must be greater than or equal to 1")
+    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+    
     approval_levels: int = Field(..., ge=1, description="Approval levels must be between 1 and 3")
     
-    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None

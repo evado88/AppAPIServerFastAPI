@@ -6,6 +6,8 @@ from routes import monthly_posting_routes, config_routes, auth_routes
 from routes import announcement_routes, notification_routes
 from routes import member_query_routes, member_query_type_routes
 from routes import meeting_routes, attendance_routes, attendance_type_routes
+from routes import member_routes, knowledge_base_category_routes, knowledge_base_routes
+from routes import review_stages_routes
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -52,7 +54,10 @@ app.include_router(notification_routes.router)
 app.include_router(meeting_routes.router)
 app.include_router(attendance_type_routes.router)
 app.include_router(attendance_routes.router)
-
+app.include_router(member_routes.router)
+app.include_router(knowledge_base_category_routes.router)
+app.include_router(knowledge_base_routes.router)
+app.include_router(review_stages_routes.router)
 # create tables at startup
 
 

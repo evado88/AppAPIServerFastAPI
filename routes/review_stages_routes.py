@@ -35,7 +35,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         db_status = ReviewStageDB(
             #personal details
             id = stageId,
-            status_name=value,
+            stage_name=value,
         )
         db.add(db_status)
         stageId += 1

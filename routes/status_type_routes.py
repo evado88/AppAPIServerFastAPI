@@ -46,7 +46,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Unable to initialize status types: f{e}")
-    return {'succeeded': True, 'message': 'Statuses have been successfully initialzied'}
+    return {'succeeded': True, 'message': 'Statuses have been successfully initialized'}
 
 
 @router.get("/", response_model=List[StatusType])

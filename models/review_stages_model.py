@@ -27,6 +27,8 @@ class ReviewStageDB(Base):
     announcements = relationship("AnnouncementDB", back_populates="stage")
     meetings = relationship("MeetingDB", back_populates="stage")
     queries = relationship("MemberQueryDB", back_populates="stage")
+    users = relationship("UserDB", back_populates="stage")
+    kbarticles = relationship("KnowledgeBaseDB", back_populates="stage")
 # ---------- Pydantic Schemas ----------
 class ReviewStage(BaseModel):
     #id

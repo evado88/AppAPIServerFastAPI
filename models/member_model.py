@@ -42,7 +42,7 @@ class MemberDB(Base):
     bank_acc_no = Column(String, nullable=False)
 
     #account
-    status_id = Column(Integer, default=1, nullable=False)
+    status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
     
     approval_levels = Column(Integer, nullable=False)
     

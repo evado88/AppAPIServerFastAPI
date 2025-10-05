@@ -6,12 +6,12 @@ from database import Base
 from datetime import datetime
 
 # ---------- SQLAlchemy Models ----------
-class StatusTypeDB(Base):
-    __tablename__ = "list_status_types"
+class KnowledgeBaseCategoryDB(Base):
+    __tablename__ = "kbcategories"
 
     #id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    status_name = Column(String,  nullable=False)
+    cat_name = Column(String,  nullable=False)
     description = Column(String, nullable=True)
     
     #service columns
@@ -21,20 +21,13 @@ class StatusTypeDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    transactions = relationship("TransactionDB", back_populates="status")
-    postings = relationship("MonthlyPostingDB", back_populates="status")
-    queries = relationship("MemberQueryDB", back_populates="status")
-    notifications = relationship("NotificationDB", back_populates="status")
-    announcements = relationship("AnnouncementDB", back_populates="status")
-    meetings = relationship("MeetingDB", back_populates="status")
-    members = relationship("MemberDB", back_populates="status")
-    users = relationship("UserDB", back_populates="status")
-    kbarticles = relationship("KnowledgeBaseDB", back_populates="status")
+    kbarticles = relationship("KnowledgeBaseDB", back_populates="category")
+
 # ---------- Pydantic Schemas ----------
-class StatusType(BaseModel):
+class KnowledgeBaseCategory(BaseModel):
     #id
     id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")
-    status_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
+    cat_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
     description: Optional[str] = None
     #service columns
     created_at: Optional[datetime] = None
