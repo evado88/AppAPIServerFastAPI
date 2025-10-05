@@ -18,7 +18,7 @@ class MeetingDB(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     #meeting
-    date = Column(String, nullable=False)
+    date = Column(DateTime(timezone=True), nullable=False)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
     
@@ -45,7 +45,7 @@ class MeetingDB(Base):
     #relationships
     user = relationship("UserDB", back_populates="meetings", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="meetings", lazy='selectin')
-    attendances = relationship("AttendanceDB", back_populates="meetings", lazy='selectin')
+    attendances = relationship("AttendanceDB", back_populates="meeting", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Meeting(BaseModel):
     #id

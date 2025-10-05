@@ -21,7 +21,7 @@ class AttendanceTypeDB(Base):
     updated_by = Column(String, nullable=True)
 
     #relationships
-    transactions = relationship("AttendanceDB", back_populates="type")
+    attendances = relationship("AttendanceDB", back_populates="type")
 # ---------- Pydantic Schemas ----------
 class AttendanceType(BaseModel):
     #id

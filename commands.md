@@ -9,7 +9,7 @@ Add relation [Trasaction Status Example]
 - Ensure corresponding class has field populated
     transactions = relationship("TransactionDB", back_populates="status")
 
-- Most important, ensure class for detail has the object defined
+- Most important, ensure class for detail has the object defined and that name in detail class matches model class
   
     class TransactionWithDetail(Transaction):
         status: StatusType

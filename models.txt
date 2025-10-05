@@ -94,3 +94,21 @@ Notification
   "status_id": 1,
   "content":"Monthly posting are due 12 October 2025. Late posting will attract fee"
 }
+
+Meeting
+{
+  "user_id": 1,
+  "date":"2025-10-10",
+  "title":"Meeting - 10th October 2025",
+  "content":"Agenda and outcomes",
+  "status_id": 1,
+  "approval_levels": 1
+}
+
+
+Attendance
+{
+  "type_id": 2,
+  "meeting_id": 1,
+  "user_id": 1
+}

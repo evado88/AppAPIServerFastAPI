@@ -5,6 +5,7 @@ from typing import Optional
 from database import Base
 from models.user_model import User
 from models.meeting_model import Meeting
+from models.attendance_types_model import AttendanceType
 from datetime import datetime
 
 # ---------- SQLAlchemy Models ----------
@@ -20,7 +21,8 @@ class AttendanceDB(Base):
     
     #relationships
     user = relationship("UserDB", back_populates="attendances", lazy='selectin')
-    meetings = relationship("MeetingDB", back_populates="attendances", lazy='selectin')
+    meeting = relationship("MeetingDB", back_populates="attendances", lazy='selectin')
+    type = relationship("AttendanceTypeDB", back_populates="attendances", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Attendance(BaseModel):
     #id
@@ -37,4 +39,5 @@ class Attendance(BaseModel):
 class AttendanceWithDetail(Attendance):
     user: User
     meeting: Meeting
+    type: AttendanceType
     
