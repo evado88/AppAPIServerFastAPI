@@ -17,7 +17,7 @@ async def post_memberquery(mquery: MemberQuery, db: AsyncSession = Depends(get_d
     user = result.scalars().first()
     if not user:
         raise HTTPException(
-            status_code=400, detail=f"User with id {mquery.user_id} does not exist"
+            status_code=400, detail=f"The user with id {mquery.user_id} does not exist"
         )
 
     db_tran = MemberQueryDB(
@@ -30,6 +30,7 @@ async def post_memberquery(mquery: MemberQuery, db: AsyncSession = Depends(get_d
         content = mquery.content,
         # approval
         status_id = mquery.status_id,
+        stage_id = mquery.stage_id,
         approval_levels = mquery.approval_levels,
         # service
         created_by=mquery.created_by,
@@ -40,7 +41,7 @@ async def post_memberquery(mquery: MemberQuery, db: AsyncSession = Depends(get_d
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create member query: {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create member query: {e}")
     return db_tran
 
 
@@ -56,8 +57,8 @@ async def list_memberquerys(db: AsyncSession = Depends(get_db)):
         #
         #)
     )
-    transactions = result.scalars().all()
-    return transactions
+    queries = result.scalars().all()
+    return queries
 
 
 @router.get("/{memberquery_id}", response_model=MemberQueryWithDetail)
@@ -73,7 +74,7 @@ async def get_memberquery(memberquery_id: int, db: AsyncSession = Depends(get_db
         #)
         .filter(MemberQueryDB.id == memberquery_id)
     )
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(status_code=404, detail=f"MemberQuery with id '{memberquery_id}' not found")
-    return transaction
+    query = result.scalars().first()
+    if not query:
+        raise HTTPException(status_code=404, detail=f"Unable to find member query with id '{memberquery_id}'")
+    return query

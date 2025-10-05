@@ -1,5 +1,4 @@
 User model
-
 {
   "status": 1,
   "role": 1,

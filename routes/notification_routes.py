@@ -16,7 +16,7 @@ async def post_notification(notificcation: Notification, db: AsyncSession = Depe
     user = result.scalars().first()
     if not user:
         raise HTTPException(
-            status_code=400, detail=f"User with id {notificcation.user_id} does not exist"
+            status_code=400, detail=f"The user with id {notificcation.user_id} does not exist"
         )
 
     db_tran = NotificationDB(
@@ -36,7 +36,7 @@ async def post_notification(notificcation: Notification, db: AsyncSession = Depe
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create notification: {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create notification: {e}")
     return db_tran
 
 

@@ -7,22 +7,9 @@ from typing import List
 from jose import JWTError, jwt
 from database import get_db
 from models.user_model import User, UserDB
-import hashlib
+import helpers.assist as assist
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-
-
-def encode_sha256(input):
-    # Create a SHA-256 hash object
-    hasher = hashlib.sha256()
-    # Update the hash object with the byte-encoded message
-    hasher.update(input.encode("utf-8"))
-    # Get the hexadecimal representation of the hash
-    sha256_result = hasher.hexdigest()
-    return sha256_result
 
 
 @router.post("/login")
@@ -37,7 +24,7 @@ async def login(
             status_code=401, detail=f"The specified username or password is incorrect"
         )
 
-    if not user.password == encode_sha256(form_data.password):
+    if not user.password == assist.encode_sha256(form_data.password):
         raise HTTPException(
             status_code=401, detail=f"The specified username or password is incorrect"
         )
@@ -48,6 +35,6 @@ async def login(
         "role": user.role,
         "exp":  datetime.now(timezone.utc) + timedelta( minutes=0.2),
     }
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(to_encode, assist.SECRET_KEY, algorithm=assist.ALGORITHM)
 
     return {"access_token": token, "token_type": "bearer"}

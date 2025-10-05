@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from typing import Optional
 from database import Base
+from models.review_stages_model import ReviewStage
 from models.user_model import User
 from models.member_query_type_model import MemberQueryType
 from models.status_types_model import StatusType
@@ -28,6 +29,8 @@ class MemberQueryDB(Base):
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
     
     approval_levels = Column(Integer, nullable=False)
+    
+    stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
         
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
@@ -48,6 +51,7 @@ class MemberQueryDB(Base):
     user = relationship("UserDB", back_populates="queries", lazy='selectin')
     type = relationship("MemberQueryTypeDB", back_populates="queries", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="queries", lazy='selectin')
+    stage = relationship("ReviewStageDB", back_populates="queries", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class MemberQuery(BaseModel):
     #id
@@ -67,6 +71,8 @@ class MemberQuery(BaseModel):
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
+    
+    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
@@ -90,4 +96,5 @@ class MemberQueryWithDetail(MemberQuery):
     user: User
     type: MemberQueryType
     status: StatusType
+    stage: ReviewStage
     

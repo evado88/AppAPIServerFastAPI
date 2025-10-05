@@ -17,7 +17,7 @@ async def post_announcement(announcement: Announcement, db: AsyncSession = Depen
     user = result.scalars().first()
     if not user:
         raise HTTPException(
-            status_code=400, detail=f"User with id {announcement.user_id} does not exist"
+            status_code=400, detail=f"The user with id '{announcement.user_id}' does not exist"
         )
 
     db_tran = AnnouncementDB(
@@ -28,8 +28,10 @@ async def post_announcement(announcement: Announcement, db: AsyncSession = Depen
         content = announcement.content,
 
         # approval
-        approval_levels = announcement.approval_levels,
         status_id = announcement.status_id,
+        stage_id = announcement.stage_id,
+        approval_levels = announcement.approval_levels,
+  
     )
     db.add(db_tran)
     try:
@@ -37,7 +39,7 @@ async def post_announcement(announcement: Announcement, db: AsyncSession = Depen
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create announcement: {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create announcement: {e}")
     return db_tran
 
 
@@ -70,7 +72,7 @@ async def get_announcement(announcement_id: int, db: AsyncSession = Depends(get_
         #)
         .filter(AnnouncementDB.id == announcement_id)
     )
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(status_code=404, detail=f"Announcement with id '{announcement_id}' not found")
-    return transaction
+    announcement = result.scalars().first()
+    if not announcement:
+        raise HTTPException(status_code=404, detail=f"Unable to find announcement with id '{announcement_id}'")
+    return announcement

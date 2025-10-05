@@ -23,7 +23,7 @@ async def create_type(status: MemberQueryType, db: AsyncSession = Depends(get_db
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create member query type: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create member query type: f{e}")
     return db_user
 
 @router.post("/initialize")
@@ -45,8 +45,8 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         #await db.refresh(db_status)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not initialize member query types: f{e}")
-    return {'succeeded': True, 'message': 'Member query types has been successfully initialized'}
+        raise HTTPException(status_code=400, detail=f"Unable to initialize member query types: f{e}")
+    return {'succeeded': True, 'message': 'Member query types have been successfully initialized'}
 
 
 @router.get("/", response_model=List[MemberQueryType])

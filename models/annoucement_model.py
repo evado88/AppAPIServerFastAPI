@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from typing import Optional
 from database import Base
+from models.review_stages_model import ReviewStage
 from models.user_model import User
 from models.status_types_model import StatusType
 from datetime import datetime
@@ -25,6 +26,8 @@ class AnnouncementDB(Base):
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
     
     approval_levels = Column(Integer, nullable=False)
+    
+    stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
         
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
@@ -43,6 +46,7 @@ class AnnouncementDB(Base):
     
     #relationships
     user = relationship("UserDB", back_populates="announcements", lazy='selectin')
+    stage = relationship("ReviewStageDB", back_populates="announcements", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="announcements", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Announcement(BaseModel):
@@ -61,6 +65,8 @@ class Announcement(BaseModel):
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
     
+    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+        
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
     
@@ -82,4 +88,5 @@ class Announcement(BaseModel):
 class AnnouncementWithDetail(Announcement):
     user: User
     status: StatusType
+    stage: ReviewStage
     

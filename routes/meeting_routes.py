@@ -23,14 +23,20 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
     db_tran = MeetingDB(
         # user
         user_id = meeting.user_id,
-        # transaction
+        
+        # meeting
         date = meeting.date,
         title = meeting.title,
         content = meeting.content,
 
         # approval
-        approval_levels = meeting.approval_levels,
         status_id = meeting.status_id,
+        stage_id = meeting.stage_id,
+        approval_levels = meeting.approval_levels,
+        
+        #service
+        created_by = meeting.created_by,
+    
     )
     db.add(db_tran)
     try:

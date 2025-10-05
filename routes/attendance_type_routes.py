@@ -23,7 +23,7 @@ async def create_type(status: AttendanceType, db: AsyncSession = Depends(get_db)
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create attendance type: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create attendance type: f{e}")
     return db_user
 
 @router.post("/initialize")
@@ -45,7 +45,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         #await db.refresh(db_status)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not initialize attendance types: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unbale to initialize attendance types: f{e}")
     return {'succeeded': True, 'message': 'Attendance types has been successfully initialized'}
 
 

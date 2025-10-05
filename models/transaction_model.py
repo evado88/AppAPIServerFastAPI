@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from typing import Optional
 from database import Base
+from models.review_stages_model import ReviewStage
 from models.user_model import User
 from models.transaction_types_model import TransactionType
 from models.transaction_sources_model import TransactionSource
@@ -39,14 +40,16 @@ class TransactionDB(Base):
     
     approval_levels = Column(Integer, nullable=False)
     
-    approved1_at = Column(DateTime(timezone=True), nullable=True)
-    approved1_by = Column(String, nullable=True)
+    stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
+       
+    review1_at = Column(DateTime(timezone=True), nullable=True)
+    review1_by = Column(String, nullable=True)
     
-    approved2_at = Column(DateTime(timezone=True), nullable=True)
-    approved2_by = Column(String, nullable=True)
+    review2_at = Column(DateTime(timezone=True), nullable=True)
+    review2_by = Column(String, nullable=True)
     
-    approved3_at = Column(DateTime(timezone=True), nullable=True)
-    approved3_by = Column(String, nullable=True)
+    review3_at = Column(DateTime(timezone=True), nullable=True)
+    review3_by = Column(String, nullable=True)
     
     #service columns
     created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=True)
@@ -59,6 +62,7 @@ class TransactionDB(Base):
     type = relationship("TransactionTypeDB", back_populates="transactions", lazy='selectin')
     source = relationship("TransactionSourceDB", back_populates="transactions", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="transactions", lazy='selectin')
+    stage = relationship("ReviewStageDB", back_populates="transactions", lazy='selectin')
     post = relationship("MonthlyPostingDB", back_populates="transactions", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
@@ -66,8 +70,10 @@ class Transaction(BaseModel):
     id: Optional[int] = None
     code: Optional[str] = None
     type_id: int = Field(..., ge=1, description="Type must be greater than or equal to 1")
+    
     #user
     user_id: int
+    
     #transaction
     post_id: Optional[int] = None
     date: datetime = Field(..., description="The date for the transaction")
@@ -75,18 +81,27 @@ class Transaction(BaseModel):
     amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
     comments: Optional[str] = None
     reference: Optional[str] = None
+    
     #loans only
     term_months: Optional[int] = None
     interest_rate: Optional[float] = None
+    
     #approval
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
+    
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
-    approved1_at: Optional[datetime] = None
-    approved1_by: Optional[str] = None
-    approved2_at: Optional[datetime] = None
-    approved2_by: Optional[str] = None
-    approved3_at: Optional[datetime] = None
-    approved3_by: Optional[str] = None
+   
+    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+    
+    review1_at: Optional[datetime] = None
+    review1_by: Optional[str] = None
+    
+    review2_at: Optional[datetime] = None
+    review2_by: Optional[str] = None
+    
+    review3_at: Optional[datetime] = None
+    review3_by: Optional[str] = None
+    
     #service columns
     created_at: Optional[datetime] = None
     created_by: Optional[str]  = None
@@ -103,4 +118,4 @@ class TransactionWithDetail(Transaction):
     status: StatusType
     source: TransactionSource
     post: Optional[MonthlyPosting] = None
-    
+    stage: ReviewStage

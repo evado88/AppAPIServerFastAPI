@@ -23,7 +23,7 @@ async def create_status(status: StatusType, db: AsyncSession = Depends(get_db)):
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not register status type: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create status type: f{e}")
     return db_user
 
 @router.post("/initialize")
@@ -45,8 +45,8 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         #await db.refresh(db_status)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not initialize status types: f{e}")
-    return {'succeeded': True, 'message': 'Status has been successfully initialzied'}
+        raise HTTPException(status_code=400, detail=f"Unable to initialize status types: f{e}")
+    return {'succeeded': True, 'message': 'Statuses have been successfully initialzied'}
 
 
 @router.get("/", response_model=List[StatusType])

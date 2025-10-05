@@ -4,45 +4,43 @@ from sqlalchemy.future import select
 from typing import List
 
 from database import get_db
-from models.user_model import User, UserDB
+from helpers import assist
+from models.user_model import User, UserDB, UserWithDetail
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/register", response_model=User)
+@router.post("/create", response_model=User)
 async def create_user(user: User, db: AsyncSession = Depends(get_db)):
     # Check duplicate email
     result = await db.execute(select(UserDB).where(UserDB.email == user.email))
     existing = result.scalar_one_or_none()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail=f"The email '{user.email}' is already registered")
     
     db_user = UserDB(
+        #id
+        type = user.type,
+        
         #personal details
-        role = user.role,
-        fname=user.fname,
-        lname=user.lname,
-        mobile1=user.mobile1,
-        mobile2=user.mobile2,
-        id_type=user.id_type,
-        id_no = user.id_no,
-        email=user.email,
-        dob=user.dob,
-        #guarantor
-        guar_fname = user.guar_fname,
-        guar_lname =  user.guar_lname,
-        guar_mobile =  user.guar_mobile,
-        guar_email =  user.guar_email,
-        #banking
-        bank_name = user.bank_name,
-        bank_branch = user.bank_branch,
-        bank_acc_name = user.bank_acc_name,
-        bank_acc_no = user.bank_acc_no,
+        fname = user.fname,
+        lname = user.lname,
+        mobile = user.mobile,
+        position = user.position,
+        address = user.address,
+        email = user.email,
+        
         #account
-        password = user.password,
-        #service columns
-        created_at=user.created_at,
-        updated_at=user.updated_at,
+        role = user.role,
+        password = assist.encode_sha256(user.password),
+        
+        #approval
+        status_id = user.status_id,
+        stage_id = user.stage_id,
+        approval_levels = user.approval_levels,
+        
+        #service
+        created_by = user.email,
     )
     db.add(db_user)
     try:
@@ -50,11 +48,28 @@ async def create_user(user: User, db: AsyncSession = Depends(get_db)):
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not register user: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create user: f{e}")
     return db_user
 
+@router.get("/{user_id}", response_model=UserWithDetail)
+async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(UserDB)
+        #.options(
+        #    joinedload(TransactionDB.post),
+        #    joinedload(TransactionDB.status),
+        #    joinedload(TransactionDB.type),
+        #    joinedload(TransactionDB.source),
+        #
+        #)
+        .filter(UserDB.id == user_id)
+    )
+    transaction = result.scalars().first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Unable to find user with specified id '{user_id}'")
+    return transaction
 
-@router.get("/", response_model=List[User])
+@router.get("/", response_model=List[UserWithDetail])
 async def list_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserDB))
     return result.scalars().all()

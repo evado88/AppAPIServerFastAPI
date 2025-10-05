@@ -23,34 +23,34 @@ async def create_status(transaction: TransactionSource, db: AsyncSession = Depen
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not register create transaction source: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create transaction source: f{e}")
     return db_user
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_db)):
-    transactionList = ['Bank Transfer', 'Mobile Money - Airtel', 'Mobile Money - MTN', 'Mobile Money - Zamtel', 'Cash', 'Cheque']
-    transactionId = 1
+    transactionSourceList = ['Bank Transfer', 'Mobile Money - Airtel', 'Mobile Money - MTN', 'Mobile Money - Zamtel', 'Cash', 'Cheque']
+    transactionSourceId = 1
     
-    for value in transactionList:
+    for value in transactionSourceList:
         db_status = TransactionSourceDB(
             #personal details
-            id = transactionId,
+            id = transactionSourceId,
             source_name=value,
         )
         db.add(db_status)
-        transactionId += 1
+        transactionSourceId += 1
         
     try:
         await db.commit()
         #await db.refresh(db_status)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not initialize transaction sources: f{e}")
-    return {'succeeded': True, 'message': 'Transaction source list has been successfully initialzied'}
+        raise HTTPException(status_code=400, detail=f"Unable to initialize transaction sources: f{e}")
+    return {'succeeded': True, 'message': 'Transaction sources have been successfully initialized'}
 
 
 @router.get("/", response_model=List[TransactionSource])
-async def list_statuses(db: AsyncSession = Depends(get_db)):
+async def list_sources(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(TransactionSourceDB))
     return result.scalars().all()
 

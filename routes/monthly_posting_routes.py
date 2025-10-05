@@ -19,7 +19,7 @@ async def post_transaction(posting: MonthlyPosting, db: AsyncSession = Depends(g
     user = result.scalars().first()
     if not user:
         raise HTTPException(
-            status_code=400, detail=f"User with id {posting.user_id} does not exist"
+            status_code=400, detail=f"The user with id {posting.user_id} does not exist"
         )
 
     db_tran = MonthlyPostingDB(
@@ -42,7 +42,8 @@ async def post_transaction(posting: MonthlyPosting, db: AsyncSession = Depends(g
 
         # approval
         status_id=posting.status_id,
-        approval_levels=posting.approval_levels,
+        stage_id = posting.stage_id,
+        approval_levels = posting.approval_levels,
         
         # service
         created_by=posting.created_by,
@@ -53,16 +54,17 @@ async def post_transaction(posting: MonthlyPosting, db: AsyncSession = Depends(g
         await db.refresh(db_tran)
     except Exception:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Could not create monthly posting")
+        raise HTTPException(status_code=400, detail="Unable to create monthly posting")
     return db_tran
 
 
 @router.get("/", response_model=List[MonthlyPostingWithDetail])
 async def list_postings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(MonthlyPostingDB).options(
-            joinedload(MonthlyPostingDB.status),
-        )
+        select(MonthlyPostingDB)
+        #.options(
+        #    joinedload(MonthlyPostingDB.status),
+        #)
     )
     posting = result.scalars().all()
     return posting
@@ -72,12 +74,12 @@ async def list_postings(db: AsyncSession = Depends(get_db)):
 async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)
-        .options(
-            joinedload(MonthlyPostingDB.status),
-        )
+        #.options(
+        #    joinedload(MonthlyPostingDB.status),
+        #)
         .filter(MonthlyPostingDB.id == posting_id)
     )
     posting = result.scalars().first()
     if not posting:
-        raise HTTPException(status_code=404, detail=f"Monthly Posting with id '{posting_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Unable to find monthly posting with id '{posting_id}'")
     return posting

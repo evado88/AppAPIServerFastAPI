@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from typing import Optional
 from database import Base
+from models.review_stages_model import ReviewStage
 from models.user_model import User
 from models.status_types_model import StatusType
 from datetime import datetime
@@ -26,6 +27,8 @@ class MeetingDB(Base):
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
     
     approval_levels = Column(Integer, nullable=False)
+    
+    stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
         
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
@@ -46,6 +49,7 @@ class MeetingDB(Base):
     user = relationship("UserDB", back_populates="meetings", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="meetings", lazy='selectin')
     attendances = relationship("AttendanceDB", back_populates="meeting", lazy='selectin')
+    stage = relationship("ReviewStageDB", back_populates="meetings", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Meeting(BaseModel):
     #id
@@ -63,6 +67,8 @@ class Meeting(BaseModel):
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
+    
+    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
@@ -85,4 +91,4 @@ class Meeting(BaseModel):
 class MeetingWithDetail(Meeting):
     user: User
     status: StatusType
-    
+    stage: ReviewStage

@@ -21,28 +21,34 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
     user = result.scalars().first()
     if not user:
         raise HTTPException(
-            status_code=400, detail=f"User with id {tran.user_id} does not exist"
+            status_code=400, detail=f"The user with id {tran.user_id} does not exist"
         )
 
     db_tran = TransactionDB(
         # id
-        type_id=tran.type_id,
+        type_id = tran.type_id,
+        
         # user
-        user_id=tran.user_id,
+        user_id = tran.user_id,
+        
         # transaction
-        date=tran.date,
-        source_id=tran.source_id,
-        amount=tran.amount,
-        comments=tran.comments,
-        reference=tran.reference,
+        date = tran.date,
+        source_id = tran.source_id,
+        amount = tran.amount,
+        comments = tran.comments,
+        reference = tran.reference,
+        
         # loan
-        term_months=tran.term_months,
-        interest_rate=tran.interest_rate,
+        term_months = tran.term_months,
+        interest_rate = tran.interest_rate,
+        
         # approval
-        status_id=tran.status_id,
-        approval_levels=tran.approval_levels,
+        status_id = tran.status_id,
+        stage_id = tran.stage_id,
+        approval_levels = tran.approval_levels,
+        
         # service
-        created_by=tran.created_by,
+        created_by = tran.created_by,
     )
     db.add(db_tran)
     try:
@@ -50,7 +56,7 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create loan: {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create transaction: {e}")
     return db_tran
 
 
@@ -85,5 +91,5 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
     )
     transaction = result.scalars().first()
     if not transaction:
-        raise HTTPException(status_code=404, detail=f"Transaction with id '{tran_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Unable to find transaction with id '{tran_id}'")
     return transaction

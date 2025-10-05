@@ -10,7 +10,7 @@ router = APIRouter(prefix="/transaction-types", tags=["TransactionTypes"])
 
 
 @router.post("/create", response_model=TransactionType)
-async def create_status(transaction: TransactionType, db: AsyncSession = Depends(get_db)):
+async def create_type(transaction: TransactionType, db: AsyncSession = Depends(get_db)):
     
     db_user = TransactionTypeDB(
         #personal details
@@ -23,7 +23,7 @@ async def create_status(transaction: TransactionType, db: AsyncSession = Depends
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not register create transaction type: f{e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create transaction type: f{e}")
     return db_user
 
 @router.post("/initialize")
@@ -45,12 +45,12 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         #await db.refresh(db_status)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not initialize transaction types: f{e}")
-    return {'succeeded': True, 'message': 'Transaction type list has been successfully initialzied'}
+        raise HTTPException(status_code=400, detail=f"Unable to initialize transaction types: f{e}")
+    return {'succeeded': True, 'message': 'Transaction types have been successfully initialized'}
 
 
 @router.get("/", response_model=List[TransactionType])
-async def list_statuses(db: AsyncSession = Depends(get_db)):
+async def list_types(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(TransactionTypeDB))
     return result.scalars().all()
 

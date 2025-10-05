@@ -30,15 +30,18 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         
         saving_multiple = config.saving_multiple,
         shares_multiple = config.shares_multiple,
-        
         social_min = config.social_min,
+        
         loan_interest_rate = config.loan_interest_rate,
         loan_repayment_rate = config.loan_repayment_rate,
         loan_saving_ratio = config.loan_saving_ratio,
         
         late_posting_rate = config.late_posting_rate,
         missed_meeting_rate = config.missed_meeting_rate,
-        late_meeting_rate = config.late_meeting_rate
+        late_meeting_rate = config.late_meeting_rate,
+        
+        #service columns
+        updated_by = config.updated_by,
     )
     db.add(db_tran)
     try:
@@ -46,7 +49,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create configuration {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create configuration {e}")
     return db_tran
 
 @router.put("/update/{config_id}", response_model=SACCOConfigurationWithDetail)
@@ -58,7 +61,7 @@ async def update_configuration(config_id: int, config_update: SACCOConfiguration
     config = result.scalar_one_or_none()
     
     if not config:
-        raise HTTPException(status_code=404, detail=f"Configuration with id '{config_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Unable to find configuration with id '{config_id}' not found")
     
     # Update fields that are not None
     for key, value in config_update.model_dump(exclude_unset=True).items():
@@ -69,7 +72,7 @@ async def update_configuration(config_id: int, config_update: SACCOConfiguration
         await db.refresh(config)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not update configuration {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to update configuration {e}")
     return config
 
 @router.get("/", response_model=List[SACCOConfigurationWithDetail])

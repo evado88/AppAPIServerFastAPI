@@ -17,7 +17,7 @@ async def post_attendance(attendance: Attendance, db: AsyncSession = Depends(get
     user = result.scalars().first()
     if not user:
         raise HTTPException(
-            status_code=400, detail=f"User with id {attendance.user_id} does not exist"
+            status_code=400, detail=f"The user with id '{attendance.user_id}' does not exist"
         )
 
     db_tran = AttendanceDB(
@@ -32,7 +32,7 @@ async def post_attendance(attendance: Attendance, db: AsyncSession = Depends(get
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create attendance: {e}")
+        raise HTTPException(status_code=400, detail=f"Unable to create attendance: {e}")
     return db_tran
 
 
@@ -48,8 +48,8 @@ async def list_attendances(db: AsyncSession = Depends(get_db)):
         #
         #)
     )
-    transactions = result.scalars().all()
-    return transactions
+    attendances = result.scalars().all()
+    return attendances
 
 
 @router.get("/{attendance_id}", response_model=AttendanceWithDetail)
@@ -65,7 +65,7 @@ async def get_attendance(attendance_id: int, db: AsyncSession = Depends(get_db))
         #)
         .filter(AttendanceDB.id == attendance_id)
     )
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(status_code=404, detail=f"Attendance with id '{attendance_id}' not found")
-    return transaction
+    attendance = result.scalars().first()
+    if not attendance:
+        raise HTTPException(status_code=404, detail=f"Unable to find attendance with id '{attendance_id}'")
+    return attendance
