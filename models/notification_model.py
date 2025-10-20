@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from models.user_model import User
@@ -50,8 +50,7 @@ class Notification(BaseModel):
     created_at: Optional[datetime] = None
     created_by: Optional[str]  = None
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationWithDetail(Notification):

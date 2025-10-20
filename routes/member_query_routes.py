@@ -10,7 +10,7 @@ from models.user_model import UserDB
 router = APIRouter(prefix="/member-queries", tags=["MemberQuerys"])
 
 
-@router.post("/", response_model=MemberQuery)
+@router.post("/create", response_model=MemberQuery)
 async def post_memberquery(mquery: MemberQuery, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == mquery.user_id))
@@ -45,7 +45,7 @@ async def post_memberquery(mquery: MemberQuery, db: AsyncSession = Depends(get_d
     return db_tran
 
 
-@router.get("/", response_model=List[MemberQueryWithDetail])
+@router.get("/list", response_model=List[MemberQueryWithDetail])
 async def list_memberquerys(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MemberQueryDB)
@@ -61,7 +61,7 @@ async def list_memberquerys(db: AsyncSession = Depends(get_db)):
     return queries
 
 
-@router.get("/{memberquery_id}", response_model=MemberQueryWithDetail)
+@router.get("/id/{memberquery_id}", response_model=MemberQueryWithDetail)
 async def get_memberquery(memberquery_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MemberQueryDB)
@@ -78,3 +78,45 @@ async def get_memberquery(memberquery_id: int, db: AsyncSession = Depends(get_db
     if not query:
         raise HTTPException(status_code=404, detail=f"Unable to find member query with id '{memberquery_id}'")
     return query
+
+
+@router.put("/update/{query_id}", response_model=MemberQueryWithDetail)
+async def update_configuration(query_id: int, config_update: MemberQuery, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MemberQueryDB)
+        .where(MemberQueryDB.id == query_id)
+    )
+    config = result.scalar_one_or_none()
+    
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Unable to find member query with id '{query_id}'")
+    
+    # Update fields that are not None
+    for key, value in config_update.model_dump(exclude_unset=True).items():
+        setattr(config, key, value)
+        
+    try:
+        await db.commit()
+        await db.refresh(config)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update member query {e}")
+    return config
+
+
+@router.get("/user/{user_id}", response_model=List[MemberQueryWithDetail])
+async def list_user_memberquery(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MemberQueryDB)
+        #.options(
+        #    joinedload(MemberQueryDB.post),
+        #    joinedload(MemberQueryDB.status),
+        #    joinedload(MemberQueryDB.type),
+        #    joinedload(MemberQueryDB.source),
+        #
+        #)
+        .filter(MemberQueryDB.user_id == user_id)
+    )
+    queries = result.scalars().all()
+    return queries
+

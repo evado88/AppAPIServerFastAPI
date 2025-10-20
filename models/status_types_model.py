@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from datetime import datetime
@@ -30,6 +30,7 @@ class StatusTypeDB(Base):
     members = relationship("MemberDB", back_populates="status")
     users = relationship("UserDB", back_populates="status")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="status")
+    periods = relationship("PostingPeriodDB", back_populates="status")
 # ---------- Pydantic Schemas ----------
 class StatusType(BaseModel):
     #id
@@ -42,6 +43,5 @@ class StatusType(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] 
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 

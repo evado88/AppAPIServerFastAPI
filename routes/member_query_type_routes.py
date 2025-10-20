@@ -49,6 +49,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
     return {'succeeded': True, 'message': 'Member query types have been successfully initialized'}
 
 
+
 @router.get("/", response_model=List[MemberQueryType])
 async def list_types(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MemberQueryTypeDB))

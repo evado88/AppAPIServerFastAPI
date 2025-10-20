@@ -10,7 +10,7 @@ from models.user_model import UserDB
 router = APIRouter(prefix="/knowledge-base-categories", tags=["KnowledgeBaseCategorys"])
 
 
-@router.post("/", response_model=KnowledgeBaseCategory)
+@router.post("/create", response_model=KnowledgeBaseCategory)
 async def post_knowledgebase_category(category: KnowledgeBaseCategory, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == category.user_id))
@@ -39,7 +39,30 @@ async def post_knowledgebase_category(category: KnowledgeBaseCategory, db: Async
     return db_tran
 
 
-@router.get("/", response_model=List[KnowledgeBaseCategory])
+@router.put("/update/{config_id}", response_model=KnowledgeBaseCategory)
+async def update_configuration(config_id: int, config_update: KnowledgeBaseCategory, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(KnowledgeBaseCategoryDB)
+        .where(KnowledgeBaseCategoryDB.id == config_id)
+    )
+    config = result.scalar_one_or_none()
+    
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Unable to find category with id '{config_id}'")
+    
+    # Update fields that are not None
+    for key, value in config_update.model_dump(exclude_unset=True).items():
+        setattr(config, key, value)
+        
+    try:
+        await db.commit()
+        await db.refresh(config)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update category {e}")
+    return config
+
+@router.get("/list", response_model=List[KnowledgeBaseCategory])
 async def list_knowledgebase_categories(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(KnowledgeBaseCategoryDB)
@@ -78,7 +101,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
 
 
 
-@router.get("/{cat_id}", response_model=KnowledgeBaseCategory)
+@router.get("/id/{cat_id}", response_model=KnowledgeBaseCategory)
 async def get_knowledgebase_category(cat_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(KnowledgeBaseCategoryDB)

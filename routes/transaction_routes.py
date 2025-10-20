@@ -27,7 +27,7 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
     db_tran = TransactionDB(
         # id
         type_id = tran.type_id,
-        
+        penalty_type_id = tran.penalty_type_id,
         # user
         user_id = tran.user_id,
         
@@ -44,6 +44,7 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
         
         # approval
         status_id = tran.status_id,
+        state_id = tran.state_id,
         stage_id = tran.stage_id,
         approval_levels = tran.approval_levels,
         

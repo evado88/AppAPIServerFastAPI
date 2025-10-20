@@ -1,12 +1,44 @@
 
 import hashlib
 from passlib.context import CryptContext
-import datetime as dt
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+import calendar
+
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
+CURRENT_TIME_ZONE = "Africa/Lusaka"
 
+STATUS_APPROVED = 4
+TRANSACTION_SAVINGS = 1
+TRANSACTION_LOAN = 3
 
+def get_first_month_day(inputDate = None):
+    # Set your timezon
+    tz = ZoneInfo(CURRENT_TIME_ZONE)
+
+    # Get current date with timezone
+    now = datetime.now(tz) if inputDate == None else inputDate
+
+    # Get first day of current month
+    first_day = datetime(now.year, now.month, 1, tzinfo=tz)
+
+    return first_day
+
+def get_last_month_day(inputDate = None):
+    # Set your timezon
+    tz = ZoneInfo(CURRENT_TIME_ZONE)
+
+    # Get current date with timezone
+    now = datetime.now(tz) if inputDate == None else inputDate
+
+    # Get last day of current month
+    last_day_num = calendar.monthrange(now.year, now.month)[1]
+    last_day = datetime(now.year, now.month, last_day_num, tzinfo=tz)
+
+    return last_day
+    
 def encode_sha256(input):
     '''
     Encodes the specified input to SHA-256
@@ -40,9 +72,7 @@ def hash_password(password: str) -> str:
     Returns:
         string: The hashed password string.
     '''
-    print('starting', dt.datetime.now())
     hashed = pwd_context.hash(password)
-    print('finishing', dt.datetime.now())
     return hashed
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

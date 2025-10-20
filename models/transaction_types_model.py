@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from datetime import datetime
@@ -11,6 +11,7 @@ class TransactionTypeDB(Base):
 
     #id
     id = Column(Integer, primary_key=True, index=True)
+    type_category = Column(Integer,  nullable=False)
     type_name = Column(String,  nullable=False)
     description = Column(String, nullable=True)
     
@@ -26,6 +27,7 @@ class TransactionTypeDB(Base):
 class TransactionType(BaseModel):
     #id
     id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")
+    type_category: int = Field(..., ge=1, le=3, description="Category must be between 1 and 3")
     type_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
     description: Optional[str] = None
     #service columns
@@ -34,6 +36,5 @@ class TransactionType(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] 
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 

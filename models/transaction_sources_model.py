@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from datetime import datetime
@@ -34,6 +34,5 @@ class TransactionSource(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] 
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 

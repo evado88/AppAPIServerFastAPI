@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from models.review_stages_model import ReviewStage
@@ -34,12 +34,15 @@ class MemberQueryDB(Base):
         
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
-    
+    review1_comments = Column(String, nullable=True)
+      
     review2_at = Column(DateTime(timezone=True), nullable=True)
     review2_by = Column(String, nullable=True)
-    
+    review2_comments = Column(String, nullable=True)
+        
     review3_at = Column(DateTime(timezone=True), nullable=True)
     review3_by = Column(String, nullable=True)
+    review3_comments = Column(String, nullable=True)
     
     #service columns
     created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=True)
@@ -76,20 +79,23 @@ class MemberQuery(BaseModel):
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
-    
+    review1_comments: Optional[str] = None
+        
     review2_at: Optional[datetime] = None
     review2_by: Optional[str] = None
-    
+    review2_comments: Optional[str] = None
+        
     review3_at: Optional[datetime] = None
     review3_by: Optional[str] = None
+    review3_comments: Optional[str] = None
+    
     #service columns
     created_at: Optional[datetime] = None
     created_by: Optional[str]  = None
     updated_at: Optional[datetime] = None
     updated_by: Optional[str]  = None
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MemberQueryWithDetail(MemberQuery):

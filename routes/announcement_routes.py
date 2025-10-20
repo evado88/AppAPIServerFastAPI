@@ -10,7 +10,7 @@ from models.user_model import UserDB
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
 
 
-@router.post("/", response_model=Announcement)
+@router.post("/create", response_model=Announcement)
 async def post_announcement(announcement: Announcement, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == announcement.user_id))
@@ -42,8 +42,31 @@ async def post_announcement(announcement: Announcement, db: AsyncSession = Depen
         raise HTTPException(status_code=400, detail=f"Unable to create announcement: {e}")
     return db_tran
 
+@router.put("/update/{config_id}", response_model=AnnouncementWithDetail)
+async def update_configuration(config_id: int, config_update: Announcement, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AnnouncementDB)
+        .where(AnnouncementDB.id == config_id)
+    )
+    config = result.scalar_one_or_none()
+    
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Unable to find announcement with id '{config_id}'")
+    
+    # Update fields that are not None
+    for key, value in config_update.model_dump(exclude_unset=True).items():
+        setattr(config, key, value)
+        
+    try:
+        await db.commit()
+        await db.refresh(config)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update announcement {e}")
+    return config
 
-@router.get("/", response_model=List[AnnouncementWithDetail])
+
+@router.get("/list", response_model=List[AnnouncementWithDetail])
 async def list_announcements(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AnnouncementDB)
@@ -59,7 +82,7 @@ async def list_announcements(db: AsyncSession = Depends(get_db)):
     return transactions
 
 
-@router.get("/{announcement_id}", response_model=AnnouncementWithDetail)
+@router.get("/id/{announcement_id}", response_model=AnnouncementWithDetail)
 async def get_announcement(announcement_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AnnouncementDB)

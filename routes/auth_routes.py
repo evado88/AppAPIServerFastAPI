@@ -31,9 +31,10 @@ async def login(
 
     to_encode = {
         "sub": user.email,
+        "userid": user.id,
         "name": f"{user.fname} {user.lname}",
         "role": user.role,
-        "exp":  datetime.now(timezone.utc) + timedelta( minutes=0.2),
+        "exp":  datetime.now(timezone.utc) + timedelta( minutes=30),
     }
     token = jwt.encode(to_encode, assist.SECRET_KEY, algorithm=assist.ALGORITHM)
 

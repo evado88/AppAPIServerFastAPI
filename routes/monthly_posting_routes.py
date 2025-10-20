@@ -1,19 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import Session, joinedload
 from typing import List
-
+from sqlalchemy import func
 from database import get_db
-from models.monthly_post_model import MonthlyPosting, MonthlyPostingDB, MonthlyPostingWithDetail
+from models.configuration_model import SACCOConfigurationDB
+from models.monthly_post_model import (
+    MonthlyPosting,
+    MonthlyPostingDB,
+    MonthlyPostingWithDetail,
+)
+from models.param_models import ParamMonthlyPosting
+from models.review_model import SACCOReview
+from models.transaction_model import Transaction, TransactionDB
 from models.user_model import UserDB
 from models.status_types_model import StatusTypeDB
+
+import helpers.assist as assist
 
 router = APIRouter(prefix="/monthly-posting", tags=["MonthlyPosting"])
 
 
-@router.post("/", response_model=MonthlyPosting)
-async def post_transaction(posting: MonthlyPosting, db: AsyncSession = Depends(get_db)):
+@router.post("/create", response_model=MonthlyPosting)
+async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == posting.user_id))
     user = result.scalars().first()
@@ -22,29 +31,43 @@ async def post_transaction(posting: MonthlyPosting, db: AsyncSession = Depends(g
             status_code=400, detail=f"The user with id {posting.user_id} does not exist"
         )
 
+    # check if posting has been made this month
+    start_date = assist.get_first_month_day(posting.date)
+    end_date = assist.get_last_month_day(posting.date)
+
+    result = await db.execute(
+        select(MonthlyPostingDB).filter(
+            MonthlyPostingDB.date.between(start_date, end_date)
+        )
+    )
+
+    monthPosting = result.scalars().first()
+
+    if monthPosting:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You have already made a posting for {posting.date.strftime('%B %Y')}",
+        )
+
     db_tran = MonthlyPostingDB(
         # user
-        user_id = posting.user_id,
+        user_id=posting.user_id,
+        # period
+        period_id=posting.period_id,
         # posting
-        date = posting.date,
-        saving = posting.saving,
-        shares = posting.shares,
-        social = posting.social,
-        penalty = posting.penalty,
-        
-        loan_interest = posting.loan_interest,
-        loan_amount_payment = posting.loan_amount_payment,
-        loan_month_repayment = posting.loan_month_repayment,
-        
-        loan_application = posting.loan_application,
-        
-        comments = posting.comments,
-
+        date=posting.date,
+        saving=posting.saving,
+        shares=posting.shares,
+        social=posting.social,
+        penalty=posting.penalty,
+        loan_interest=posting.loan_interest,
+        loan_month_repayment=posting.loan_month_repayment,
+        loan_application=posting.loan_application,
+        comments=posting.comments,
         # approval
         status_id=posting.status_id,
-        stage_id = posting.stage_id,
-        approval_levels = posting.approval_levels,
-        
+        stage_id=posting.stage_id,
+        approval_levels=posting.approval_levels,
         # service
         created_by=posting.created_by,
     )
@@ -52,34 +75,128 @@ async def post_transaction(posting: MonthlyPosting, db: AsyncSession = Depends(g
     try:
         await db.commit()
         await db.refresh(db_tran)
-    except Exception:
+    except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Unable to create monthly posting")
+        raise HTTPException(
+            status_code=400, detail=f"Unable to create monthly posting: {e}"
+        )
     return db_tran
 
 
-@router.get("/", response_model=List[MonthlyPostingWithDetail])
-async def list_postings(db: AsyncSession = Depends(get_db)):
+@router.put("/review-update/{post_id}", response_model=MonthlyPostingWithDetail)
+async def review_posting(
+    post_id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
+):
+    # check user exists
+    result = await db.execute(select(UserDB).where(UserDB.id == review.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The user with id '{review.user_id}' does not exist",
+        )
+
+    # check posting exists
     result = await db.execute(
-        select(MonthlyPostingDB)
-        #.options(
-        #    joinedload(MonthlyPostingDB.status),
-        #)
+        select(MonthlyPostingDB).where(MonthlyPostingDB.id == post_id)
     )
-    posting = result.scalars().all()
+    posting = result.scalar_one_or_none()
+
+    if not posting:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find monthly posting with id '{post_id}' not found",
+        )
+
+    if review.review_action == 1:
+        # reject
+        posting.status_id = 5
+    else:
+        posting.status_id = 4
+
+    posting.updated_by = user.email
+
+    try:
+        await db.commit()
+        await db.refresh(posting)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, detail=f"Unable to update monthly posting {e}"
+        )
     return posting
 
 
-@router.get("/{posting_id}", response_model=MonthlyPostingWithDetail)
+@router.get("/list", response_model=List[MonthlyPostingWithDetail])
+async def list_postings(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+    )
+    postings = result.scalars().all()
+    return postings
+
+
+@router.get("/status/{status_id}", response_model=List[MonthlyPostingWithDetail])
+async def list_status_postings(status_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(MonthlyPostingDB.status_id == status_id)
+    )
+    postings = result.scalars().all()
+    return postings
+
+
+@router.get("/id/{posting_id}", response_model=MonthlyPostingWithDetail)
 async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)
-        #.options(
+        # .options(
         #    joinedload(MonthlyPostingDB.status),
-        #)
+        # )
         .filter(MonthlyPostingDB.id == posting_id)
     )
     posting = result.scalars().first()
     if not posting:
-        raise HTTPException(status_code=404, detail=f"Unable to find monthly posting with id '{posting_id}'")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find monthly posting with id '{posting_id}'",
+        )
     return posting
+
+
+@router.get("/param/{user_id}", response_model=ParamMonthlyPosting)
+async def get_configuration(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+    )
+    config = result.scalars().first()
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to load param: Configuration with id '{1}' not found",
+        )
+
+    #get savings
+    stmt = select(func.sum(TransactionDB.amount)).filter(
+        TransactionDB.user_id == user_id,
+        TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
+        TransactionDB.status_id == assist.STATUS_APPROVED,
+    )
+
+    result = await db.execute(stmt)
+
+    totalSavings = result.scalar() or 0.0
+
+    #get loan and number of payments made against loan
+    
+    
+    #return
+    param = {"config": config, "totalSavings": totalSavings, "loan": 200}
+
+    return param

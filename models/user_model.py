@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Date, DateTime,  ForeignKey
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional, List
 from datetime import date, datetime
 from database import Base
@@ -35,12 +35,15 @@ class UserDB(Base):
     
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
-    
+    review1_comments = Column(String, nullable=True)
+      
     review2_at = Column(DateTime(timezone=True), nullable=True)
     review2_by = Column(String, nullable=True)
-    
+    review2_comments = Column(String, nullable=True)
+        
     review3_at = Column(DateTime(timezone=True), nullable=True)
     review3_by = Column(String, nullable=True)
+    review3_comments = Column(String, nullable=True)
     
     #service columns
     created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=True)
@@ -60,6 +63,7 @@ class UserDB(Base):
     attendances = relationship("AttendanceDB", back_populates="user")
     meetings = relationship("MeetingDB", back_populates="user")
     member = relationship("MemberDB", back_populates="user")
+    categories = relationship("KnowledgeBaseCategoryDB", back_populates="user")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
@@ -83,17 +87,20 @@ class User(BaseModel):
     status_id: int =  Field(..., ge=1, description="Status must be greater than or equal to 1")
     stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
     
-    approval_levels: int = Field(..., ge=1, description="Approval levels must be between 1 and 3")
+    approval_levels: int = Field(..., ge=1, le=3, description="Approval levels must be between 1 and 3")
     
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
-    
+    review1_comments: Optional[str] = None
+        
     review2_at: Optional[datetime] = None
     review2_by: Optional[str] = None
-    
+    review2_comments: Optional[str] = None
+        
     review3_at: Optional[datetime] = None
     review3_by: Optional[str] = None
+    review3_comments: Optional[str] = None
     
     #service columns
     created_at: Optional[datetime] = None
@@ -101,8 +108,7 @@ class User(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
         
 class UserWithDetail(User):
     stage: ReviewStage

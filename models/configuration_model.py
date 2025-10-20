@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Date, Float, ForeignKey
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from models.user_model import User
@@ -61,8 +61,7 @@ class SACCOConfiguration(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str]  = None
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SACCOConfigurationWithDetail(SACCOConfiguration):
     user: User

@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from datetime import datetime
@@ -29,6 +29,7 @@ class ReviewStageDB(Base):
     queries = relationship("MemberQueryDB", back_populates="stage")
     users = relationship("UserDB", back_populates="stage")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="stage")
+    periods = relationship("PostingPeriodDB", back_populates="stage")
 # ---------- Pydantic Schemas ----------
 class ReviewStage(BaseModel):
     #id
@@ -41,6 +42,5 @@ class ReviewStage(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] 
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 

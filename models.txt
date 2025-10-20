@@ -23,23 +23,40 @@ User model - 2
   "position": "Member",
   "address": "Libala South",
   "email": "nkoleevans@hotmail.com",
-  "role": 1,
+  "role": 2,
   "password": "12345678",
   "status_id": 1,
   "stage_id": 1,
   "approval_levels": 3
 }
 
-Transaction
+Transaction - Saving
 {
-  "id": 0,
+  "user_id": 3,
   "type_id": 1,
-  "user_id": 1,
   "date": "2025-10-02 18:24",
-  "source_id": 1,
+  "source_id": 2,
   "amount": 100,
-  "status_id": 1,
-  "approval_levels": 2,
+  "status_id": 4,
+  "state_id": 2,
+  "stage_id": 4,
+  "approval_levels": 1,
+  "comments": "No comment",
+  "reference": "TXN1001"
+}
+
+Transaction - Penalty Charged - Missed Meeting
+{
+  "user_id": 3,
+  "type_id": 8,
+  "penalty_type_id": 2,
+  "date": "2025-10-02 18:24",
+  "source_id": 2,
+  "amount": 100,
+  "status_id": 4,
+  "state_id": 2,
+  "stage_id": 4,
+  "approval_levels": 1,
   "comments": "No comment",
   "reference": "TXN1001"
 }
@@ -47,16 +64,17 @@ Transaction
 MonthlyPosting
 {
   "user_id": 1,
+  "period_id": 20253,
   "date": "2025-10-02 18:24",
   "saving": 500,
   "shares": 1000,
   "social": 300,
   "penalty": 200,
   "loan_interest": 600,
-  "loan_amount_payment": 600,
   "loan_month_repayment": 1800,
   "loan_application": 0,
   "status_id": 1,
+  "stage_id": 1,
   "approval_levels": 2,
   "comments": "No comment"
 }
@@ -82,6 +100,7 @@ Annoucement
   "title":"Meeting, 10th October 2025",
   "content":"There will be a meeting this coming weekend",
   "status_id": 1,
+  "stage_id": 1,
   "approval_levels": 1
 }
 
@@ -92,6 +111,7 @@ Member Queries
   "title":"Balance for loan",
   "content":"Please tell me the balance for my loan",
   "status_id": 1,
+  "stage_id": 1,
   "approval_levels": 1
 }
 
@@ -119,4 +139,15 @@ Attendance
   "type_id": 2,
   "meeting_id": 1,
   "user_id": 1
+}
+
+knowledge base article
+{
+  "cat_id": 1,
+  "user_id": 3,
+  "title": "Airtel Money withdraw procedure",
+  "content": "This is how you withdraw on airtel money without making any single mistake",
+  "status_id": 1,
+  "stage_id": 1,
+  "approval_levels": 1
 }

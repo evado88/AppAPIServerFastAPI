@@ -10,7 +10,7 @@ from models.user_model import UserDB
 router = APIRouter(prefix="/knowledge-base-articles", tags=["KnowledgeBaseArticles"])
 
 
-@router.post("/", response_model=KnowledgeBase)
+@router.post("/create", response_model=KnowledgeBase)
 async def post_kbarticle(kbarticle: KnowledgeBase, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == kbarticle.user_id))
@@ -24,6 +24,7 @@ async def post_kbarticle(kbarticle: KnowledgeBase, db: AsyncSession = Depends(ge
         # user
         user_id = kbarticle.user_id,
         # transaction
+        cat_id = kbarticle.cat_id,
         title = kbarticle.title,
         content = kbarticle.content,
 
@@ -42,8 +43,31 @@ async def post_kbarticle(kbarticle: KnowledgeBase, db: AsyncSession = Depends(ge
         raise HTTPException(status_code=400, detail=f"Unable to create knowledge base article: {e}")
     return db_tran
 
+@router.put("/update/{config_id}", response_model=KnowledgeBaseWithDetail)
+async def update_configuration(config_id: int, config_update: KnowledgeBase, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(KnowledgeBaseDB)
+        .where(KnowledgeBaseDB.id == config_id)
+    )
+    config = result.scalar_one_or_none()
+    
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Unable to find knowledgebase article with id '{config_id}'")
+    
+    # Update fields that are not None
+    for key, value in config_update.model_dump(exclude_unset=True).items():
+        setattr(config, key, value)
+        
+    try:
+        await db.commit()
+        await db.refresh(config)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update knowledgebase article {e}")
+    return config
 
-@router.get("/", response_model=List[KnowledgeBaseWithDetail])
+
+@router.get("/list", response_model=List[KnowledgeBaseWithDetail])
 async def list_kbarticles(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(KnowledgeBaseDB)
@@ -59,7 +83,7 @@ async def list_kbarticles(db: AsyncSession = Depends(get_db)):
     return kbarticles
 
 
-@router.get("/{kbarticle_id:}", response_model=KnowledgeBaseWithDetail)
+@router.get("/id/{kbarticle_id}", response_model=KnowledgeBaseWithDetail)
 async def get_kbarticle_id(kbarticle_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(KnowledgeBaseDB)
