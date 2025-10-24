@@ -63,7 +63,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
 
 
 
-@router.get("/", response_model=List[PostingPeriod])
+@router.get("/list", response_model=List[PostingPeriod])
 async def list_periods(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PostingPeriodDB))
     return result.scalars().all()

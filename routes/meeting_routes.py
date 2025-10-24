@@ -48,7 +48,7 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
     return db_tran
 
 
-@router.get("/", response_model=List[MeetingWithDetail])
+@router.get("/list", response_model=List[MeetingWithDetail])
 async def list_meetings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MeetingDB)

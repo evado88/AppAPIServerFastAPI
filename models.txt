@@ -126,7 +126,7 @@ MonthlyPosting
   "status_id": 1,
   "stage_id": 1,
   "approval_levels": 2,
-  "comments": "No comment"
+  "comments": "No comment",
   "contribution_total": 4400,
   "deposit_total": 4400
 }
@@ -146,7 +146,7 @@ MonthlyPosting
   "status_id": 1,
   "stage_id": 1,
   "approval_levels": 2,
-  "comments": "No comment"
+  "comments": "No comment",
   "contribution_total": 4600,
   "deposit_total": 600
 }
@@ -200,13 +200,24 @@ Notification
 Meeting
 {
   "user_id": 1,
-  "date":"2025-10-10",
+  "date":"2025-10-10 15:00",
   "title":"Meeting - 10th October 2025",
   "content":"Agenda and outcomes",
   "status_id": 1,
+  "stage_id": 1,
   "approval_levels": 1
 }
 
+Meeting
+{
+  "user_id": 1,
+  "date":"2025-08-02 11:00",
+  "title":"Meeting - 10th October 2025",
+  "content":"Agenda and outcomes",
+  "status_id": 1,
+  "stage_id": 1,
+  "approval_levels": 1
+}
 
 Attendance
 {
