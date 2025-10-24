@@ -17,7 +17,7 @@ class SACCOConfigurationDB(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     #configurations
-    posting_date_max = Column(Date, nullable=False)
+    late_posting_date_start = Column(Date, nullable=False)
     
     saving_multiple = Column(Float, nullable=False)
     shares_multiple  = Column(Float, nullable=False)
@@ -29,6 +29,8 @@ class SACCOConfigurationDB(Base):
     late_posting_rate = Column(Float, nullable=False)
     missed_meeting_rate = Column(Float, nullable=False)
     late_meeting_rate = Column(Float, nullable=False)
+    
+    approval_levels = Column(Integer, nullable=False)
     
     #service columns
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
@@ -42,7 +44,7 @@ class SACCOConfiguration(BaseModel):
     #user
     user_id: int
     #configurations
-    posting_date_max: date = Field(..., description="The maximum date for posting before late fees are applied")
+    late_posting_date_start: date = Field(..., description="The maximum date for posting before late fees are applied")
     
     saving_multiple: float = Field(..., gt=0, description="The multiple for savings must be greater than zero")
     shares_multiple: float = Field(..., gt=0, description="The multiple for shares must be greater than zero")
@@ -56,12 +58,14 @@ class SACCOConfiguration(BaseModel):
     missed_meeting_rate: float = Field(..., ge=0, description="The missed meeting rate must be greater than zero")
     late_meeting_rate: float = Field(..., gt=0, description="The late meeting rate must be greater than zero")
     
-
+    approval_levels: int = Field(..., ge=1, le=3,  description="Approval levels must be between 1 and 3")
+    
     #service columns
     updated_at: Optional[datetime] = None
     updated_by: Optional[str]  = None
     
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 class SACCOConfigurationWithDetail(SACCOConfiguration):
     user: User

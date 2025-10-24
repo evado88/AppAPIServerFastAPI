@@ -45,6 +45,39 @@ Transaction - Saving
   "reference": "TXN1001"
 }
 
+Transaction - Loan - K300 @ 10% for 4 months
+{
+  "user_id": 3,
+  "type_id": 3,
+  "date": "2025-10-02 18:24",
+  "source_id": 2,
+  "amount": 300,
+  "term_months": 4,
+  "interest_rate": 10,
+  "status_id": 4,
+  "state_id": 1,
+  "stage_id": 4,
+  "approval_levels": 1,
+  "comments": "No comment",
+  "reference": "TXN1001"
+}
+
+Transaction - Loan Payment
+{
+  "user_id": 3,
+  "type_id": 4,
+  "parent_id": 7,
+  "date": "2025-10-02 18:24",
+  "source_id": 2,
+  "amount": 75,
+  "status_id": 4,
+  "state_id": 2,
+  "stage_id": 4,
+  "approval_levels": 1,
+  "comments": "No comment",
+  "reference": "TXN1001"
+}
+
 Transaction - Penalty Charged - Missed Meeting
 {
   "user_id": 3,
@@ -60,6 +93,23 @@ Transaction - Penalty Charged - Missed Meeting
   "comments": "No comment",
   "reference": "TXN1001"
 }
+
+Transaction - Penalty Charged - Late Posting
+{
+  "user_id": 3,
+  "type_id": 8,
+  "penalty_type_id": 1,
+  "date": "2025-10-02 18:24",
+  "source_id": 2,
+  "amount": 100,
+  "status_id": 4,
+  "state_id": 2,
+  "stage_id": 4,
+  "approval_levels": 1,
+  "comments": "No comment",
+  "reference": "TXN1001"
+}
+
 
 MonthlyPosting
 {
@@ -77,12 +127,33 @@ MonthlyPosting
   "stage_id": 1,
   "approval_levels": 2,
   "comments": "No comment"
+  "contribution_total": 4400,
+  "deposit_total": 4400
 }
 
-Configuration
+MonthlyPosting
 {
   "user_id": 1,
-  "posting_date_max": "2025-01-13",
+  "period_id": 20253,
+  "date": "2025-10-02 18:24",
+  "saving": 500,
+  "shares": 1000,
+  "social": 500,
+  "penalty": 200,
+  "loan_interest": 600,
+  "loan_month_repayment": 1800,
+  "loan_application": 4000,
+  "status_id": 1,
+  "stage_id": 1,
+  "approval_levels": 2,
+  "comments": "No comment"
+  "contribution_total": 4600,
+  "deposit_total": 600
+}
+Configuration
+{
+  "user_id": 3,
+  "late_posting_date_start": "2024-04-13",
   "saving_multiple": 500,
   "shares_multiple": 1000,
   "social_min": 0,
@@ -91,7 +162,10 @@ Configuration
   "loan_saving_ratio": 4,
   "late_posting_rate": 250,
   "missed_meeting_rate": 100,
-  "late_meeting_rate": 50
+  "late_meeting_rate": 50,
+  "approval_levels": 2,
+  "contribution_total": 4400,
+  "deposit_total": 4400
 }
 
 Annoucement

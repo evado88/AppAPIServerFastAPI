@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -64,6 +65,9 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         loan_month_repayment=posting.loan_month_repayment,
         loan_application=posting.loan_application,
         comments=posting.comments,
+        # validation
+        contribution_total=posting.contribution_total,
+        deposit_total=posting.deposit_total,
         # approval
         status_id=posting.status_id,
         stage_id=posting.stage_id,
@@ -171,7 +175,16 @@ async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/param/{user_id}", response_model=ParamMonthlyPosting)
-async def get_configuration(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_postomng_param(user_id: int, db: AsyncSession = Depends(get_db)):
+
+    # check user exists
+    result = await db.execute(select(UserDB).filter(UserDB.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=401, detail=f"The specified user '{user_id}' does not exist"
+        )
+
     result = await db.execute(
         select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
     )
@@ -182,7 +195,7 @@ async def get_configuration(user_id: int, db: AsyncSession = Depends(get_db)):
             detail=f"Unable to load param: Configuration with id '{1}' not found",
         )
 
-    #get savings
+    # get savings
     stmt = select(func.sum(TransactionDB.amount)).filter(
         TransactionDB.user_id == user_id,
         TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
@@ -193,10 +206,75 @@ async def get_configuration(user_id: int, db: AsyncSession = Depends(get_db)):
 
     totalSavings = result.scalar() or 0.0
 
-    #get loan and number of payments made against loan
-    
-    
-    #return
-    param = {"config": config, "totalSavings": totalSavings, "loan": 200}
+    # get loan that is open
+    result = await db.execute(
+        select(TransactionDB).filter(
+            TransactionDB.user_id == user_id,
+            TransactionDB.type_id == assist.TRANSACTION_LOAN,
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.state_id == assist.STATE_OPEN,
+        )
+    )
+
+    loan = result.scalars().first()
+    totalLoanPaymentsAmount = 0.0
+    totalLoanPaymentsNo = 0
+
+    # check if there is a loan
+    if loan:
+        # there is loan, check payments made against loan
+        stmt = select(func.sum(TransactionDB.amount)).filter(
+            TransactionDB.user_id == user_id,
+            TransactionDB.type_id == assist.TRANSACTION_LOAN_PAYMENT,
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.parent_id == loan.id,
+        )
+
+        result = await db.execute(stmt)
+
+        totalLoanPaymentsAmount = result.scalar() or 0.0
+
+        # there is loan, check payments made against loan
+        stmt = select(func.count(TransactionDB.amount)).filter(
+            TransactionDB.user_id == user_id,
+            TransactionDB.type_id == assist.TRANSACTION_LOAN_PAYMENT,
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.parent_id == loan.id,
+        )
+
+        result = await db.execute(stmt)
+
+        totalLoanPaymentsNo = result.scalar() or 0.0
+
+    # penelties
+    result = await db.execute(
+        select(TransactionDB).filter(
+            TransactionDB.user_id == user_id,
+            TransactionDB.type_id == assist.TRANSACTION_PENALTY_CHARGED,
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.state_id == assist.STATE_OPEN,
+        )
+    )
+
+    penalties = result.scalars().all()
+    totalPenalties = sum(item.amount for item in penalties)
+
+    # postingDate = assist.get_current_date()
+
+    # latePostingdate = datetime(postingDate.year, postingDate.month, config.late_posting_date_start.day)
+
+    # postingStatus = 'Late' if postingDate >= latePostingdate else 'Normal'
+    # return
+
+    param = {
+        "config": config,
+        "totalSavings": totalSavings,
+        "loan": loan,
+        "totalLoanPaymentsAmount": totalLoanPaymentsAmount,
+        "totalLoanPaymentsNo": totalLoanPaymentsNo,
+        "totalPenaltiesAmount": totalPenalties,
+        "penalties": penalties,
+        "latePostingStartDay": config.late_posting_date_start.day,
+    }
 
     return param

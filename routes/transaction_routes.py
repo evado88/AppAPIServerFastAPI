@@ -42,6 +42,9 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
         term_months = tran.term_months,
         interest_rate = tran.interest_rate,
         
+        #loan payment transaction id
+        parent_id = tran.parent_id,
+        
         # approval
         status_id = tran.status_id,
         state_id = tran.state_id,

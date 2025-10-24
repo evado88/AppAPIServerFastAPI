@@ -103,7 +103,7 @@ class Transaction(BaseModel):
     #transaction
     post_id: Optional[int] = None
     date: datetime = Field(..., description="The date for the transaction")
-    source_id: int = Field(..., ge=1, description="Source must be greater than or equal to 1")
+    source_id: Optional[int] = None
     amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
     comments: Optional[str] = None
     reference: Optional[str] = None
@@ -112,8 +112,6 @@ class Transaction(BaseModel):
     term_months: Optional[int] = None
     interest_rate: Optional[float] = None
     
-    #loans only
-    term_months: Optional[int] = None
     
     #penalty payment only
     penalty_type_id: Optional[int] = None
@@ -143,7 +141,8 @@ class Transaction(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str]  = None
     
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 class TransactionWithDetail(Transaction):
@@ -155,3 +154,7 @@ class TransactionWithDetail(Transaction):
     post: Optional[MonthlyPosting] = None
     ptype : Optional[PenaltyType] = None
     stage: ReviewStage
+    
+class TransactionWithPenalty(Transaction):
+    type: TransactionType
+    ptype : Optional[PenaltyType] = None

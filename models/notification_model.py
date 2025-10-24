@@ -50,7 +50,8 @@ class Notification(BaseModel):
     created_at: Optional[datetime] = None
     created_by: Optional[str]  = None
     
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 class NotificationWithDetail(Notification):

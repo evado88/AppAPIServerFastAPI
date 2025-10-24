@@ -26,7 +26,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         # user
         user_id = config.user_id,
         # posting
-        posting_date_max = config.posting_date_max,
+        late_posting_date_start = config.late_posting_date_start,
         
         saving_multiple = config.saving_multiple,
         shares_multiple = config.shares_multiple,
@@ -40,6 +40,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         missed_meeting_rate = config.missed_meeting_rate,
         late_meeting_rate = config.late_meeting_rate,
         
+        approval_levels = config.approval_levels,
         #service columns
         updated_by = config.updated_by,
     )

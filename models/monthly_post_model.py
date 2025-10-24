@@ -40,6 +40,9 @@ class MonthlyPostingDB(Base):
     loan_application = Column(Float, nullable=False)
 
     comments = Column(String, nullable=True)
+    # validation
+    contribution_total = Column(Float, nullable=False)
+    deposit_total = Column(Float, nullable=False)
 
     # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
@@ -97,10 +100,10 @@ class MonthlyPosting(BaseModel):
         ..., gt=0, description="Share amount must be greater than zero"
     )
     social: float = Field(
-        ..., gt=0, description="Social amount must be greater than zero"
+        ..., ge=0, description="Social amount must be greater or equal to zero"
     )
     penalty: float = Field(
-        ..., gt=0, description="Penalty amount must be greater than zero"
+        ..., ge=0, description="Penalty amount must be greater or equal to zero"
     )
 
     loan_interest: float = Field(
@@ -119,6 +122,17 @@ class MonthlyPosting(BaseModel):
     )
 
     comments: Optional[str] = None
+    # validation
+    contribution_total: float = Field(
+        ...,
+        ge=0,
+        description="Contribution total amount must be greater or equal to zero",
+    )
+    deposit_total: float = Field(
+        ...,
+        ge=0,
+        description="deposit total amount must be greater or equal to zero",
+    )
     # approval
     status_id: int = Field(
         ..., ge=1, description="Status must be greater than or equal to 1"
@@ -148,7 +162,8 @@ class MonthlyPosting(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 class MonthlyPostingWithDetail(MonthlyPosting):

@@ -42,5 +42,6 @@ class ReviewStage(BaseModel):
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] 
     
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 

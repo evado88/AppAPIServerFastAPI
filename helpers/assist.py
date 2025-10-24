@@ -13,6 +13,24 @@ CURRENT_TIME_ZONE = "Africa/Lusaka"
 STATUS_APPROVED = 4
 TRANSACTION_SAVINGS = 1
 TRANSACTION_LOAN = 3
+TRANSACTION_LOAN_PAYMENT = 4
+TRANSACTION_PENALTY_CHARGED = 8
+STATE_OPEN = 1
+STATE_CLOSED = 2
+
+
+
+def get_current_date(date = True):
+    # Set your timezon
+    tz = ZoneInfo(CURRENT_TIME_ZONE)
+
+    # Get current date with timezone
+    now = datetime.now(tz)
+    
+    if date:
+        now = datetime(now.year, now.month, now.day)
+    
+    return now
 
 def get_first_month_day(inputDate = None):
     # Set your timezon
