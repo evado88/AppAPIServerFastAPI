@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
 from database import Base
 from models.configuration_model import SACCOConfiguration
+from models.posting_period_model import PostingPeriod
 from models.review_stages_model import ReviewStage
 from models.user_model import User
 from models.transaction_types_model import TransactionType
@@ -43,7 +44,8 @@ class MonthlyPostingDB(Base):
     # validation
     contribution_total = Column(Float, nullable=False)
     deposit_total = Column(Float, nullable=False)
-
+    #pop
+    pop_filename = Column(String, nullable=True)
     # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
 
@@ -51,6 +53,15 @@ class MonthlyPostingDB(Base):
 
     stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
 
+    guarantor_required = Column(Integer, nullable=True)
+    guarantor_at = Column(DateTime(timezone=True), nullable=True)
+    guarantor_by = Column(String, nullable=True)
+    guarantor_comments = Column(String, nullable=True)
+
+    pop_review_at = Column(DateTime(timezone=True), nullable=True)
+    pop_review_by = Column(String, nullable=True)
+    pop_review_comments = Column(String, nullable=True)
+    
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
     review1_comments = Column(String, nullable=True)
@@ -83,7 +94,9 @@ class MonthlyPosting(BaseModel):
     id: Optional[int] = None
     code: Optional[str] = None
     # user
-    user_id: int
+    user_id: int = Field(
+        ..., ge=1, description="User id must be greater than or equal to 1"
+    )
 
     # period
     period_id: int = Field(
@@ -133,6 +146,8 @@ class MonthlyPosting(BaseModel):
         ge=0,
         description="deposit total amount must be greater or equal to zero",
     )
+    #pop
+    pop_filename: Optional[str] = None
     # approval
     status_id: int = Field(
         ..., ge=1, description="Status must be greater than or equal to 1"
@@ -142,7 +157,16 @@ class MonthlyPosting(BaseModel):
         ..., ge=1, le=3, description="Approval level must be between 1 and 3"
     )
 
-    stage_id: int = Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+    stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 3")
+
+    guarantor_required: Optional[int] = None
+    guarantor_at: Optional[datetime] = None
+    guarantor_by: Optional[str] = None
+    guarantor_comments: Optional[str] = None
+    
+    pop_review_at: Optional[datetime] = None
+    pop_review_by: Optional[str] = None
+    pop_review_comments: Optional[str] = None
 
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
@@ -170,3 +194,4 @@ class MonthlyPostingWithDetail(MonthlyPosting):
     user: User
     stage: ReviewStage
     status: StatusType
+    period: PostingPeriod

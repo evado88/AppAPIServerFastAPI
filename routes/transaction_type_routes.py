@@ -32,15 +32,15 @@ async def create_type(transaction: TransactionType, db: AsyncSession = Depends(g
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_db)):
     transactionList = [
-        {"name": "Saving", "type": 1},
-        {"name": "Share", "type": 1},
-        {"name": "Loan", "type": 2},
-        {"name": "Loan Payment", "type": 2},
-        {"name": "Interest Charged", "type": 3},
-        {"name": "Interest Earned", "type": 1},
-        {"name": "Social Fund", "type": 1},
-        {"name": "Penalty Charged", "type": 3},
-        {"name": "Penalty Earned", "type": 1},
+        {"name": "Saving", "type": 1},#1
+        {"name": "Share", "type": 1},#2
+        {"name": "Loan", "type": 2},#3
+        {"name": "Loan Payment", "type": 2},#4
+        {"name": "Interest Charged", "type": 3},#5
+        {"name": "Interest Earned", "type": 1},#6
+        {"name": "Social Fund", "type": 1},#7
+        {"name": "Penalty Charged", "type": 3},#8
+        {"name": "Penalty Earned", "type": 1},#9
     ]
     transactionId = 1
 

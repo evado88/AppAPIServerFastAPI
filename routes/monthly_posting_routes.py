@@ -112,13 +112,171 @@ async def review_posting(
             detail=f"Unable to find monthly posting with id '{post_id}' not found",
         )
 
-    if review.review_action == 1:
-        # reject
-        posting.status_id = 5
-    else:
-        posting.status_id = 4
+    if posting.status_id == assist.STATUS_APPROVED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The monthly posting with id '{post_id}' has already been approved",
+        )
 
     posting.updated_by = user.email
+
+    if posting.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
+        # submitted stage
+
+        posting.review1_at = assist.get_current_date(False)
+        posting.review1_by = user.email
+        posting.review1_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            posting.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            posting.guarantor_required = review.require_guarantor_approval
+
+            # check number of approval levels
+            if posting.approval_levels == 1:
+                # one level, no furthur stage approvers
+
+                if review.require_guarantor_approval == assist.RESPONSE_NO:
+                    # no guarantor approval
+                    posting.stage_id = assist.APPROVAL_STAGE_POP_UPLOAD
+                else:
+                    # require guarantor approval
+                    posting.stage_id = assist.APPROVAL_STAGE_GUARANTOR
+
+            elif posting.approval_levels == 2 or posting.approval_levels == 3:
+                # two or three levels, move to primary
+
+                posting.stage_id = assist.APPROVAL_STAGE_PRIMARY
+
+    elif posting.stage_id == assist.APPROVAL_STAGE_PRIMARY:
+        # primary stage
+
+        posting.review2_at = assist.get_current_date(False)
+        posting.review2_by = user.email
+        posting.review2_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            posting.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if posting.approval_levels == 2:
+                # two levels, no furthur stage approvers
+
+                if posting.guarantor_required == assist.RESPONSE_NO:
+                    # no guarantor approval
+                    posting.stage_id = assist.APPROVAL_STAGE_POP_UPLOAD
+                else:
+                    # require guarantor approval
+                    posting.stage_id = assist.APPROVAL_STAGE_GUARANTOR
+
+            elif posting.approval_levels == 3:
+                # three levels, move to secondary
+                posting.stage_id = assist.APPROVAL_STAGE_SECONDARY
+
+    elif posting.stage_id == assist.APPROVAL_STAGE_SECONDARY:
+        # secondary stage
+
+        posting.review3_at = assist.get_current_date(False)
+        posting.review3_by = user.email
+        posting.review3_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            posting.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+            # three levels and on last stage
+
+            if posting.guarantor_required == assist.RESPONSE_NO:
+                # no guarantor approval
+                posting.stage_id = assist.APPROVAL_STAGE_POP_UPLOAD
+            else:
+                # require guarantor approval
+                posting.stage_id = assist.APPROVAL_STAGE_GUARANTOR
+
+    elif posting.stage_id == assist.APPROVAL_STAGE_GUARANTOR:
+        # guarantor stage
+
+        posting.guarantor_at = assist.get_current_date(False)
+        posting.guarantor_by = user.email
+        posting.guarantor_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            posting.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            posting.stage_id = assist.APPROVAL_STAGE_POP_UPLOAD
+
+    elif posting.stage_id == assist.APPROVAL_STAGE_POP_UPLOAD:
+        # pop upload
+
+        posting.pop_filename = review.filename
+        posting.stage_id = assist.APPROVAL_STAGE_POP_APPROVAL
+
+    elif posting.stage_id == assist.APPROVAL_STAGE_POP_APPROVAL:
+        # move to approved and post transactions
+
+        posting.pop_review_at = assist.get_current_date(False)
+        posting.pop_review_by = user.email
+        posting.pop_review_comments = review.comments
+
+        posting.status_id = assist.STATUS_APPROVED
+        posting.stage_id = assist.APPROVAL_STAGE_APPROVED
+
+        # add transactions to database
+        items = [
+            {"type": assist.TRANSACTION_SAVINGS, "amount": posting.saving},
+            {"type": assist.TRANSACTION_SHARE, "amount": posting.shares},
+            {"type": assist.TRANSACTION_SOCIAL_FUND, "amount": posting.social},
+        ]
+
+        if posting.loan_application != 0:
+            list.append({"type": assist.TRANSACTION_LOAN, "amount": posting.loan_application})
+            
+        for item in items:
+            db_tran = TransactionDB(
+            # id
+            type_id = item['type'],
+            #penalty_type_id = tran.penalty_type_id,
+            # user
+            user_id = posting.user_id,
+            post_id = posting.id,
+            # transaction
+            date = assist.get_current_date(False),
+            source_id = 1,
+            amount = item['amount'],
+            comments = posting.period.period_name,
+            #reference = tran.reference,
+            
+            # loan
+            #term_months = tran.term_months,
+            #interest_rate = tran.interest_rate,
+            
+            #loan payment transaction id
+            #parent_id = tran.parent_id,
+            
+            # approval
+            status_id = assist.STATUS_APPROVED,
+            state_id = assist.STATE_CLOSED,
+            stage_id = assist.APPROVAL_STAGE_APPROVED,
+            approval_levels = posting.approval_levels,
+            
+            # service
+            created_by = posting.created_by, 
+            )
+            db.add(db_tran)
 
     try:
         await db.commit()
@@ -138,6 +296,19 @@ async def list_postings(db: AsyncSession = Depends(get_db)):
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
+    )
+    postings = result.scalars().all()
+    return postings
+
+
+@router.get("/user/{userId}", response_model=List[MonthlyPostingWithDetail])
+async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(MonthlyPostingDB.user_id == userId)
     )
     postings = result.scalars().all()
     return postings
@@ -175,7 +346,7 @@ async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/param/{user_id}", response_model=ParamMonthlyPosting)
-async def get_postomng_param(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
 
     # check user exists
     result = await db.execute(select(UserDB).filter(UserDB.id == user_id))
@@ -188,6 +359,7 @@ async def get_postomng_param(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
     )
+
     config = result.scalars().first()
     if not config:
         raise HTTPException(
