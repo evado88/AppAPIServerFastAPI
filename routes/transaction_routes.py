@@ -26,33 +26,28 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
 
     db_tran = TransactionDB(
         # id
-        type_id = tran.type_id,
-        penalty_type_id = tran.penalty_type_id,
+        type_id=tran.type_id,
+        penalty_type_id=tran.penalty_type_id,
         # user
-        user_id = tran.user_id,
-        
+        user_id=tran.user_id,
         # transaction
-        date = tran.date,
-        source_id = tran.source_id,
-        amount = tran.amount,
-        comments = tran.comments,
-        reference = tran.reference,
-        
+        date=tran.date,
+        source_id=tran.source_id,
+        amount=tran.amount,
+        comments=tran.comments,
+        reference=tran.reference,
         # loan
-        term_months = tran.term_months,
-        interest_rate = tran.interest_rate,
-        
-        #loan payment transaction id
-        parent_id = tran.parent_id,
-        
+        term_months=tran.term_months,
+        interest_rate=tran.interest_rate,
+        # loan payment transaction id
+        parent_id=tran.parent_id,
         # approval
-        status_id = tran.status_id,
-        state_id = tran.state_id,
-        stage_id = tran.stage_id,
-        approval_levels = tran.approval_levels,
-        
+        status_id=tran.status_id,
+        state_id=tran.state_id,
+        stage_id=tran.stage_id,
+        approval_levels=tran.approval_levels,
         # service
-        created_by = tran.created_by,
+        created_by=tran.created_by,
     )
     db.add(db_tran)
     try:
@@ -60,7 +55,9 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Unable to create transaction: {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Unable to create transaction: {e}"
+        )
     return db_tran
 
 
@@ -68,13 +65,39 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
 async def list_transactions(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
-        #.options(
+        # .options(
         #    joinedload(TransactionDB.post),
         #    joinedload(TransactionDB.status),
         #    joinedload(TransactionDB.type),
         #    joinedload(TransactionDB.source),
         #
-        #)
+        # )
+    )
+    transactions = result.scalars().all()
+    return transactions
+
+
+@router.get(
+    "/user/{userId}/type/{typeId}/status/{statusId}",
+    response_model=List[TransactionWithDetail],
+)
+async def list_user_status_transactions(
+    userId: int, typeId: int, statusId: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(TransactionDB)
+        # .options(
+        #    joinedload(TransactionDB.post),
+        #    joinedload(TransactionDB.status),
+        #    joinedload(TransactionDB.type),
+        #    joinedload(TransactionDB.source),
+        #
+        # )
+        .filter(
+            TransactionDB.status_id == statusId,
+            TransactionDB.user_id == userId,
+            TransactionDB.type_id == typeId,
+        )
     )
     transactions = result.scalars().all()
     return transactions
@@ -84,16 +107,18 @@ async def list_transactions(db: AsyncSession = Depends(get_db)):
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
-        #.options(
+        # .options(
         #    joinedload(TransactionDB.post),
         #    joinedload(TransactionDB.status),
         #    joinedload(TransactionDB.type),
         #    joinedload(TransactionDB.source),
         #
-        #)
+        # )
         .filter(TransactionDB.id == tran_id)
     )
     transaction = result.scalars().first()
     if not transaction:
-        raise HTTPException(status_code=404, detail=f"Unable to find transaction with id '{tran_id}'")
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find transaction with id '{tran_id}'"
+        )
     return transaction

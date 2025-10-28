@@ -160,12 +160,11 @@ Configuration
   "loan_interest_rate": 10,
   "loan_repayment_rate": 10,
   "loan_saving_ratio": 4,
+  "loan_duration": 4,
   "late_posting_rate": 250,
   "missed_meeting_rate": 100,
   "late_meeting_rate": 50,
   "approval_levels": 2,
-  "contribution_total": 4400,
-  "deposit_total": 4400
 }
 
 Annoucement

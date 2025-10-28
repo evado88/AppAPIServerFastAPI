@@ -35,6 +35,8 @@ class MonthlyPostingDB(Base):
     social = Column(Float, nullable=False)
     penalty = Column(Float, nullable=False)
 
+    late_post_penalty = Column(Float, nullable=False)
+    
     loan_interest = Column(Float, nullable=False)
     loan_month_repayment = Column(Float, nullable=False)
 
@@ -46,6 +48,10 @@ class MonthlyPostingDB(Base):
     deposit_total = Column(Float, nullable=False)
     #pop
     pop_filename = Column(String, nullable=True)
+    pop_filesize = Column(Integer, nullable=True)
+    pop_filetype = Column(String, nullable=True)
+    pop_comments = Column(String, nullable=True)
+    
     # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
 
@@ -53,6 +59,7 @@ class MonthlyPostingDB(Base):
 
     stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
 
+    guarantor_user_id = Column(Integer, nullable=True)
     guarantor_required = Column(Integer, nullable=True)
     guarantor_at = Column(DateTime(timezone=True), nullable=True)
     guarantor_by = Column(String, nullable=True)
@@ -118,7 +125,11 @@ class MonthlyPosting(BaseModel):
     penalty: float = Field(
         ..., ge=0, description="Penalty amount must be greater or equal to zero"
     )
-
+    
+    late_post_penalty: float = Field(
+        ..., ge=0, description="Late post penalty amount must be greater or equal to zero"
+    )
+    
     loan_interest: float = Field(
         ..., ge=0, description="Loan interest amount must be greater or equal to zero"
     )
@@ -148,6 +159,10 @@ class MonthlyPosting(BaseModel):
     )
     #pop
     pop_filename: Optional[str] = None
+    pop_filesize: Optional[int] = None
+    pop_filetype: Optional[str] = None
+    pop_comments: Optional[str] = None
+    
     # approval
     status_id: int = Field(
         ..., ge=1, description="Status must be greater than or equal to 1"
@@ -159,6 +174,7 @@ class MonthlyPosting(BaseModel):
 
     stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 3")
 
+    guarantor_user_id: Optional[int] = None
     guarantor_required: Optional[int] = None
     guarantor_at: Optional[datetime] = None
     guarantor_by: Optional[str] = None

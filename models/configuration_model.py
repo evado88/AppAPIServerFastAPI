@@ -25,7 +25,8 @@ class SACCOConfigurationDB(Base):
     loan_interest_rate = Column(Float, nullable=False)
     loan_repayment_rate = Column(Float, nullable=False)
     loan_saving_ratio = Column(Float, nullable=False)
-    
+    loan_duration = Column(Integer, nullable=False)
+        
     late_posting_rate = Column(Float, nullable=False)
     missed_meeting_rate = Column(Float, nullable=False)
     late_meeting_rate = Column(Float, nullable=False)
@@ -53,7 +54,8 @@ class SACCOConfiguration(BaseModel):
     loan_interest_rate: float = Field(..., ge=0, description="The loan interest rate must be greater than zero")
     loan_repayment_rate: float = Field(..., ge=0, description="The loan repayment rate must be greater than zero")
     loan_saving_ratio: float = Field(..., gt=0, description="The loan saving ratio must be greater than zero")
-    
+    loan_duration: float = Field(..., ge=1, le=12, description="The loan duration must be between 1 and 12")
+        
     late_posting_rate: float = Field(..., ge=0, description="The late posting rate must be greater than zero")
     missed_meeting_rate: float = Field(..., ge=0, description="The missed meeting rate must be greater than zero")
     late_meeting_rate: float = Field(..., gt=0, description="The late meeting rate must be greater than zero")

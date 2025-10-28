@@ -14,7 +14,7 @@ from routes import penalty_type_routes
 
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.staticfiles import StaticFiles
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,6 +32,8 @@ origins = [
 
 
 app = FastAPI(title="SACCO [FastAPI/PostgreSQL]")
+
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 #COR
 app.add_middleware(
