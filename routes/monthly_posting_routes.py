@@ -470,6 +470,27 @@ async def list_period_postings(period_id: int, db: AsyncSession = Depends(get_db
     return postings
 
 
+@router.get(
+    "/period/{period_id}/status/{status_id}",
+    response_model=List[MonthlyPostingWithDetail],
+)
+async def list_status_period_postings(
+    period_id: int, status_id: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(
+            MonthlyPostingDB.period_id == period_id,
+            MonthlyPostingDB.status_id == status_id,
+        )
+    )
+    postings = result.scalars().all()
+    return postings
+
+
 @router.get("/id/{posting_id}", response_model=MonthlyPostingWithDetail)
 async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
