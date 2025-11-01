@@ -39,7 +39,8 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
 
     result = await db.execute(
         select(MonthlyPostingDB).filter(
-            MonthlyPostingDB.date.between(start_date, end_date)
+            MonthlyPostingDB.date.between(start_date, end_date),
+            MonthlyPostingDB.user_id == posting.user_id,
         )
     )
 
@@ -62,6 +63,7 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         shares=posting.shares,
         social=posting.social,
         penalty=posting.penalty,
+        late_post_penalty=posting.late_post_penalty,
         loan_interest=posting.loan_interest,
         loan_month_repayment=posting.loan_month_repayment,
         loan_application=posting.loan_application,
@@ -89,7 +91,9 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
 
 
 @router.post("/upload-pop/{post_id}", response_model=MonthlyPosting)
-async def upload_file(post_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+async def upload_file(
+    post_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)
+):
 
     # check posting exists
     result = await db.execute(
@@ -102,14 +106,14 @@ async def upload_file(post_id: int, file: UploadFile = File(...), db: AsyncSessi
             status_code=404,
             detail=f"Unable to find monthly posting with id '{post_id}' not found",
         )
-        
+
     try:
-        #ensure folders exist
+        # ensure folders exist
         current = assist.get_current_date()
-        dir = f'{assist.UPLOAD_DIR}/{current.year}/{current.month}'
-        
+        dir = f"{assist.UPLOAD_DIR}/{current.year}/{current.month}"
+
         os.makedirs(dir, exist_ok=True)
-        
+
         # Validate filename
         if not file.filename:
             raise HTTPException(status_code=400, detail="No filename provided")
@@ -118,7 +122,7 @@ async def upload_file(post_id: int, file: UploadFile = File(...), db: AsyncSessi
         fileDetail = os.path.splitext(file.filename)
         noextensionfile = fileDetail[0]
         ext = fileDetail[1]
-        
+
         unique_name = f"{noextensionfile}_{uuid.uuid4()}{ext}"
         file_path = os.path.join(dir, unique_name)
 
@@ -126,21 +130,22 @@ async def upload_file(post_id: int, file: UploadFile = File(...), db: AsyncSessi
         contents = await file.read()
         with open(file_path, "wb") as f:
             f.write(contents)
-            
-        #update pop file
-        posting.pop_filename = f'{current.year}/{current.month}/{unique_name}'
+
+        # update pop file
+        posting.pop_filename = f"{current.year}/{current.month}/{unique_name}"
         posting.pop_filesize = len(contents)
         posting.pop_filetype = file.content_type
-        
+
         await db.commit()
         await db.refresh(posting)
-        
-        #rerturn response
+
+        # rerturn response
         return posting
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
-    
+
+
 @router.put("/review-update/{post_id}", response_model=MonthlyPostingWithDetail)
 async def review_posting(
     post_id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
@@ -275,12 +280,22 @@ async def review_posting(
 
     elif posting.stage_id == assist.APPROVAL_STAGE_POP_UPLOAD:
         # pop upload
-        
+
         posting.stage_id = assist.APPROVAL_STAGE_POP_APPROVAL
         posting.pop_comments = review.comments
-        
+
     elif posting.stage_id == assist.APPROVAL_STAGE_POP_APPROVAL:
         # move to approved and post transactions
+        result = await db.execute(
+            select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+        )
+
+        config = result.scalars().first()
+        if not config:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unable to approve monthly posting. Configuration with id '{1}' not found",
+            )
 
         posting.pop_review_at = assist.get_current_date(False)
         posting.pop_review_by = user.email
@@ -291,44 +306,87 @@ async def review_posting(
 
         # add transactions to database
         items = [
-            {"type": assist.TRANSACTION_SAVINGS, "amount": posting.saving},
-            {"type": assist.TRANSACTION_SHARE, "amount": posting.shares},
-            {"type": assist.TRANSACTION_SOCIAL_FUND, "amount": posting.social},
+            {
+                "type": assist.TRANSACTION_SAVINGS,
+                "amount": posting.saving,
+                "term": None,
+                "interest": None,
+                "penaltyType": None,
+            },
+            {
+                "type": assist.TRANSACTION_SHARE,
+                "amount": posting.shares,
+                "term": None,
+                "interest": None,
+                "penaltyType": None,
+            },
+            {
+                "type": assist.TRANSACTION_SOCIAL_FUND,
+                "amount": posting.social,
+                "term": None,
+                "interest": None,
+                "penaltyType": None,
+            },
         ]
 
+        if posting.late_post_penalty != 0:
+
+            items.append(
+                {
+                    "type": assist.TRANSACTION_PENALTY_CHARGED,
+                    "amount": posting.late_post_penalty,
+                    "term": None,
+                    "interest": None,
+                    "penaltyType": assist.PENALTY_LATE_POSTING,
+                }
+            )
+            items.append(
+                {
+                    "type": assist.TRANSACTION_PENALTY_PAID,
+                    "amount": posting.late_post_penalty,
+                    "term": None,
+                    "interest": None,
+                    "penaltyType": assist.PENALTY_LATE_POSTING,
+                }
+            )
+
         if posting.loan_application != 0:
-            list.append({"type": assist.TRANSACTION_LOAN, "amount": posting.loan_application})
-            
+            items.append(
+                {
+                    "type": assist.TRANSACTION_LOAN,
+                    "amount": posting.loan_application,
+                    "term": config.loan_duration,
+                    "interest": config.loan_interest_rate,
+                    "penaltyType": assist.PENALTY_LATE_POSTING,
+                }
+            )
+
         for item in items:
             db_tran = TransactionDB(
-            # id
-            type_id = item['type'],
-            #penalty_type_id = tran.penalty_type_id,
-            # user
-            user_id = posting.user_id,
-            post_id = posting.id,
-            # transaction
-            date = assist.get_current_date(False),
-            source_id = 1,
-            amount = item['amount'],
-            comments = posting.period.period_name,
-            #reference = tran.reference,
-            
-            # loan
-            #term_months = tran.term_months,
-            #interest_rate = tran.interest_rate,
-            
-            #loan payment transaction id
-            #parent_id = tran.parent_id,
-            
-            # approval
-            status_id = assist.STATUS_APPROVED,
-            state_id = assist.STATE_CLOSED,
-            stage_id = assist.APPROVAL_STAGE_APPROVED,
-            approval_levels = posting.approval_levels,
-            
-            # service
-            created_by = posting.created_by, 
+                # id
+                type_id=item["type"],
+                penalty_type_id=item["penaltyType"],
+                # user
+                user_id=posting.user_id,
+                post_id=posting.id,
+                # transaction
+                date=assist.get_current_date(False),
+                source_id=1,
+                amount=item["amount"],
+                comments=posting.period.period_name,
+                # reference = tran.reference,
+                # loan
+                term_months=item["term"],
+                interest_rate=item["interest"],
+                # loan payment transaction id
+                # parent_id = tran.parent_id,
+                # approval
+                status_id=assist.STATUS_APPROVED,
+                state_id=assist.STATE_CLOSED,
+                stage_id=assist.APPROVAL_STAGE_APPROVED,
+                approval_levels=posting.approval_levels,
+                # service
+                created_by=posting.created_by,
             )
             db.add(db_tran)
 
@@ -367,18 +425,24 @@ async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
     postings = result.scalars().all()
     return postings
 
-@router.get("/guarantor-approvals/{userId}", response_model=List[MonthlyPostingWithDetail])
+
+@router.get(
+    "/guarantor-approvals/{userId}", response_model=List[MonthlyPostingWithDetail]
+)
 async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(MonthlyPostingDB.guarantor_required == assist.RESPONSE_YES,
-                MonthlyPostingDB.guarantor_user_id == userId)
+        .filter(
+            MonthlyPostingDB.guarantor_required == assist.RESPONSE_YES,
+            MonthlyPostingDB.guarantor_user_id == userId,
+        )
     )
     postings = result.scalars().all()
     return postings
+
 
 @router.get("/status/{status_id}", response_model=List[MonthlyPostingWithDetail])
 async def list_status_postings(status_id: int, db: AsyncSession = Depends(get_db)):
@@ -388,6 +452,19 @@ async def list_status_postings(status_id: int, db: AsyncSession = Depends(get_db
         #    joinedload(MonthlyPostingDB.status),
         # )
         .filter(MonthlyPostingDB.status_id == status_id)
+    )
+    postings = result.scalars().all()
+    return postings
+
+
+@router.get("/period/{period_id}", response_model=List[MonthlyPostingWithDetail])
+async def list_period_postings(period_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(MonthlyPostingDB.period_id == period_id)
     )
     postings = result.scalars().all()
     return postings
@@ -407,6 +484,33 @@ async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=404,
             detail=f"Unable to find monthly posting with id '{posting_id}'",
+        )
+    return posting
+
+
+@router.put("/update/{id}", response_model=MonthlyPosting)
+async def update_configuration(
+    id: int, posting_update: MonthlyPosting, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(MonthlyPostingDB).where(MonthlyPostingDB.id == id))
+    posting = result.scalar_one_or_none()
+
+    if not posting:
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find monthly posting with id '{id}'"
+        )
+
+    # Update fields that are not None
+    for key, value in posting_update.dict(exclude_unset=True).items():
+        setattr(posting, key, value)
+
+    try:
+        await db.commit()
+        await db.refresh(posting)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, detail=f"Unable to update monthly posting: {e}"
         )
     return posting
 

@@ -28,7 +28,7 @@ async def create_type(status: AttendanceType, db: AsyncSession = Depends(get_db)
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_db)):
-    typeList = ['In-Person', 'Virtual', 'Absent']
+    typeList = ['In-Person', 'Virtual', 'Late', 'Absent']
     typeId = 1
     
     for value in typeList:

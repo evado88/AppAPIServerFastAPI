@@ -6,7 +6,7 @@ from datetime import date, datetime
 from database import Base
 from models.review_stages_model import ReviewStage
 from models.status_types_model import StatusType
-from models.user_model import User
+from models.user_model import User, UserSimple
 
 # ---------- SQLAlchemy Models ----------
 class MemberDB(Base):
@@ -129,7 +129,7 @@ class Member(BaseModel):
         orm_mode = True
         
 class MemberWithDetail(Member):
-    user: User
+    user: UserSimple
     stage: ReviewStage
     status: StatusType
 

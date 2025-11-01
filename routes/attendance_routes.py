@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from typing import List
 
 from database import get_db
-from models.attendance_model import Attendance, AttendanceDB, AttendanceWithDetail
+from models.attendance_model import Attendance, AttendanceDB
 from models.user_model import UserDB
 
 router = APIRouter(prefix="/attendances", tags=["Attendances"])
@@ -36,7 +36,7 @@ async def post_attendance(attendance: Attendance, db: AsyncSession = Depends(get
     return db_tran
 
 
-@router.get("/", response_model=List[AttendanceWithDetail])
+@router.get("/", response_model=List[Attendance])
 async def list_attendances(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AttendanceDB)
@@ -52,7 +52,7 @@ async def list_attendances(db: AsyncSession = Depends(get_db)):
     return attendances
 
 
-@router.get("/{attendance_id}", response_model=AttendanceWithDetail)
+@router.get("/{attendance_id}", response_model=Attendance)
 async def get_attendance(attendance_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AttendanceDB)

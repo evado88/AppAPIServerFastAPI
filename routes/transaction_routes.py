@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from database import get_db
+from helpers import assist
+from models.param_models import MemberSummary, ParamGroupSummary, ParamSummary
 from models.transaction_model import Transaction, TransactionDB, TransactionWithDetail
 from models.user_model import UserDB
 from models.transaction_types_model import TransactionTypeDB
@@ -122,3 +125,125 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
             status_code=404, detail=f"Unable to find transaction with id '{tran_id}'"
         )
     return transaction
+
+
+@router.get("/member-summary/{userId}", response_model=List[ParamSummary])
+async def get_member_summary(userId: int, db: AsyncSession = Depends(get_db)):
+    # get user
+    result = await db.execute(select(UserDB).where(UserDB.id == userId))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=400, detail=f"The user with id {userId} does not exist"
+        )
+
+    # get all transaction types
+    result = await db.execute(select(TransactionTypeDB))
+    types = result.scalars().all()
+
+    summary = [{"id": type.id, "name": type.type_name, "amount": 0} for type in types]
+
+    # get available transactions
+    stmt = (
+        select(
+            TransactionTypeDB.type_name,
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .outerjoin(TransactionDB, TransactionTypeDB.id == TransactionDB.type_id)
+        .filter(TransactionDB.user_id == userId)
+        .group_by(TransactionTypeDB.type_name)
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+    # map transactions to base items
+    for item in summary:
+        for row in rows:
+            if row[0] == item["name"]:
+                item["amount"] = row[1]
+                break
+
+    return summary
+
+
+@router.get("/summary/all", response_model=List[ParamSummary])
+async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
+    # get all transaction types
+    result = await db.execute(select(TransactionTypeDB))
+    types = result.scalars().all()
+
+    summary = [{"id": type.id, "name": type.type_name, "amount": 0} for type in types]
+
+    # get available transactions
+    stmt = (
+        select(
+            TransactionTypeDB.type_name,
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .outerjoin(TransactionDB, TransactionTypeDB.id == TransactionDB.type_id)
+        .group_by(TransactionTypeDB.type_name)
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+    # map transactions to base items
+    for item in summary:
+        for row in rows:
+            if row[0] == item["name"]:
+                item["amount"] = row[1]
+                break
+
+    return summary
+
+
+@router.get("/year-to-date/all", response_model=List[MemberSummary])
+async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
+    print("starting summary", assist.get_current_date(False))
+    # get all users
+    result = await db.execute(select(UserDB))
+    users = result.scalars().all()
+
+    # get all transaction types
+    result = await db.execute(select(TransactionTypeDB))
+    types = result.scalars().all()
+
+    # create a summary
+    summary = [
+        {
+            "id": user.id,
+            "fname": user.fname,
+            "lname": user.lname,
+            "email": user.email,
+            "phone": user.mobile,
+        }
+        for user in users
+    ]
+
+    # add transaction info
+    for member in summary:
+        for type in types:
+            member[f'tid{type.id}'] = 0.0
+
+    # get available transactions
+    stmt = select(
+        TransactionDB.user_id,
+        TransactionDB.type_id,
+        func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+    ).group_by(TransactionDB.user_id, TransactionDB.type_id)
+
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    # map transactions to base items
+    for member in summary:
+        for tran in rows:
+            if member['id'] == tran['user_id']:
+                tid = tran['type_id']
+                member[f'tid{tid}'] = tran['amount']
+                
+                
+        
+
+    print("ending summary", assist.get_current_date(False))
+    
+    return summary

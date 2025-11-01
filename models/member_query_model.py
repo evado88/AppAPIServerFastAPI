@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from models.review_stages_model import ReviewStage
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.member_query_type_model import MemberQueryType
 from models.status_types_model import StatusType
 from datetime import datetime
@@ -100,7 +100,7 @@ class MemberQuery(BaseModel):
 
 
 class MemberQueryWithDetail(MemberQuery):
-    user: User
+    user: UserSimple
     type: MemberQueryType
     status: StatusType
     stage: ReviewStage

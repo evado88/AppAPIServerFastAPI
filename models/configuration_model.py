@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
-from models.user_model import User
+from models.user_model import User, UserSimple
 from datetime import date, datetime
 
 # ---------- SQLAlchemy Models ----------
@@ -26,7 +26,7 @@ class SACCOConfigurationDB(Base):
     loan_repayment_rate = Column(Float, nullable=False)
     loan_saving_ratio = Column(Float, nullable=False)
     loan_duration = Column(Integer, nullable=False)
-        
+    loan_apply_limit = Column(Integer, nullable=False)
     late_posting_rate = Column(Float, nullable=False)
     missed_meeting_rate = Column(Float, nullable=False)
     late_meeting_rate = Column(Float, nullable=False)
@@ -55,7 +55,8 @@ class SACCOConfiguration(BaseModel):
     loan_repayment_rate: float = Field(..., ge=0, description="The loan repayment rate must be greater than zero")
     loan_saving_ratio: float = Field(..., gt=0, description="The loan saving ratio must be greater than zero")
     loan_duration: float = Field(..., ge=1, le=12, description="The loan duration must be between 1 and 12")
-        
+    loan_apply_limit: float = Field(..., ge=0, description="The loan apply limit must be greater or equal to zero")
+         
     late_posting_rate: float = Field(..., ge=0, description="The late posting rate must be greater than zero")
     missed_meeting_rate: float = Field(..., ge=0, description="The missed meeting rate must be greater than zero")
     late_meeting_rate: float = Field(..., gt=0, description="The late meeting rate must be greater than zero")
@@ -70,5 +71,5 @@ class SACCOConfiguration(BaseModel):
         orm_mode = True
 
 class SACCOConfigurationWithDetail(SACCOConfiguration):
-    user: User
+    user: UserSimple
     

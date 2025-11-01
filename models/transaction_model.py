@@ -6,7 +6,7 @@ from database import Base
 from models.penalty_types_model import PenaltyType
 from models.review_stages_model import ReviewStage
 from models.transaction_states_model import TransactionState
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.transaction_types_model import TransactionType
 from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
@@ -146,7 +146,7 @@ class Transaction(BaseModel):
 
 
 class TransactionWithDetail(Transaction):
-    user: User
+    user: UserSimple
     type: TransactionType
     status: StatusType
     state: TransactionState

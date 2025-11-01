@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from models.review_stages_model import ReviewStage
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.knowledge_base_category_model import KnowledgeBaseCategory
 from models.status_types_model import StatusType
 from datetime import datetime
@@ -97,7 +97,7 @@ class KnowledgeBase(BaseModel):
 
 
 class KnowledgeBaseWithDetail(KnowledgeBase):
-    user: User
+    user: UserSimple
     category: KnowledgeBaseCategory
     status: StatusType
     stage: ReviewStage

@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
 from models.review_stages_model import ReviewStage
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.status_types_model import StatusType
 from datetime import datetime
 
@@ -92,7 +92,7 @@ class Announcement(BaseModel):
 
 
 class AnnouncementWithDetail(Announcement):
-    user: User
+    user: UserSimple
     status: StatusType
     stage: ReviewStage
     

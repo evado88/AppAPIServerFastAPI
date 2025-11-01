@@ -36,6 +36,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         loan_repayment_rate = config.loan_repayment_rate,
         loan_saving_ratio = config.loan_saving_ratio,
         loan_duration = config.loan_duration,
+        loan_apply_limit = config.loan_apply_limit,
         
         late_posting_rate = config.late_posting_rate,
         missed_meeting_rate = config.missed_meeting_rate,
@@ -66,7 +67,7 @@ async def update_configuration(config_id: int, config_update: SACCOConfiguration
         raise HTTPException(status_code=404, detail=f"Unable to find configuration with id '{config_id}' not found")
     
     # Update fields that are not None
-    for key, value in config_update.model_dump(exclude_unset=True).items():
+    for key, value in config_update.dict(exclude_unset=True).items():
         setattr(config, key, value)
         
     try:

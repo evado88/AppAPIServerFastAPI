@@ -199,6 +199,7 @@ Notification
 Meeting
 {
   "user_id": 1,
+  "attachment_id": 2,
   "date":"2025-10-10 15:00",
   "title":"Meeting - 10th October 2025",
   "content":"Agenda and outcomes",

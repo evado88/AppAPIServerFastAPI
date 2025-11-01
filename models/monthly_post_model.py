@@ -6,7 +6,7 @@ from database import Base
 from models.configuration_model import SACCOConfiguration
 from models.posting_period_model import PostingPeriod
 from models.review_stages_model import ReviewStage
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.transaction_types_model import TransactionType
 from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
@@ -207,7 +207,7 @@ class MonthlyPosting(BaseModel):
 
 
 class MonthlyPostingWithDetail(MonthlyPosting):
-    user: User
+    user: UserSimple
     stage: ReviewStage
     status: StatusType
     period: PostingPeriod

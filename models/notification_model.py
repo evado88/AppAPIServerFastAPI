@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.status_types_model import StatusType
 from datetime import datetime
 
@@ -55,6 +55,6 @@ class Notification(BaseModel):
 
 
 class NotificationWithDetail(Notification):
-    user: User
+    user: UserSimple
     status: StatusType
     

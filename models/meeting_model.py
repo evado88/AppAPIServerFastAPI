@@ -3,8 +3,9 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
+from models.attachment_model import Attachment
 from models.review_stages_model import ReviewStage
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.status_types_model import StatusType
 from datetime import datetime
 
@@ -17,6 +18,9 @@ class MeetingDB(Base):
     
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    #attachments
+    attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=False)
     
     #meeting
     date = Column(DateTime(timezone=True), nullable=False)
@@ -54,6 +58,7 @@ class MeetingDB(Base):
     status = relationship("StatusTypeDB", back_populates="meetings", lazy='selectin')
     attendances = relationship("AttendanceDB", back_populates="meeting", lazy='selectin')
     stage = relationship("ReviewStageDB", back_populates="meetings", lazy='selectin')
+    attachment = relationship("AttachmentDB", back_populates="meetings", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class Meeting(BaseModel):
     #id
@@ -61,6 +66,9 @@ class Meeting(BaseModel):
     
     #user
     user_id: int
+        
+    #attachment
+    attachment_id: int = Field(..., ge=1, description="Attachment id must be greater than or equal to 1")
     
     #query
     date: datetime = Field(..., description="The date and time for the meeting")
@@ -72,7 +80,7 @@ class Meeting(BaseModel):
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
     
-    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 3")
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
@@ -97,6 +105,7 @@ class Meeting(BaseModel):
 
 
 class MeetingWithDetail(Meeting):
-    user: User
+    user: UserSimple
+    attachment: Attachment
     status: StatusType
     stage: ReviewStage

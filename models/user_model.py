@@ -114,3 +114,31 @@ class User(BaseModel):
 class UserWithDetail(User):
     stage: ReviewStage
     status: StatusType
+    
+# ---------- Pydantic Schemas ----------
+# user that hides unnecessary fields
+class UserSimple(BaseModel):
+    #id
+    id: Optional[int] = None
+    code: Optional[str] = None
+    type: Optional[int] = None
+    
+    #personal details
+    fname: str = Field(..., min_length=2, max_length=50, description="First name must be between 2 and 50 characters")
+    lname: str = Field(..., min_length=2, max_length=50, description="Last name must be between 2 and 50 characters")
+    mobile: str = Field(..., min_length=3, max_length=15, description="Mobile1 must be between 3 and 15 characters")
+    position: Optional[str] = None
+    address: Optional[str] = None
+    email: EmailStr
+    
+    #account
+    role: int =  Field(..., ge=1, le=3, description="Role must be greater than or equal to 1")
+    
+    #service columns
+    created_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    updated_by: Optional[str] = None
+    
+    class Config:
+        orm_mode = True

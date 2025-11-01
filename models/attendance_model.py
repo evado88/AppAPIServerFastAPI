@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
-from models.user_model import User
+from models.user_model import User, UserSimple
 from models.meeting_model import Meeting
 from models.attendance_types_model import AttendanceType
 from datetime import datetime
@@ -34,10 +34,5 @@ class Attendance(BaseModel):
     
     class Config:
         orm_mode = True
-
-
-class AttendanceWithDetail(Attendance):
-    user: User
-    meeting: Meeting
-    type: AttendanceType
+    
     
