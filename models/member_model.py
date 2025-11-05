@@ -81,6 +81,7 @@ class MemberDB(Base):
     
     #relationships
     user = relationship("UserDB", back_populates="member", lazy='selectin')
+    postings = relationship("MonthlyPostingDB", back_populates="member", lazy='selectin')
     stage = relationship("ReviewStageDB", back_populates="members", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="members", lazy='selectin')
     attachment = relationship("AttachmentDB", back_populates="member", lazy='selectin')

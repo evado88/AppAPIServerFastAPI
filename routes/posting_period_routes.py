@@ -8,7 +8,8 @@ from sqlalchemy import func, and_, or_
 from database import get_db
 from helpers import assist
 from models.configuration_model import SACCOConfigurationDB
-from models.monthly_post_model import MonthlyPostingDB
+from models.member_model import MemberDB
+from models.monthly_post_model import MonthlyPostingDB, MonthlyPostingWithMemberDetail
 from models.param_models import ParamPeriodSummary
 from models.posting_period_model import (
     PostingPeriod,
@@ -592,3 +593,22 @@ async def list_current_periods(
     print("ending period summary", assist.get_current_date(False))
 
     return summary
+
+
+@router.get(
+    "/ddac/{period_id}", response_model=List[MonthlyPostingWithMemberDetail]
+)
+async def list_current_periods(
+    period_id: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(MonthlyPostingDB.period_id == period_id,
+                MonthlyPostingDB.status_id == assist.STATUS_APPROVED,
+                MonthlyPostingDB.receive_total > 0)
+    )
+    postings = result.scalars().all()
+    return postings

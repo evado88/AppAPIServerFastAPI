@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
 from database import Base
 from models.configuration_model import SACCOConfiguration
+from models.member_model import Member
 from models.posting_period_model import PostingPeriod
 from models.review_stages_model import ReviewStage
 from models.user_model import User, UserSimple
@@ -23,6 +24,9 @@ class MonthlyPostingDB(Base):
 
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # member
+    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
 
     # period
     period_id = Column(Integer, ForeignKey("list_posting_periods.id"), nullable=False)
@@ -92,6 +96,7 @@ class MonthlyPostingDB(Base):
 
     # relationships
     user = relationship("UserDB", back_populates="postings", lazy="selectin")
+    member = relationship("MemberDB", back_populates="postings", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="postings", lazy="selectin")
     stage = relationship("ReviewStageDB", back_populates="postings", lazy="selectin")
     transactions = relationship("TransactionDB", back_populates="post", lazy="selectin")
@@ -108,7 +113,10 @@ class MonthlyPosting(BaseModel):
     user_id: int = Field(
         ..., ge=1, description="User id must be greater than or equal to 1"
     )
-
+    # member
+    member_id: int = Field(
+        ..., ge=1, description="Member id must be greater than or equal to 1"
+    )
     # period
     period_id: int = Field(
         ..., ge=1, description="Period must be greater than or equal to 1"
@@ -225,3 +233,7 @@ class MonthlyPostingWithDetail(MonthlyPosting):
     stage: ReviewStage
     status: StatusType
     period: PostingPeriod
+
+class MonthlyPostingWithMemberDetail(MonthlyPosting):
+    user: UserSimple
+    member: Member

@@ -56,6 +56,8 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
     db_tran = MonthlyPostingDB(
         # user
         user_id=posting.user_id,
+        # member
+        member_id=posting.member_id,
         # period
         period_id=posting.period_id,
         # posting
