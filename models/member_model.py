@@ -16,18 +16,27 @@ class MemberDB(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     number = Column(String,  nullable=True)
     
-    #user
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    #user linked to this member
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     #personal details
     fname = Column(String, nullable=False)
     lname = Column(String, nullable=False)
-    mobile1 = Column(String, nullable=False)
-    mobile2 = Column(String, nullable=False)
+    dob = Column(Date, nullable=False)
+    position = Column(String, nullable=True)
+    
+    #id
     id_type = Column(String, nullable=False)
     id_no = Column(String, nullable=False)
+    id_attachment = Column(Integer, ForeignKey("attachments.id"), nullable=False)
+    
+    #contact, address 
     email = Column(String, unique=True, index=True, nullable=False)
-    dob = Column(Date, nullable=True)
+    mobile1 = Column(String, nullable=False)
+    mobile2 = Column(String, nullable=False)
+    address_physical = Column(String, nullable=True)
+    address_postal = Column(String, nullable=True)
+    
     
     #guarantor
     guar_fname = Column(String, nullable=False)
@@ -37,11 +46,15 @@ class MemberDB(Base):
     
     #banking
     bank_name = Column(String, nullable=False)
-    bank_branch = Column(String, nullable=False)
-    bank_acc_name = Column(String, nullable=False)
-    bank_acc_no = Column(String, nullable=False)
-
-    #account
+    bank_branch_name = Column(String, nullable=False)
+    bank_branch_code = Column(String, nullable=False)
+    bank_account_name = Column(String, nullable=False)
+    bank_account_no = Column(String, nullable=False)
+    
+    # account
+    password = Column(String, nullable=False)
+    
+    #approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
     
     approval_levels = Column(Integer, nullable=False)
@@ -70,6 +83,7 @@ class MemberDB(Base):
     user = relationship("UserDB", back_populates="member", lazy='selectin')
     stage = relationship("ReviewStageDB", back_populates="members", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="members", lazy='selectin')
+    attachment = relationship("AttachmentDB", back_populates="member", lazy='selectin')
     
 # ---------- Pydantic Schemas ----------
 class Member(BaseModel):
@@ -77,15 +91,26 @@ class Member(BaseModel):
     id: Optional[int] = None
     number: Optional[str] = None
     
+    #user linked to this member
+    user_id: Optional[int] = None
+    
     #personal details
     fname: str = Field(..., min_length=2, max_length=50, description="First name must be between 2 and 50 characters")
     lname: str = Field(..., min_length=2, max_length=50, description="Last name must be between 2 and 50 characters")
-    mobile1: str = Field(..., min_length=3, max_length=15, description="Mobile1 must be between 3 and 15 characters")
-    mobile2: str = Field(..., min_length=3, max_length=15, description="Mobile2 must be between 3 and 15 characters")
+    dob: date = Field(..., description="The date of birth is required")
+    position: Optional[str] = None
+    
+    #id
     id_type: str = Field(..., min_length=3, max_length=20, description="ID type must be between 3 and 20 characters")
     id_no: str = Field(..., min_length=8, max_length=11, description="ID no must be between 8 and 11 characters")
+    id_attachment: str = Field(..., description="The attachment for the ID must be provided")
+     
+    #contact, address 
     email: EmailStr
-    dob: Optional[date] = None
+    mobile1: str = Field(..., min_length=3, max_length=15, description="Mobile1 must be between 3 and 15 characters")
+    mobile2: str = Field(..., min_length=3, max_length=15, description="Mobile2 must be between 3 and 15 characters")
+    address_physical: Optional[str] = None
+    address_postal: Optional[str] = None
     
     #guarantor
     guar_fname: str = Field(..., min_length=2, max_length=50, description="Guarantor first name must be between 2 and 50 characters")
@@ -95,16 +120,24 @@ class Member(BaseModel):
     
     #banking
     bank_name: str = Field(..., min_length=3, max_length=50, description="Bank name must be between 3 and 50 characters")
-    bank_branch: str = Field(..., min_length=2, max_length=50, description="Bank branch must be between 3 and 50 characters")
-    bank_acc_name: str = Field(..., min_length=3, max_length=50, description="Account name must be between 3 and 50 characters")
-    bank_acc_no : str = Field(..., min_length=3, max_length=50, description="Account number must be between 3 and 50 characters")
+    bank_branch_name: str = Field(..., min_length=2, max_length=50, description="Branch name must be between 3 and 50 characters")
+    bank_branch_code: str = Field(..., min_length=3, max_length=50, description="Bracnh code must be between 3 and 50 characters")
+    bank_account_name: str = Field(..., min_length=2, max_length=150, description="Account name must be between 3 and 150 characters")
+    bank_account_no : str = Field(..., min_length=3, max_length=50, description="Account number must be between 3 and 50 characters")
     
-    #account
-    status_id: int =  Field(..., ge=1, le=3, description="Status must be greater than or equal to 1")
+    # account
+    password: str = Field(
+        ...,
+        min_length=8,
+        max_length=255,
+        description="Password must be between 8 and 80 characters",
+    )
+    # approval
+    status_id: int =  Field(..., ge=1, le=4, description="Status must be greater than or equal to 1")
 
     approval_levels: int = Field(..., ge=1, description="Approval levels must be between 1 and 3")
     
-    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
     
     
     review1_at: Optional[datetime] = None

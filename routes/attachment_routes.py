@@ -11,6 +11,7 @@ from helpers import assist
 from models.attachment_model import Attachment, AttachmentDB, AttachmentInput
 import csv
 
+from models.configuration_model import SACCOConfigurationDB
 from models.param_models import ParamAttachmentDetail
 from models.user_model import UserDB
 
@@ -19,11 +20,39 @@ router = APIRouter(prefix="/attachments", tags=["Attachment"])
 
 async def validateAttendance(file: UploadFile, db=AsyncSession):
 
+    result = await db.execute(
+        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+    )
+
+    config = result.scalars().first()
+
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to process meeting: Configuration with id '{1}' not found",
+        )
+
     result = await db.execute(select(UserDB))
     users = result.scalars().all()
-    userList = {user.email: "None" for user in users}
+    userList = {
+        user.email: {"Type": "None", "TypeId": None, "Penalty": 0.0} for user in users
+    }
 
-    attendanceList = ["In-Person", "Virtual", "Late", "Absent"]
+    attendanceList = {
+        "In-Person": None,
+        "Virtual": None,
+        "None": None,
+        "Late": assist.PENALTY_LATE_MEETING,
+        "Absent": assist.PENALTY_MISSED_MEETING,
+    }
+
+    penaltyFeeList = {
+        "In-Person": 0.0,
+        "Virtual": 0.0,
+        "Late": config.late_meeting_rate,
+        "Absent": config.missed_meeting_rate,
+        "None": 0.0,
+    }
 
     try:
         contents = await file.read()
@@ -38,7 +67,7 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
             userMail = row["Email"]
             userAttendance = row["Attendance"]
 
-            if not userAttendance in attendanceList:
+            if not userAttendance in attendanceList.keys():
                 raise HTTPException(
                     status_code=400,
                     detail=f"The attendance type on row {index} '{userAttendance}' is invalid",
@@ -48,8 +77,22 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
                     status_code=400,
                     detail=f"The user on row {index} '{userMail}' does not exist as a member",
                 )
-            userList[userMail] = userAttendance
+
+            userList[userMail]["Type"] = userAttendance
+            userList[userMail]["TypeId"] = attendanceList[userAttendance]
+            userList[userMail]["Penalty"] = penaltyFeeList[userAttendance]
+
             index += 1
+
+        listAttendace = [
+            {
+                "user": user.email,
+                "type": userList[user.email]["Type"],
+                "typeId": userList[user.email]["TypeId"],
+                "penalty": userList[user.email]["Penalty"],
+            }
+            for user in users
+        ]
     except FileNotFoundError as e:
         raise HTTPException(
             status_code=500,
@@ -60,12 +103,13 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
             status_code=500,
             detail=f"Unable to process the meeting attendance list: {e}",
         )
-        
-    listAttendace = [{'user': user.email, "type": userList[user.email]} for user in users]
+
     return listAttendace
 
 
-@router.post("/create/type/{typeId}/parent/{parentId}", response_model=ParamAttachmentDetail)
+@router.post(
+    "/create/type/{typeId}/parent/{parentId}", response_model=ParamAttachmentDetail
+)
 async def post_attachment(
     typeId: str = "Attachment",
     parentId: int = 0,
@@ -118,10 +162,10 @@ async def post_attachment(
 
         # rerturn response
         param = {
-        "attachment": db_attachment,
-        "attendance": userList,
+            "attachment": db_attachment,
+            "attendance": userList,
         }
-        
+
         return param
 
     except Exception as e:

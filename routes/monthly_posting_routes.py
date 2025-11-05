@@ -6,6 +6,7 @@ from typing import List
 from sqlalchemy import func
 from database import get_db
 from models.configuration_model import SACCOConfigurationDB
+from models.member_model import MemberDB
 from models.monthly_post_model import (
     MonthlyPosting,
     MonthlyPostingDB,
@@ -71,6 +72,13 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         # validation
         contribution_total=posting.contribution_total,
         deposit_total=posting.deposit_total,
+        receive_total=posting.receive_total,
+        payment_method_type=posting.payment_method_type,
+        payment_method_number=posting.payment_method_number,
+        payment_method_name=posting.payment_method_name,
+        # pop
+        pop_attachment_id=posting.pop_attachment_id,
+        pop_comments=posting.pop_comments,
         # approval
         status_id=posting.status_id,
         stage_id=posting.stage_id,
@@ -547,6 +555,17 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
             status_code=401, detail=f"The specified user '{user_id}' does not exist"
         )
 
+    # get member
+    result = await db.execute(select(MemberDB).filter(MemberDB.user_id == user_id))
+
+    member = result.scalars().first()
+    if not member:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to load param: Member with id '{user_id}' not found",
+        )
+
+    # get config
     result = await db.execute(
         select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
     )
@@ -630,6 +649,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
     # return
 
     param = {
+        "member": member,
         "config": config,
         "totalSavings": totalSavings,
         "loan": loan,

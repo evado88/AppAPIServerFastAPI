@@ -32,6 +32,7 @@ async def login(
     to_encode = {
         "sub": user.email,
         "userid": user.id,
+        "useremail": user.email,
         "name": f"{user.fname} {user.lname}",
         "role": user.role,
         "exp":  datetime.now(timezone.utc) + timedelta( minutes=30),

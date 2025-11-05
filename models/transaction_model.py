@@ -121,7 +121,7 @@ class Transaction(BaseModel):
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
    
-    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 3")
+    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None

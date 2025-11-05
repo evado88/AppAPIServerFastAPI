@@ -5,6 +5,9 @@ from typing import Optional
 from database import Base
 from datetime import datetime
 
+from models.review_stages_model import ReviewStage
+from models.status_types_model import StatusType
+
 # ---------- SQLAlchemy Models ----------
 class PostingPeriodDB(Base):
     __tablename__ = "list_posting_periods"
@@ -64,7 +67,7 @@ class PostingPeriod(BaseModel):
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
     
-    stage_id: int =  Field(..., ge=1, le=3, description="Stage must be between 1 and 3")
+    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
         
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
@@ -87,3 +90,6 @@ class PostingPeriod(BaseModel):
     class Config:
         orm_mode = True
 
+class PostingPeriodWithDetail(PostingPeriod):
+    status: StatusType
+    stage: ReviewStage

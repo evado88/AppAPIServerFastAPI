@@ -10,7 +10,7 @@ from models.attachment_model import AttachmentDB
 from models.meeting_model import Meeting, MeetingDB, MeetingWithDetail
 from models.review_model import SACCOReview
 from models.user_model import UserDB
-import csv
+import json
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
@@ -34,20 +34,38 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
         date=meeting.date,
         title=meeting.title,
         content=meeting.content,
+        attendanceList=meeting.attendanceList,
         # approval
         status_id=meeting.status_id,
         stage_id=meeting.stage_id,
         approval_levels=meeting.approval_levels,
         # service
-        created_by=meeting.created_by,
+        created_by=user.email,
     )
     db.add(db_tran)
     try:
         await db.commit()
         await db.refresh(db_tran)
+        
+        #add meeting penaltys
+        list = json.loads(db_tran.attendanceList)
+        
+        for item in list:
+            user = item['user']
+            type = item['type']
+            penalty = item['penalty']
+            
+            if penalty != 0:
+                print(f'Will add a penalty for user {user} at rate {penalty} for {type} once posted')
+                
+    except json.JSONDecodeError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Could not create meeting due attendance list error: {e}")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Could not create meeting: {e}")
+    
+    
     return db_tran
 
 
@@ -150,6 +168,12 @@ async def review_posting(
 
     if meeting.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
         # submitted stage
+        
+        if meeting.created_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the primary reviewer of a meeting you created",
+        )
 
         meeting.review1_at = assist.get_current_date(False)
         meeting.review1_by = user.email
@@ -176,6 +200,12 @@ async def review_posting(
 
     elif meeting.stage_id == assist.APPROVAL_STAGE_PRIMARY:
         # primary stage
+        
+        if meeting.review1_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
+        )
 
         meeting.review2_at = assist.get_current_date(False)
         meeting.review2_by = user.email
@@ -200,6 +230,12 @@ async def review_posting(
 
     elif meeting.stage_id == assist.APPROVAL_STAGE_SECONDARY:
         # secondary stage
+        
+        if meeting.review2_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the final reviewer since you were the secondary reviewer",
+        )
 
         meeting.review3_at = assist.get_current_date(False)
         meeting.review3_by = user.email

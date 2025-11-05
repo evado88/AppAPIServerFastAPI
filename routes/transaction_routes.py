@@ -7,7 +7,12 @@ from typing import List
 
 from database import get_db
 from helpers import assist
-from models.param_models import MemberSummary, ParamGroupSummary, ParamSummary
+from models.param_models import (
+    ParamMemberSummary,
+    ParamGroupSummary,
+    ParamMemberTransaction,
+    ParamSummary,
+)
 from models.transaction_model import Transaction, TransactionDB, TransactionWithDetail
 from models.user_model import UserDB
 from models.transaction_types_model import TransactionTypeDB
@@ -196,11 +201,11 @@ async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
     return summary
 
 
-@router.get("/year-to-date/all", response_model=List[MemberSummary])
+@router.get("/year-to-date/all", response_model=List[ParamMemberSummary])
 async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
     print("starting summary", assist.get_current_date(False))
     # get all users
-    result = await db.execute(select(UserDB))
+    result = await db.execute(select(UserDB).filter(UserDB.role == assist.USER_MEMBER))
     users = result.scalars().all()
 
     # get all transaction types
@@ -222,28 +227,62 @@ async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
     # add transaction info
     for member in summary:
         for type in types:
-            member[f'tid{type.id}'] = 0.0
+            member[f"tid{type.id}"] = 0.0
 
     # get available transactions
-    stmt = select(
-        TransactionDB.user_id,
-        TransactionDB.type_id,
-        func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
-    ).group_by(TransactionDB.user_id, TransactionDB.type_id)
+    stmt = (
+        select(
+            TransactionDB.user_id,
+            TransactionDB.type_id,
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+        )
+        .group_by(TransactionDB.user_id, TransactionDB.type_id)
+    )
 
     result = await db.execute(stmt)
     rows = result.all()
-    
+
     # map transactions to base items
     for member in summary:
         for tran in rows:
-            if member['id'] == tran['user_id']:
-                tid = tran['type_id']
-                member[f'tid{tid}'] = tran['amount']
-                
-                
-        
+            if member["id"] == tran["user_id"]:
+                tid = tran["type_id"]
+                member[f"tid{tid}"] = tran["amount"]
 
     print("ending summary", assist.get_current_date(False))
-    
+
+    return summary
+
+
+@router.get("/transaction-summary/all", response_model=List[ParamMemberTransaction])
+async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db)):
+
+    # create a summary
+    summary = []
+
+    # get available transactions
+    result = await db.execute(
+        select(TransactionDB).filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+        )
+    )
+    rows = result.scalars().all()
+
+    # map transactions to base items
+    for tran in rows:
+        summary.append(
+            {
+                "id": tran.id,
+                "name": f'{tran.user.fname} {tran.user.lname}',
+                "email": tran.user.email,
+                "phone": tran.user.mobile,
+                "type": tran.date.strftime("%B %Y"),
+                "period": tran.type.type_name,
+                "amount": tran.amount,
+            }
+        )
+
     return summary

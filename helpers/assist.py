@@ -5,6 +5,8 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import calendar
 
+USER_MEMBER = 1
+USER_ADMIN = 2
 
 UPLOAD_DIR = "uploads"
 
@@ -12,6 +14,7 @@ SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 CURRENT_TIME_ZONE = "Africa/Lusaka"
 
+STATUS_SUBMITTED = 2
 STATUS_APPROVED = 4
 STATUS_REJECTED = 5
 

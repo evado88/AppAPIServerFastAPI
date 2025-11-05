@@ -26,6 +26,7 @@ class MeetingDB(Base):
     date = Column(DateTime(timezone=True), nullable=False)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
+    attendanceList = Column(String, nullable=False)
     
     #approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
@@ -74,13 +75,13 @@ class Meeting(BaseModel):
     date: datetime = Field(..., description="The date and time for the meeting")
     title: str = Field(..., min_length=2, max_length=50, description="Title must be between 2 and 50 characters")
     content: str = Field(..., min_length=10, description="The content must be at least 10 characters")
-
+    attendanceList: str = Field(..., description="The attendance list must be provided")
     #approval
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
     
     approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
     
-    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 3")
+    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
     
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None

@@ -36,22 +36,25 @@ class MonthlyPostingDB(Base):
     penalty = Column(Float, nullable=False)
 
     late_post_penalty = Column(Float, nullable=False)
-    
+
     loan_interest = Column(Float, nullable=False)
     loan_month_repayment = Column(Float, nullable=False)
 
     loan_application = Column(Float, nullable=False)
 
     comments = Column(String, nullable=True)
+
     # validation
     contribution_total = Column(Float, nullable=False)
     deposit_total = Column(Float, nullable=False)
-    #pop
-    pop_filename = Column(String, nullable=True)
-    pop_filesize = Column(Integer, nullable=True)
-    pop_filetype = Column(String, nullable=True)
+    receive_total = Column(Float, nullable=False)
+    payment_method_type = Column(String, nullable=False)
+    payment_method_number = Column(String, nullable=True)
+    payment_method_name = Column(String, nullable=True)
+    # pop
+    pop_attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
     pop_comments = Column(String, nullable=True)
-    
+
     # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
 
@@ -68,7 +71,7 @@ class MonthlyPostingDB(Base):
     pop_review_at = Column(DateTime(timezone=True), nullable=True)
     pop_review_by = Column(String, nullable=True)
     pop_review_comments = Column(String, nullable=True)
-    
+
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
     review1_comments = Column(String, nullable=True)
@@ -93,6 +96,7 @@ class MonthlyPostingDB(Base):
     stage = relationship("ReviewStageDB", back_populates="postings", lazy="selectin")
     transactions = relationship("TransactionDB", back_populates="post", lazy="selectin")
     period = relationship("PostingPeriodDB", back_populates="postings", lazy="selectin")
+    attachment = relationship("AttachmentDB", back_populates="post", lazy="selectin")
 
 
 # ---------- Pydantic Schemas ----------
@@ -125,11 +129,13 @@ class MonthlyPosting(BaseModel):
     penalty: float = Field(
         ..., ge=0, description="Penalty amount must be greater or equal to zero"
     )
-    
+
     late_post_penalty: float = Field(
-        ..., ge=0, description="Late post penalty amount must be greater or equal to zero"
+        ...,
+        ge=0,
+        description="Late post penalty amount must be greater or equal to zero",
     )
-    
+
     loan_interest: float = Field(
         ..., ge=0, description="Loan interest amount must be greater or equal to zero"
     )
@@ -154,15 +160,23 @@ class MonthlyPosting(BaseModel):
     )
     deposit_total: float = Field(
         ...,
-        ge=0,
-        description="deposit total amount must be greater or equal to zero",
+        description="Deposit total amount must be greater or equal to zero",
     )
-    #pop
-    pop_filename: Optional[str] = None
-    pop_filesize: Optional[int] = None
-    pop_filetype: Optional[str] = None
+    receive_total: float = Field(
+        ...,
+        description="Receive total amount must be greater or equal to zero",
+    )
+    payment_method_type: str = Field(
+        ...,
+        description="The payment method is required",
+    )
+    payment_method_number: Optional[str] = None
+    payment_method_name: Optional[str] = None
+
+    # pop
+    pop_attachment_id: Optional[int] = None
     pop_comments: Optional[str] = None
-    
+
     # approval
     status_id: int = Field(
         ..., ge=1, description="Status must be greater than or equal to 1"
@@ -172,14 +186,14 @@ class MonthlyPosting(BaseModel):
         ..., ge=1, le=3, description="Approval level must be between 1 and 3"
     )
 
-    stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 3")
+    stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
 
     guarantor_user_id: Optional[int] = None
     guarantor_required: Optional[int] = None
     guarantor_at: Optional[datetime] = None
     guarantor_by: Optional[str] = None
     guarantor_comments: Optional[str] = None
-    
+
     pop_review_at: Optional[datetime] = None
     pop_review_by: Optional[str] = None
     pop_review_comments: Optional[str] = None
