@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
+from models.attachment_model import Attachment
 from models.review_stages_model import ReviewStage
 from models.user_model import User, UserSimple
 from models.knowledge_base_category_model import KnowledgeBaseCategory
@@ -19,6 +20,9 @@ class KnowledgeBaseDB(Base):
     
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    #attachments
+    attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
     
     #query
     title = Column(String, nullable=False)
@@ -54,6 +58,7 @@ class KnowledgeBaseDB(Base):
     category = relationship("KnowledgeBaseCategoryDB", back_populates="kbarticles", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="kbarticles", lazy='selectin')
     stage = relationship("ReviewStageDB", back_populates="kbarticles", lazy='selectin')
+    attachment = relationship("AttachmentDB", back_populates="kbarticles", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class KnowledgeBase(BaseModel):
     #id
@@ -63,6 +68,9 @@ class KnowledgeBase(BaseModel):
     #user
     user_id: int
     
+    #attachments
+    attachment_id: Optional[int] = None
+ 
     #query
     title: str = Field(..., min_length=2, max_length=50, description="Title must be between 2 and 50 characters")
     content: str = Field(..., min_length=10, description="The query must be at least 10 characters")
@@ -101,4 +109,4 @@ class KnowledgeBaseWithDetail(KnowledgeBase):
     category: KnowledgeBaseCategory
     status: StatusType
     stage: ReviewStage
-    
+    attachment: Attachment

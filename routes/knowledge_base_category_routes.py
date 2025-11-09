@@ -51,7 +51,7 @@ async def update_configuration(config_id: int, config_update: KnowledgeBaseCateg
         raise HTTPException(status_code=404, detail=f"Unable to find category with id '{config_id}'")
     
     # Update fields that are not None
-    for key, value in config_update.model_dump(exclude_unset=True).items():
+    for key, value in config_update.dict(exclude_unset=True).items():
         setattr(config, key, value)
         
     try:

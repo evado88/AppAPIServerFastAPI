@@ -9,9 +9,8 @@ class SACCOReview(BaseModel):
     
     #review
     review_action: int =  Field(..., ge=1, le=2, description="Review action must be between 1 or 2")
-    require_guarantor_approval: Optional[int]
     comments: Optional[str]
-    filename: Optional[str]
+    attachment_id: Optional[int]
         
     class Config:
         orm_mode = True

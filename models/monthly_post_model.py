@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
 from database import Base
+from helpers import assist
+from models.attachment_model import Attachment
 from models.configuration_model import SACCOConfiguration
 from models.member_model import Member
 from models.posting_period_model import PostingPeriod
@@ -12,6 +14,7 @@ from models.transaction_types_model import TransactionType
 from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
 from datetime import date, datetime
+from sqlalchemy import Sequence
 
 
 # ---------- SQLAlchemy Models ----------
@@ -19,17 +22,31 @@ class MonthlyPostingDB(Base):
     __tablename__ = "monthly_postings"
 
     # id
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+        autoincrement=True,
+    )
     code = Column(String, nullable=True)
+    type = Column(Integer, nullable=False)
+
+    # notifications
+    notice_status = Column(Integer, nullable=True, default=assist.NOTIFY_WAITING)
+    notice_at = Column(DateTime(timezone=True), nullable=True)
 
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
+    user_action_id = Column(Integer, nullable=False)
+
     # member
     member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
 
     # period
     period_id = Column(Integer, ForeignKey("list_posting_periods.id"), nullable=False)
+
+    # meeting
+    attendance_id = Column(Integer, nullable=False)
 
     # posting
     date = Column(DateTime(timezone=True), nullable=False)
@@ -66,7 +83,7 @@ class MonthlyPostingDB(Base):
 
     stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
 
-    guarantor_user_id = Column(Integer, nullable=True)
+    guarantor_user_email = Column(String, nullable=True)
     guarantor_required = Column(Integer, nullable=True)
     guarantor_at = Column(DateTime(timezone=True), nullable=True)
     guarantor_by = Column(String, nullable=True)
@@ -109,9 +126,17 @@ class MonthlyPosting(BaseModel):
     # id
     id: Optional[int] = None
     code: Optional[str] = None
+    type: int = Field(..., ge=1, description="The type must be more than or equal to 1")
+    # notifications
+    notice_status: Optional[int] = None
+    notice_at: Optional[datetime] = None
+
     # user
     user_id: int = Field(
         ..., ge=1, description="User id must be greater than or equal to 1"
+    )
+    user_action_id: int = Field(
+        ..., ge=1, description="User action id must be more than or equal to 1"
     )
     # member
     member_id: int = Field(
@@ -122,6 +147,10 @@ class MonthlyPosting(BaseModel):
         ..., ge=1, description="Period must be greater than or equal to 1"
     )
 
+    # meeting
+    attendance_id: int = Field(
+        ..., ge=1, le=4, description="Attendance must be between 1 and 4"
+    )
     # posting
     date: datetime = Field(..., description="The date for the monthly posting")
 
@@ -196,7 +225,7 @@ class MonthlyPosting(BaseModel):
 
     stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
 
-    guarantor_user_id: Optional[int] = None
+    guarantor_user_email: Optional[str] = None
     guarantor_required: Optional[int] = None
     guarantor_at: Optional[datetime] = None
     guarantor_by: Optional[str] = None
@@ -233,7 +262,13 @@ class MonthlyPostingWithDetail(MonthlyPosting):
     stage: ReviewStage
     status: StatusType
     period: PostingPeriod
+    attachment: Optional[Attachment] = None
+
 
 class MonthlyPostingWithMemberDetail(MonthlyPosting):
     user: UserSimple
+    stage: ReviewStage
+    status: StatusType
+    period: PostingPeriod
+    attachment: Optional[Attachment] = None
     member: Member

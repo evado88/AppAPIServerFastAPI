@@ -51,6 +51,8 @@ async def register_member(member: Member, db: AsyncSession = Depends(get_db)):
         bank_branch_code=member.bank_branch_code,
         bank_account_name=member.bank_account_name,
         bank_account_no=member.bank_account_no,
+        # account
+        password=assist.hash_password(member.password),
         # approval
         status_id=member.status_id,
         stage_id=member.stage_id,
@@ -94,7 +96,7 @@ async def update_member(
     return member
 
 
-@router.get("/{member_id}", response_model=MemberWithDetail)
+@router.get("/id/{member_id}", response_model=MemberWithDetail)
 async def get_member(member_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MemberDB)
@@ -115,10 +117,190 @@ async def get_member(member_id: int, db: AsyncSession = Depends(get_db)):
     return transaction
 
 
-@router.get("/", response_model=List[MemberWithDetail])
+@router.get("/list", response_model=List[MemberWithDetail])
 async def list_members(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MemberDB))
     return result.scalars().all()
+
+
+@router.get("/status/{status_id}", response_model=List[MemberWithDetail])
+async def list_members(status_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(MemberDB).filter(MemberDB.status_id == status_id))
+    return result.scalars().all()
+
+
+@router.put("/review-update/{id}", response_model=MemberWithDetail)
+async def review_posting(
+    id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
+):
+    # check user exists
+    result = await db.execute(select(UserDB).where(UserDB.id == review.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The user with id '{review.user_id}' does not exist",
+        )
+
+    # check if item exists
+    result = await db.execute(select(MemberDB).where(MemberDB.id == id))
+    member = result.scalar_one_or_none()
+
+    if not member:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find member with id '{id}' not found",
+        )
+
+    if member.status_id == assist.STATUS_APPROVED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The member with id '{id}' has already been approved",
+        )
+
+    member.updated_by = user.email
+
+    approveMember = False
+
+    if member.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
+        # submitted stage
+
+        if member.created_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the primary reviewer of a member you created",
+            )
+
+        member.review1_at = assist.get_current_date(False)
+        member.review1_by = user.email
+        member.review1_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            member.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if member.approval_levels == 1:
+                # one level, no furthur stage approvers
+
+                # approve member
+                approveMember = True
+
+            elif member.approval_levels == 2 or member.approval_levels == 3:
+                # two or three levels, move to primary
+
+                member.stage_id = assist.APPROVAL_STAGE_PRIMARY
+
+    elif member.stage_id == assist.APPROVAL_STAGE_PRIMARY:
+        # primary stage
+
+        if member.review1_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
+            )
+
+        member.review2_at = assist.get_current_date(False)
+        member.review2_by = user.email
+        member.review2_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            member.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if member.approval_levels == 2:
+                # two levels, no furthur stage approvers
+
+                approveMember = True
+
+            elif member.approval_levels == 3:
+                # three levels, move to secondary
+                member.stage_id = assist.APPROVAL_STAGE_SECONDARY
+
+    elif member.stage_id == assist.APPROVAL_STAGE_SECONDARY:
+        # secondary stage
+
+        if member.review2_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the final reviewer since you were the secondary reviewer",
+            )
+
+        member.review3_at = assist.get_current_date(False)
+        member.review3_by = user.email
+        member.review3_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            member.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+            # three levels and on last stage
+            approveMember = True
+
+    if approveMember:
+        # change member status
+        member.status_id = assist.STATUS_APPROVED
+        member.stage_id = assist.APPROVAL_STAGE_APPROVED
+
+        # get attachment
+        result = await db.execute(
+            select(AttachmentDB).filter(AttachmentDB.id == member.id_attachment)
+        )
+        attachment = result.scalars().first()
+        if not attachment:
+            raise HTTPException(
+                status_code=404, detail=f"Attachment with id '{id}' not found"
+            )
+            
+         # add corresponding user
+        db_user = UserDB(
+            # id
+            code=f"UM00{member.id}",
+            # personal details
+            fname=member.fname,
+            lname=member.lname,
+            position=member.position,
+            # contact, address
+            email=member.email,
+            mobile=member.mobile1,
+            address_physical=member.address_physical,
+            address_postal=member.address_postal,
+            # account
+            role=1,
+            password=member.password,
+            # approval
+            status_id=assist.STATUS_APPROVED,
+            stage_id=assist.APPROVAL_STAGE_APPROVED,
+            approval_levels=member.approval_levels,
+            # service
+            created_by=member.email,
+        )
+        db.add(db_user)
+
+    try:
+        await db.commit()
+        await db.refresh(member)
+        
+        if approveMember:
+            #only do this at last stage
+            await db.refresh(db_user)
+            
+            member.user_id = db_user.id
+            
+            await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to review member: {e}")
+    return member
 
 
 @router.post("/initialize")
@@ -258,144 +440,3 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         "succeeded": True,
         "message": "Members have been successfully initialized",
     }
-
-
-@router.put("/review-update/{id}", response_model=MemberWithDetail)
-async def review_posting(
-    id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
-):
-    # check user exists
-    result = await db.execute(select(UserDB).where(UserDB.id == review.user_id))
-    user = result.scalars().first()
-    if not user:
-        raise HTTPException(
-            status_code=400,
-            detail=f"The user with id '{review.user_id}' does not exist",
-        )
-
-    # check if item exists
-    result = await db.execute(select(MemberDB).where(MemberDB.id == id))
-    member = result.scalar_one_or_none()
-
-    if not member:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unable to find member with id '{id}' not found",
-        )
-
-    if member.status_id == assist.STATUS_APPROVED:
-        raise HTTPException(
-            status_code=400,
-            detail=f"The member with id '{id}' has already been approved",
-        )
-
-    member.updated_by = user.email
-
-    approveMember = False
-
-    if member.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
-        # submitted stage
-
-        if member.created_by == user.email:
-            raise HTTPException(
-                status_code=400,
-                detail=f"You cannot be the primary reviewer of a member you created",
-            )
-
-        member.review1_at = assist.get_current_date(False)
-        member.review1_by = user.email
-        member.review1_comments = review.comments
-
-        if review.review_action == assist.REVIEW_ACTION_REJECT:
-            # reject
-
-            member.status_id = assist.STATUS_REJECTED
-        else:
-            # approve
-
-            # check number of approval levels
-            if member.approval_levels == 1:
-                # one level, no furthur stage approvers
-
-                # approve member
-                approveMember = True
-
-            elif member.approval_levels == 2 or member.approval_levels == 3:
-                # two or three levels, move to primary
-
-                member.stage_id = assist.APPROVAL_STAGE_PRIMARY
-
-    elif member.stage_id == assist.APPROVAL_STAGE_PRIMARY:
-        # primary stage
-
-        if member.review1_by == user.email:
-            raise HTTPException(
-                status_code=400,
-                detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
-            )
-
-        member.review2_at = assist.get_current_date(False)
-        member.review2_by = user.email
-        member.review2_comments = review.comments
-
-        if review.review_action == assist.REVIEW_ACTION_REJECT:
-            # reject
-
-            member.status_id = assist.STATUS_REJECTED
-        else:
-            # approve
-
-            # check number of approval levels
-            if member.approval_levels == 2:
-                # two levels, no furthur stage approvers
-
-                approveMember = True
-
-            elif member.approval_levels == 3:
-                # three levels, move to secondary
-                member.stage_id = assist.APPROVAL_STAGE_SECONDARY
-
-    elif member.stage_id == assist.APPROVAL_STAGE_SECONDARY:
-        # secondary stage
-
-        if member.review2_by == user.email:
-            raise HTTPException(
-                status_code=400,
-                detail=f"You cannot be the final reviewer since you were the secondary reviewer",
-            )
-
-        member.review3_at = assist.get_current_date(False)
-        member.review3_by = user.email
-        member.review3_comments = review.comments
-
-        if review.review_action == assist.REVIEW_ACTION_REJECT:
-            # reject
-
-            member.status_id = assist.STATUS_REJECTED
-        else:
-            # approve
-            # three levels and on last stage
-            approveMember = True
-
-    if approveMember:
-        # change member status
-        member.status_id = assist.STATUS_APPROVED
-        member.stage_id = assist.APPROVAL_STAGE_APPROVED
-
-        # get attachment
-        result = await db.execute(
-            select(AttachmentDB).filter(AttachmentDB.id == member.id_attachment)
-        )
-        attachment = result.scalars().first()
-        if not attachment:
-            raise HTTPException(
-                status_code=404, detail=f"Attachment with id '{id}' not found"
-            )
-
-    try:
-        await db.commit()
-        await db.refresh(member)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Unable to update member: {e}")
-    return member

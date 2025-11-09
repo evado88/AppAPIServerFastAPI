@@ -50,7 +50,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
 
 
 
-@router.get("/", response_model=List[MemberQueryType])
+@router.get("/list", response_model=List[MemberQueryType])
 async def list_types(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MemberQueryTypeDB))
     return result.scalars().all()

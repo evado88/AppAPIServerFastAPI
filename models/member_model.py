@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional, List
 from datetime import date, datetime
 from database import Base
+from models.attachment_model import Attachment
 from models.review_stages_model import ReviewStage
 from models.status_types_model import StatusType
 from models.user_model import User, UserSimple
@@ -104,7 +105,7 @@ class Member(BaseModel):
     #id
     id_type: str = Field(..., min_length=3, max_length=20, description="ID type must be between 3 and 20 characters")
     id_no: str = Field(..., min_length=8, max_length=11, description="ID no must be between 8 and 11 characters")
-    id_attachment: str = Field(..., description="The attachment for the ID must be provided")
+    id_attachment: int = Field(..., description="The attachment for the ID must be provided")
      
     #contact, address 
     email: EmailStr
@@ -163,7 +164,8 @@ class Member(BaseModel):
         orm_mode = True
         
 class MemberWithDetail(Member):
-    user: UserSimple
+    user: Optional[UserSimple] = None
+    attachment: Attachment
     stage: ReviewStage
     status: StatusType
 

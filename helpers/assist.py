@@ -49,6 +49,10 @@ PENALTY_LATE_POSTING = 1
 PENALTY_MISSED_MEETING = 2
 PENALTY_LATE_MEETING = 3
 
+
+NOTIFY_WAITING= 1
+NOTIFY_SENT = 2
+
 def get_safe_name(input: str):
     return input.replace(" ", "")
 

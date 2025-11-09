@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 from typing import List
 from jose import JWTError, jwt
 from database import get_db
+from models.member_model import MemberDB
 from models.user_model import User, UserDB
 import helpers.assist as assist
 
@@ -20,10 +21,21 @@ async def login(
     result = await db.execute(select(UserDB).where(UserDB.email == form_data.username))
     user = result.scalars().first()
     if not user:
-        raise HTTPException(
-            status_code=401, detail=f"The specified username or password is incorrect"
-        )
-
+        #check if this person has registered as a member
+        result = await db.execute(select(MemberDB).where(MemberDB.email == form_data.username))
+        member = result.scalars().first()
+        
+        if member and member.status_id == assist.STATUS_SUBMITTED:
+            #registered as a member
+            raise HTTPException(
+                status_code=401, detail=f"Your account is not yet active. You will be notifed once approved"
+            )
+        else:
+            #not registered
+            raise HTTPException(
+                status_code=401, detail=f"The specified username or password is incorrect"
+            )
+            
     if not assist.verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=401, detail=f"The specified username or password is incorrect"
@@ -32,7 +44,6 @@ async def login(
     to_encode = {
         "sub": user.email,
         "userid": user.id,
-        "useremail": user.email,
         "name": f"{user.fname} {user.lname}",
         "role": user.role,
         "exp":  datetime.now(timezone.utc) + timedelta( minutes=30),

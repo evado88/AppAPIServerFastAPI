@@ -11,6 +11,7 @@ from models.monthly_post_model import (
     MonthlyPosting,
     MonthlyPostingDB,
     MonthlyPostingWithDetail,
+    MonthlyPostingWithMemberDetail,
 )
 from models.param_models import ParamMonthlyPosting
 from models.review_model import SACCOReview
@@ -54,12 +55,17 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         )
 
     db_tran = MonthlyPostingDB(
+        # id
+        type=posting.type,
         # user
         user_id=posting.user_id,
+        user_action_id=posting.user_action_id,
         # member
         member_id=posting.member_id,
         # period
         period_id=posting.period_id,
+        # meeting
+        attendance_id=posting.attendance_id,
         # posting
         date=posting.date,
         saving=posting.saving,
@@ -70,6 +76,8 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         loan_interest=posting.loan_interest,
         loan_month_repayment=posting.loan_month_repayment,
         loan_application=posting.loan_application,
+        guarantor_required=posting.guarantor_required,
+        guarantor_user_email=posting.guarantor_user_email,
         comments=posting.comments,
         # validation
         contribution_total=posting.contribution_total,
@@ -98,62 +106,6 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
             status_code=400, detail=f"Unable to create monthly posting: {e}"
         )
     return db_tran
-
-
-@router.post("/upload-pop/{post_id}", response_model=MonthlyPosting)
-async def upload_file(
-    post_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)
-):
-
-    # check posting exists
-    result = await db.execute(
-        select(MonthlyPostingDB).where(MonthlyPostingDB.id == post_id)
-    )
-    posting = result.scalar_one_or_none()
-
-    if not posting:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unable to find monthly posting with id '{post_id}' not found",
-        )
-
-    try:
-        # ensure folders exist
-        current = assist.get_current_date()
-        dir = f"{assist.UPLOAD_DIR}/{current.year}/{current.month}"
-
-        os.makedirs(dir, exist_ok=True)
-
-        # Validate filename
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="No filename provided")
-
-        # Generate unique name
-        fileDetail = os.path.splitext(file.filename)
-        noextensionfile = fileDetail[0]
-        ext = fileDetail[1]
-
-        unique_name = f"{noextensionfile}_{uuid.uuid4()}{ext}"
-        file_path = os.path.join(dir, unique_name)
-
-        # Save file safely
-        contents = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(contents)
-
-        # update pop file
-        posting.pop_filename = f"{current.year}/{current.month}/{unique_name}"
-        posting.pop_filesize = len(contents)
-        posting.pop_filetype = file.content_type
-
-        await db.commit()
-        await db.refresh(posting)
-
-        # rerturn response
-        return posting
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 
 @router.put("/review-update/{post_id}", response_model=MonthlyPostingWithDetail)
@@ -202,8 +154,6 @@ async def review_posting(
             posting.status_id = assist.STATUS_REJECTED
         else:
             # approve
-
-            posting.guarantor_required = review.require_guarantor_approval
 
             # check number of approval levels
             if posting.approval_levels == 1:
@@ -290,9 +240,10 @@ async def review_posting(
 
     elif posting.stage_id == assist.APPROVAL_STAGE_POP_UPLOAD:
         # pop upload
+        posting.pop_attachment_id = review.attachment_id
+        posting.pop_comments = review.comments
 
         posting.stage_id = assist.APPROVAL_STAGE_POP_APPROVAL
-        posting.pop_comments = review.comments
 
     elif posting.stage_id == assist.APPROVAL_STAGE_POP_APPROVAL:
         # move to approved and post transactions
@@ -437,9 +388,9 @@ async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get(
-    "/guarantor-approvals/{userId}", response_model=List[MonthlyPostingWithDetail]
+    "/guarantor-approvals/email/{email}", response_model=List[MonthlyPostingWithDetail]
 )
-async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
+async def list_user_postings(email: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)
         # .options(
@@ -447,7 +398,7 @@ async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
         # )
         .filter(
             MonthlyPostingDB.guarantor_required == assist.RESPONSE_YES,
-            MonthlyPostingDB.guarantor_user_id == userId,
+            MonthlyPostingDB.guarantor_user_email == email,
         )
     )
     postings = result.scalars().all()
@@ -501,7 +452,7 @@ async def list_status_period_postings(
     return postings
 
 
-@router.get("/id/{posting_id}", response_model=MonthlyPostingWithDetail)
+@router.get("/id/{posting_id}", response_model=MonthlyPostingWithMemberDetail)
 async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)

@@ -80,7 +80,7 @@ class ParamAttendanceSimple(BaseModel):
 
 class ParamAttachmentDetail(BaseModel):
     attachment: Attachment
-    attendance: List[ParamAttendanceSimple]
+    attendance: Optional[List[ParamAttendanceSimple]] = None
 
     class Config:
         orm_mode = True

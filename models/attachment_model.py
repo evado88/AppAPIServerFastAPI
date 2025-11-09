@@ -32,6 +32,9 @@ class AttachmentDB(Base):
     meetings = relationship("MeetingDB", back_populates="attachment")
     member = relationship("MemberDB", back_populates="attachment")
     post = relationship("MonthlyPostingDB", back_populates="attachment")
+    announcements = relationship("AnnouncementDB", back_populates="attachment")
+    kbarticles = relationship("KnowledgeBaseDB", back_populates="attachment")
+    queries = relationship("MemberQueryDB", back_populates="attachment")
 # ---------- Pydantic Schemas ----------
 class Attachment(BaseModel):
     # id

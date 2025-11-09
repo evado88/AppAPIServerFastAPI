@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
+from models.attachment_model import Attachment
 from models.review_stages_model import ReviewStage
 from models.user_model import User, UserSimple
 from models.member_query_type_model import MemberQueryType
@@ -20,6 +21,9 @@ class MemberQueryDB(Base):
     
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    #attachments
+    attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
     
     #query
     title = Column(String, nullable=False)
@@ -55,6 +59,7 @@ class MemberQueryDB(Base):
     type = relationship("MemberQueryTypeDB", back_populates="queries", lazy='selectin')
     status = relationship("StatusTypeDB", back_populates="queries", lazy='selectin')
     stage = relationship("ReviewStageDB", back_populates="queries", lazy='selectin')
+    attachment = relationship("AttachmentDB", back_populates="queries", lazy='selectin')
 # ---------- Pydantic Schemas ----------
 class MemberQuery(BaseModel):
     #id
@@ -64,6 +69,9 @@ class MemberQuery(BaseModel):
     
     #user
     user_id: int
+    
+    #attachments
+    attachment_id: Optional[int] = None
     
     #query
     title: str = Field(..., min_length=2, max_length=50, description="Title must be between 2 and 50 characters")
@@ -104,4 +112,4 @@ class MemberQueryWithDetail(MemberQuery):
     type: MemberQueryType
     status: StatusType
     stage: ReviewStage
-    
+    attachment: Attachment
