@@ -175,6 +175,7 @@ async def review_posting(
                 detail=f"You cannot be the primary reviewer of an query you created",
         )
 
+        query.response = review.content
         query.review1_at = assist.get_current_date(False)
         query.review1_by = user.email
         query.review1_comments = review.comments
