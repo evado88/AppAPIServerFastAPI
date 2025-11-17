@@ -1,4 +1,6 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -8,6 +10,7 @@ from typing import List
 from database import get_db
 from helpers import assist
 from models.param_models import (
+    ParamInterestSharingSummary,
     ParamMemberSummary,
     ParamGroupSummary,
     ParamMemberTransaction,
@@ -18,6 +21,10 @@ from models.user_model import UserDB
 from models.transaction_types_model import TransactionTypeDB
 from models.transaction_sources_model import TransactionSourceDB
 from models.status_types_model import StatusTypeDB
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from sqlalchemy import or_
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -257,6 +264,194 @@ async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
     return summary
 
 
+@router.get("/interest-sharing/all", response_model=ParamInterestSharingSummary)
+async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
+    print("starting all member interest sharing", assist.get_current_date(False))
+    # get all users
+    result = await db.execute(select(UserDB).filter(UserDB.role == assist.USER_MEMBER))
+    users = result.scalars().all()
+
+    # create a summary for all members
+    summary = [
+        {
+            "id": user.id,
+            "fname": user.fname,
+            "lname": user.lname,
+            "email": user.email,
+            "phone": user.mobile,
+            "itotal": 0,
+            "stotal": 0,
+            "tsavings": {},
+            "isharing": {},
+        }
+        for user in users
+    ]
+
+    # add transaction info
+    for member in summary:
+        for m in range(1, 13):
+            member["tsavings"][f"m{m}"] = 0
+
+    # get total savings for member per month
+    stmt = (
+        select(
+            TransactionDB.user_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.type_id == 1,
+        )
+        .group_by(
+            TransactionDB.user_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+        )
+    )
+
+    result = await db.execute(stmt)
+    memberRows = result.all()
+
+    # get total savings, interest and loans per month
+    stmt = (
+        select(
+            TransactionDB.type_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            or_(
+                TransactionDB.type_id == 1,
+                TransactionDB.type_id == 3,
+                TransactionDB.type_id == 5,
+            ),
+        )
+        .group_by(
+            TransactionDB.type_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+        )
+    )
+
+    result = await db.execute(stmt)
+    totalRows = result.all()
+
+    # get all totals
+    totals = {
+        f"t{assist.TRANSACTION_SAVINGS}": {},
+        f"t{assist.TRANSACTION_LOAN}": {},
+        f"t{assist.TRANSACTION_INTEREST_CHARGED}": {},
+        f"r1": {},
+        f"r2": {},
+        f"r3": {},
+    }
+
+    for m in range(1, 13):
+        totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{m}"] = 0
+        totals[f"t{assist.TRANSACTION_LOAN}"][f"m{m}"] = 0
+        totals[f"t{assist.TRANSACTION_INTEREST_CHARGED}"][f"m{m}"] = 0
+        totals[f"r1"][f"m{m}"] = 0
+        totals[f"r2"][f"m{m}"] = 0
+
+    # map total transactions to base items
+    for tran in totalRows:
+        tid = tran["type_id"]
+        mid = tran["month"]
+        totals[f"t{tid}"][f"m{mid}"] = tran["amount"]
+
+    # calculate row 1 and row 2
+    for m in range(1, 13):
+        # get savings, loans and interest
+        savings = totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{m}"]
+        loans = totals[f"t{assist.TRANSACTION_LOAN}"][f"m{m}"]
+
+        # get interest rate
+        rate = 0.10 if m < 10 else 0.035659
+
+        # set rows
+        totals[f"r1"][f"m{m}"] = loans * rate if savings >= loans else savings * rate
+        totals[f"r2"][f"m{m}"] = 0 if savings >= loans else ((loans - savings) * rate)
+        
+        
+    # calculate interest rates
+    for m in range(1, 13):
+        # get interest rate
+        rate = 0.10 if m < 10 else 0.035659
+        # set rows
+        totals[f"r3"][f"m{m}"] = rate
+
+
+    # map transactions to base items
+    for member in summary:
+        #set transactions
+        for tran in memberRows:
+            if member["id"] == tran["user_id"]:
+                mid = tran["month"]
+
+                # set saving
+                member["tsavings"][f"m{mid}"] = tran["amount"]
+
+        #set sharing
+        for m in range(1, 13):
+
+            sharing = 0
+            msavings = member["tsavings"][f"m{m}"]
+            r1 = totals[f"r1"][f"m{m}"]
+            r2 = totals[f"r2"][f"m{m}"]
+            tsavinsg = totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{m}"] 
+            tinterest = totals[f"t{assist.TRANSACTION_INTEREST_CHARGED}"][f"m{m}"] 
+            
+            if m == 1:
+                if tsavinsg == 0:
+                    #will produce error, set zero
+                    sharing = 0
+                else:
+                    #calculate
+                    sharing = ((msavings/tsavinsg) * tinterest)
+            else:
+                #get total upto current month
+                memberSavingTotal = 0
+                groupSavingTotal =0
+                
+                for mindex in range(1, m):
+                    memberSavingTotal += member["tsavings"][f"m{mindex}"]
+                    groupSavingTotal += totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{mindex}"]
+                
+                if tsavinsg == 0 or groupSavingTotal == 0:
+                    #will produce error, set zero
+                    sharing = 0
+                else:
+                    #calcute
+                    sharing1 = ((msavings/tsavinsg) * r1)
+                    sharing2 = ((memberSavingTotal/groupSavingTotal) * r2)
+                    
+                    sharing = sharing1 + sharing2
+                    
+            member["isharing"][f"m{m}"] = sharing
+            
+        #set sharing totals
+        totalMemberSharing = 0
+        totalMemberSavings = 0
+        
+        for mindex in range(1, 13):
+            totalMemberSharing += member["isharing"][f"m{mindex}"]
+            totalMemberSavings += member["tsavings"][f"m{mindex}"] 
+            
+        member["itotal"] = totalMemberSharing
+        member["stotal"] = totalMemberSavings 
+                
+
+    fullSummary = {"totals": totals, "members": summary}
+
+    print("ending starting all member interest sharing", assist.get_current_date(False))
+
+    return JSONResponse(content=fullSummary, status_code=200)
+
+
 @router.get("/transaction-summary/all", response_model=List[ParamMemberTransaction])
 async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db)):
 
@@ -276,13 +471,245 @@ async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db))
         summary.append(
             {
                 "id": tran.id,
-                "name": f'{tran.user.fname} {tran.user.lname}',
+                "name": f"{tran.user.fname} {tran.user.lname}",
                 "email": tran.user.email,
                 "phone": tran.user.mobile,
-                "type": tran.date.strftime("%B %Y"),
-                "period": tran.type.type_name,
+                "period": tran.date,
+                "type": tran.type.type_name,
                 "amount": tran.amount,
             }
         )
 
     return summary
+
+
+@router.post("/initialize-validation-savings")
+async def initialize_validation_savings(db: AsyncSession = Depends(get_db)):
+
+    try:
+        base = os.path.dirname(__file__)
+        path = os.path.join(base, "validation-data.xlsx")
+        df = pd.read_excel(path, sheet_name="Savings")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to initialize savings. Cannot open validation file': f{e}",
+        )
+
+    for row_index, row in df.iterrows():
+
+        month = 1
+        member = row_index + 1
+
+        pad = str(member).zfill(3)
+
+        for col_name, value in row.items():
+            # skip user id column
+            if col_name == "UserID":
+                continue
+
+            date = datetime(2025, month, 15)
+            # print(row_index, col_name, value, date)
+            month = month + 1
+
+            # skip savings with Nan or zero
+            if np.isnan(value) or value == 0:
+                continue
+
+            db_tran = TransactionDB(
+                # id
+                type_id=assist.TRANSACTION_SAVINGS,
+                penalty_type_id=None,
+                # user
+                user_id=member,
+                # transaction
+                date=date,
+                source_id=1,
+                amount=0 if np.isnan(value) else value,
+                comments=None,
+                reference=None,
+                # loan
+                term_months=None,
+                interest_rate=None,
+                # loan payment transaction id
+                parent_id=None,
+                # approval
+                status_id=assist.STATUS_APPROVED,
+                state_id=assist.STATE_CLOSED,
+                stage_id=assist.APPROVAL_STAGE_APPROVED,
+                approval_levels=2,
+                # service
+                created_by=f"member-{pad}.acount@gmail.com",
+            )
+            db.add(db_tran)
+
+        try:
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unable to initialize transaction for {member}: f{e}",
+            )
+
+        # break
+
+    return {
+        "succeeded": True,
+        "message": "Savings have been successfully initialized",
+    }
+
+
+@router.post("/initialize-validation-loans")
+async def initialize_validation_loans(db: AsyncSession = Depends(get_db)):
+
+    try:
+        base = os.path.dirname(__file__)
+        path = os.path.join(base, "validation-data.xlsx")
+        df = pd.read_excel(path, sheet_name="Loans")
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to initialize loans. Cannot open validation file': f{e}",
+        )
+
+    for row_index, row in df.iterrows():
+
+        month = 1
+        member = row_index + 1
+
+        pad = str(member).zfill(3)
+
+        for col_name, value in row.items():
+            # skip user id column
+            if col_name == "UserID":
+                continue
+
+            date = datetime(2025, month, 15)
+            # print(row_index, col_name, value, date)
+            month = month + 1
+
+            # skip loans with Nan or zero
+            if np.isnan(value) or value == 0:
+                continue
+
+            db_tran = TransactionDB(
+                # id
+                type_id=assist.TRANSACTION_LOAN,
+                penalty_type_id=None,
+                # user
+                user_id=member,
+                # transaction
+                date=date,
+                source_id=1,
+                amount=0 if np.isnan(value) else value,
+                comments=None,
+                reference=None,
+                # loan
+                term_months=None,
+                interest_rate=None,
+                # loan payment transaction id
+                parent_id=None,
+                # approval
+                status_id=assist.STATUS_APPROVED,
+                state_id=assist.STATE_CLOSED,
+                stage_id=assist.APPROVAL_STAGE_APPROVED,
+                approval_levels=2,
+                # service
+                created_by=f"member-{pad}.acount@gmail.com",
+            )
+            db.add(db_tran)
+
+        try:
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unable to initialize transaction for {member}: f{e}",
+            )
+
+        # break
+
+    return {
+        "succeeded": True,
+        "message": "Loans have been successfully initialized",
+    }
+
+
+@router.post("/initialize-validation-interest")
+async def initialize_validation_interest(db: AsyncSession = Depends(get_db)):
+
+    try:
+        base = os.path.dirname(__file__)
+        path = os.path.join(base, "validation-data.xlsx")
+        df = pd.read_excel(path, sheet_name="Interest")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to initialize interest. Cannot open validation file': f{e}",
+        )
+
+    for row_index, row in df.iterrows():
+
+        month = 1
+        member = row_index + 1
+
+        pad = str(member).zfill(3)
+
+        for col_name, value in row.items():
+            # skip user id column
+            if col_name == "UserID":
+                continue
+
+            date = datetime(2025, month, 15)
+            print(row_index, col_name, value, date)
+            month = month + 1
+
+            # skip inteerst with Nan or zero
+            if np.isnan(value) or value == 0:
+                continue
+
+            db_tran = TransactionDB(
+                # id
+                type_id=assist.TRANSACTION_INTEREST_CHARGED,
+                penalty_type_id=None,
+                # user
+                user_id=member,
+                # transaction
+                date=date,
+                source_id=1,
+                amount=0 if np.isnan(value) else value,
+                comments=None,
+                reference=None,
+                # loan
+                term_months=None,
+                interest_rate=None,
+                # loan payment transaction id
+                parent_id=None,
+                # approval
+                status_id=assist.STATUS_APPROVED,
+                state_id=assist.STATE_CLOSED,
+                stage_id=assist.APPROVAL_STAGE_APPROVED,
+                approval_levels=2,
+                # service
+                created_by=f"member-{pad}.acount@gmail.com",
+            )
+            db.add(db_tran)
+
+        try:
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unable to initialize transaction for {member}: f{e}",
+            )
+
+        # break
+
+    return {
+        "succeeded": True,
+        "message": "Interest has been successfully initialized",
+    }

@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from typing import List
 
 from database import get_db
-from helpers import assist, demo
+from helpers import assist, validation
 from models.attachment_model import AttachmentDB
 from models.member_model import Member, MemberDB, MemberWithDetail
 from models.review_model import SACCOReview
@@ -302,15 +302,97 @@ async def review_posting(
         raise HTTPException(status_code=400, detail=f"Unable to review member: {e}")
     return member
 
+@router.post("/initialize-validation-members")
+async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
 
-@router.post("/initialize")
-async def initialize(db: AsyncSession = Depends(get_db)):
-
-    members = demo.get_demo_members()
-    admins = demo.get_demo_admins()
+    members = validation.get_validation_members()
+    admins = validation.get_validation_admins()
 
     index = 1
 
+    for value in members:
+        # add member
+        username = value["email"]
+
+        db_member = MemberDB(
+            # id
+            number=f"M00{index}",
+            # user_id
+            user_id = index,
+            # personal details
+            fname=value["fname"],
+            lname=value["lname"],
+            dob=value["dob"],
+            position=value["position"],
+            # id
+            id_type=value["id_type"],
+            id_no=value["id_no"],
+            id_attachment=value["id_attachment"],
+            # contact, address
+            email=value["email"],
+            mobile1=value["mobile1"],
+            mobile2=value["mobile2"],
+            address_physical=value["address_physical"],
+            address_postal=value["address_postal"],
+            # guarantor
+            guar_fname=value["guar_fname"],
+            guar_lname=value["guar_lname"],
+            guar_mobile=value["guar_mobile"],
+            guar_email=value["guar_email"],
+            # banking
+            bank_name=value["bank_name"],
+            bank_branch_name=value["bank_branch_name"],
+            bank_branch_code=value["bank_branch_code"],
+            bank_account_name=value["bank_account_name"],
+            bank_account_no=value["bank_account_no"],
+            # account
+            password=assist.hash_password(value["password"]),
+            # approval
+            status_id=value["status_id"],
+            stage_id=value["stage_id"],
+            approval_levels=value["approval_levels"],
+            # service
+            created_by=value["created_by"],
+        )
+    
+
+        # add corresponding user
+        db_user = UserDB(
+            # id
+            code=f"UM00{index}",
+            # personal details
+            fname=value["fname"],
+            lname=value["lname"],
+            position=value["position"],
+            # contact, address
+            email=value["email"],
+            mobile=value["mobile1"],
+            address_physical=value["address_physical"],
+            address_postal=value["address_postal"],
+            # account
+            role=1,
+            password=assist.hash_password("12345678"),
+            # approval
+            status_id=value["status_id"],
+            stage_id=value["stage_id"],
+            approval_levels=value["approval_levels"],
+            # service
+            created_by=value["created_by"],
+        )
+        
+        db.add(db_user)
+        db.add(db_member)
+
+        try:
+            await db.commit()
+            index += 1
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unable to initialize member {index} '{username}': f{e}",
+            )
+            
     for value in admins:
         # add  user
         username = value["email"]
@@ -348,95 +430,9 @@ async def initialize(db: AsyncSession = Depends(get_db)):
             raise HTTPException(
                 status_code=400,
                 detail=f"Unable to initialize user {index} '{username}': f{e}",
-            )
-
-    for value in members:
-        # add member
-        username = value["email"]
-
-        db_member = MemberDB(
-            # id
-            number=f"M00{index}",
-            # user_id=value[""],
-            # personal details
-            fname=value["fname"],
-            lname=value["lname"],
-            dob=value["dob"],
-            position=value["position"],
-            # id
-            id_type=value["id_type"],
-            id_no=value["id_no"],
-            id_attachment=value["id_attachment"],
-            # contact, address
-            email=value["email"],
-            mobile1=value["mobile1"],
-            mobile2=value["mobile2"],
-            address_physical=value["address_physical"],
-            address_postal=value["address_postal"],
-            # guarantor
-            guar_fname=value["guar_fname"],
-            guar_lname=value["guar_lname"],
-            guar_mobile=value["guar_mobile"],
-            guar_email=value["guar_email"],
-            # banking
-            bank_name=value["bank_name"],
-            bank_branch_name=value["bank_branch_name"],
-            bank_branch_code=value["bank_branch_code"],
-            bank_account_name=value["bank_account_name"],
-            bank_account_no=value["bank_account_no"],
-            # account
-            password=assist.hash_password(value["password"]),
-            # approval
-            status_id=value["status_id"],
-            stage_id=value["stage_id"],
-            approval_levels=value["approval_levels"],
-            # service
-            created_by=value["created_by"],
         )
-        db.add(db_member)
-
-        # add corresponding user
-        db_user = UserDB(
-            # id
-            code=f"UM00{index}",
-            # personal details
-            fname=value["fname"],
-            lname=value["lname"],
-            position=value["position"],
-            # contact, address
-            email=value["email"],
-            mobile=value["mobile1"],
-            address_physical=value["address_physical"],
-            address_postal=value["address_postal"],
-            # account
-            role=1,
-            password=assist.hash_password("12345678"),
-            # approval
-            status_id=value["status_id"],
-            stage_id=value["stage_id"],
-            approval_levels=value["approval_levels"],
-            # service
-            created_by=value["created_by"],
-        )
-        db.add(db_user)
-        index += 1
-
-        try:
-            await db.commit()
-            await db.refresh(db_member)
-            await db.refresh(db_user)
-
-            db_member.user_id = db_user.id
-
-            await db.commit()
-        except Exception as e:
-            await db.rollback()
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unable to initialize member {index} '{username}': f{e}",
-            )
 
     return {
         "succeeded": True,
-        "message": "Members have been successfully initialized",
+        "message": "Validation members have been successfully initialized",
     }

@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional
 from pydantic import BaseModel
 from models.attachment_model import Attachment
@@ -56,7 +57,7 @@ class ParamMemberTransaction(BaseModel):
     email: str
     phone: str
     type: str
-    period: str
+    period: date
     amount: float
 
     class Config:
@@ -105,5 +106,54 @@ class ParamPeriodSummary(BaseModel):
     sid7: int
     sid8: int
 
+    class Config:
+        orm_mode = True
+        
+class ParamMonthData(BaseModel):
+    m1: float
+    m2: float
+    m3: float
+    m4: float
+    m5: float
+    m6: float
+    m7: float
+    m8: float
+    m9: float
+    m10: float
+    m11: float
+    m12: float
+    
+    class Config:
+        orm_mode = True
+        
+class ParamMemberSharingSummary(BaseModel):
+    id: int
+    fname: str
+    lname: str
+    email: str
+    phone: str
+    itotal: float
+    stotal: float
+    tsavings: ParamMonthData
+    isharing: ParamMonthData
+    
+    class Config:
+        orm_mode = True
+        
+class ParamTotalsSummary(BaseModel):
+    t1: ParamMonthData
+    t3: ParamMonthData
+    t5: ParamMonthData
+    r1: ParamMonthData
+    r2: ParamMonthData
+    r3: ParamMonthData
+    
+    class Config:
+        orm_mode = True  
+             
+class ParamInterestSharingSummary(BaseModel):
+    totals: ParamTotalsSummary
+    members: List[ParamMemberSharingSummary]
+    
     class Config:
         orm_mode = True

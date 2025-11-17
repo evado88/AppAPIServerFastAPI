@@ -104,7 +104,7 @@ class Transaction(BaseModel):
     post_id: Optional[int] = None
     date: datetime = Field(..., description="The date for the transaction")
     source_id: Optional[int] = None
-    amount: float = Field(..., gt=0, description="Transaction amount must be greater than zero")
+    amount: float = Field(..., ge=0, description="Transaction amount must be greater or equal zero")
     comments: Optional[str] = None
     reference: Optional[str] = None
     
