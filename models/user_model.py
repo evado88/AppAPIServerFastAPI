@@ -70,7 +70,7 @@ class UserDB(Base):
     member = relationship("MemberDB", back_populates="user")
     categories = relationship("KnowledgeBaseCategoryDB", back_populates="user")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="user")
-
+    periods = relationship("PostingPeriodDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     # id

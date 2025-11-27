@@ -1,9 +1,14 @@
-
 import hashlib
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import calendar
+
+INFOBIP_API_URL = "https://xk85nl.api.infobip.com/whatsapp/1/message/template"
+INFOBIP_API_TOKEN = (
+    "05704a467eaab51ea1bd2aabaa652517-c006af8e-55e6-4254-aa46-440344a6e040"
+)
+INFOBIP_PHONE_NUMBER = "12098869548"
 
 USER_MEMBER = 1
 USER_ADMIN = 2
@@ -14,6 +19,7 @@ SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 CURRENT_TIME_ZONE = "Africa/Lusaka"
 
+STATUS_DRAFT = 1
 STATUS_SUBMITTED = 2
 STATUS_APPROVED = 4
 STATUS_REJECTED = 5
@@ -26,7 +32,7 @@ TRANSACTION_INTEREST_CHARGED = 5
 TRANSACTION_INTEREST_PAID = 6
 TRANSACTION_SOCIAL_FUND = 7
 TRANSACTION_PENALTY_CHARGED = 8
-TRANSACTION_PENALTY_PAID= 9
+TRANSACTION_PENALTY_PAID = 9
 
 STATE_OPEN = 1
 STATE_CLOSED = 2
@@ -34,6 +40,7 @@ STATE_CLOSED = 2
 REVIEW_ACTION_REJECT = 1
 REVIEW_ACTION_APPROVE = 2
 
+APPROVAL_STAGE_DRAFT = 1
 APPROVAL_STAGE_SUBMITTED = 2
 APPROVAL_STAGE_PRIMARY = 3
 APPROVAL_STAGE_SECONDARY = 4
@@ -50,25 +57,34 @@ PENALTY_MISSED_MEETING = 2
 PENALTY_LATE_MEETING = 3
 
 
-NOTIFY_WAITING= 1
+NOTIFY_WAITING = 1
 NOTIFY_SENT = 2
+
 
 def get_safe_name(input: str):
     return input.replace(" ", "")
 
-def get_current_date(date = True):
+
+def get_current_date(date=True):
     # Set your timezon
     tz = ZoneInfo(CURRENT_TIME_ZONE)
 
     # Get current date with timezone
     now = datetime.now(tz)
-    
+
     if date:
         now = datetime(now.year, now.month, now.day)
-    
+
     return now
 
-def get_first_month_day(inputDate = None):
+
+def get_current_period(date=True):
+    # Set your timezon
+    date = get_current_date()
+    return date.strftime("%Y%m")
+
+
+def get_first_month_day(inputDate=None):
     # Set your timezon
     tz = ZoneInfo(CURRENT_TIME_ZONE)
 
@@ -80,7 +96,8 @@ def get_first_month_day(inputDate = None):
 
     return first_day
 
-def get_last_month_day(inputDate = None):
+
+def get_last_month_day(inputDate=None):
     # Set your timezon
     tz = ZoneInfo(CURRENT_TIME_ZONE)
 
@@ -92,18 +109,19 @@ def get_last_month_day(inputDate = None):
     last_day = datetime(now.year, now.month, last_day_num, tzinfo=tz)
 
     return last_day
-    
+
+
 def encode_sha256(input):
-    '''
+    """
     Encodes the specified input to SHA-256
-    
+
     Args:
         input (string): The input to encode.
 
 
     Returns:
         string: The encode string in SHA-256 format.
-    '''
+    """
     # Create a SHA-256 hash object
     hasher = hashlib.sha256()
     # Update the hash object with the byte-encoded message
@@ -116,27 +134,29 @@ def encode_sha256(input):
 # Create a password context using bcrypt
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
+
 def hash_password(password: str) -> str:
-    '''
+    """
     Hash a plain password using bcrypt
-    
+
     Args:
         passwrd (string): The password to hash.
 
     Returns:
         string: The hashed password string.
-    '''
+    """
     hashed = pwd_context.hash(password)
     return hashed
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    '''
+    """
     Verify a plain password against a hash
-    
+
     Args:
         plain_password (string): The plain password to verify.
         hashed_password (string): The password hash to verify against.
     Returns:
         bool: Returns true if the password matches the hash, false otherwise
-    '''
+    """
     return pwd_context.verify(plain_password, hashed_password)

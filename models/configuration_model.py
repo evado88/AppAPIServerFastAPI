@@ -43,7 +43,7 @@ class SACCOConfiguration(BaseModel):
     #id
     id: Optional[int] = None
     #user
-    user_id: int
+    user_id: Optional[int] = None
     #configurations
     late_posting_date_start: date = Field(..., description="The maximum date for posting before late fees are applied")
     

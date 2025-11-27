@@ -33,6 +33,10 @@ class TransactionDB(Base):
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
+    #user
+    member_id = Column(Integer, nullable=False)
+    
+    
     #transaction
     post_id = Column(Integer, ForeignKey("monthly_postings.id", ondelete="CASCADE"), nullable=True)
     date = Column(DateTime(timezone=True), nullable=False)
@@ -99,6 +103,9 @@ class Transaction(BaseModel):
     
     #user
     user_id: int
+    
+    #memebr
+    member_id: int
     
     #transaction
     post_id: Optional[int] = None

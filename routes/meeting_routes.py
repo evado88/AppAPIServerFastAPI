@@ -9,6 +9,7 @@ from helpers import assist
 from models.attachment_model import AttachmentDB
 from models.meeting_model import Meeting, MeetingDB, MeetingWithDetail
 from models.review_model import SACCOReview
+from models.transaction_model import TransactionDB
 from models.user_model import UserDB
 import json
 
@@ -46,26 +47,30 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
     try:
         await db.commit()
         await db.refresh(db_tran)
-        
-        #add meeting penaltys
+
+        # add meeting penaltys
         list = json.loads(db_tran.attendanceList)
-        
+
         for item in list:
-            user = item['user']
-            type = item['type']
-            penalty = item['penalty']
-            
+            user = item["user"]
+            type = item["type"]
+            penalty = item["penalty"]
+
             if penalty != 0:
-                print(f'Will add a penalty for user {user} at rate {penalty} for {type} once posted')
-                
+                print(
+                    f"Will add a penalty for user {user} at rate {penalty} for {type} once posted"
+                )
+
     except json.JSONDecodeError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create meeting due attendance list error: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not create meeting due attendance list error: {e}",
+        )
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Could not create meeting: {e}")
-    
-    
+
     return db_tran
 
 
@@ -133,6 +138,62 @@ async def get_meeting(meeting_id: int, db: AsyncSession = Depends(get_db)):
     return meeting
 
 
+async def postAttendance(meeting: any, db=AsyncSession):
+
+    try:
+        attendanceList = json.loads(meeting.attendanceList)
+
+        for attend in attendanceList:
+            memId = attend["id"]
+            penalty = attend["penalty"]
+            typeId = attend["penaltyId"]
+            
+            #do not add those without penalties
+            if penalty == 0:
+                continue
+
+            for i in range(1, 3):
+                db_tran = TransactionDB(
+                    # id
+                    type_id=(
+                        assist.TRANSACTION_PENALTY_CHARGED
+                        if i == 1
+                        else assist.TRANSACTION_PENALTY_PAID
+                    ),
+                    penalty_type_id=typeId,
+                    # user
+                    user_id=memId,
+                    post_id=None,
+                    # transaction
+                    date=assist.get_current_date(False),
+                    source_id=1,
+                    amount=penalty,
+                    comments=f"Penalty from Meeting [{meeting.id}]",
+                    # reference = tran.reference,
+                    # loan
+                    term_months=None,
+                    interest_rate=None,
+                    # loan payment transaction id
+                    # parent_id = tran.parent_id,
+                    # approval
+                    status_id=assist.STATUS_APPROVED,
+                    state_id=assist.STATE_CLOSED,
+                    stage_id=assist.APPROVAL_STAGE_APPROVED,
+                    approval_levels=meeting.approval_levels,
+                    # service
+                    created_by=meeting.created_by,
+                )
+                db.add(db_tran)
+
+        await db.commit()
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Unable to update meeting attendance: {e}"
+        )
+
+    return meeting
+
+
 @router.put("/review-update/{id}", response_model=MeetingWithDetail)
 async def review_posting(
     id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
@@ -168,12 +229,12 @@ async def review_posting(
 
     if meeting.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
         # submitted stage
-        
+
         if meeting.created_by == user.email:
             raise HTTPException(
                 status_code=400,
                 detail=f"You cannot be the primary reviewer of a meeting you created",
-        )
+            )
 
         meeting.review1_at = assist.get_current_date(False)
         meeting.review1_by = user.email
@@ -200,12 +261,12 @@ async def review_posting(
 
     elif meeting.stage_id == assist.APPROVAL_STAGE_PRIMARY:
         # primary stage
-        
+
         if meeting.review1_by == user.email:
             raise HTTPException(
                 status_code=400,
                 detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
-        )
+            )
 
         meeting.review2_at = assist.get_current_date(False)
         meeting.review2_by = user.email
@@ -230,12 +291,12 @@ async def review_posting(
 
     elif meeting.stage_id == assist.APPROVAL_STAGE_SECONDARY:
         # secondary stage
-        
+
         if meeting.review2_by == user.email:
             raise HTTPException(
                 status_code=400,
                 detail=f"You cannot be the final reviewer since you were the secondary reviewer",
-        )
+            )
 
         meeting.review3_at = assist.get_current_date(False)
         meeting.review3_by = user.email
@@ -266,14 +327,7 @@ async def review_posting(
             )
 
         # post meeting attendance
-        try:
-            with open(f"my_file.txt", "r") as file:
-                content = file.read()
-                print(content)
-        except FileNotFoundError:
-            print("Error: The file 'my_file.txt' was not found.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        await postAttendance(meeting, db)
 
     try:
         await db.commit()

@@ -11,7 +11,7 @@ class SACCOReview(BaseModel):
     review_action: int =  Field(..., ge=1, le=2, description="Review action must be between 1 or 2")
     comments: Optional[str]
     attachment_id: Optional[int]
-    content: Optional[str]
+    strw    : Optional[str]
             
     class Config:
         orm_mode = True

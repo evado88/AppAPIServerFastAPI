@@ -9,6 +9,7 @@ from models.annoucement_model import Announcement, AnnouncementDB, AnnouncementW
 from models.attachment_model import AttachmentDB
 from models.review_model import SACCOReview
 from models.user_model import UserDB
+from sqlalchemy import desc
 
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
 
@@ -84,9 +85,21 @@ async def list_announcements(db: AsyncSession = Depends(get_db)):
         #
         #)
     )
-    transactions = result.scalars().all()
-    return transactions
+    announcements = result.scalars().all()
+    return announcements
 
+@router.get("/recent", response_model=List[AnnouncementWithDetail])
+async def list_recent_announcements(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AnnouncementDB)
+        .where(
+            AnnouncementDB.status_id == assist.STATUS_APPROVED,
+        )
+        .limit(3)
+        .order_by(desc(AnnouncementDB.id))
+    )
+    announcements = result.scalars().all()
+    return announcements
 
 @router.get("/id/{announcement_id}", response_model=AnnouncementWithDetail)
 async def get_announcement(announcement_id: int, db: AsyncSession = Depends(get_db)):

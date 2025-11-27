@@ -12,10 +12,13 @@ from routes import posting_period_routes
 from routes import transaction_state_routes
 from routes import penalty_type_routes
 from routes import attachment_routes
+from routes import whatsapp_routes
+from routes import data_routes
 
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from helpers.http_client import init_client, close_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -69,12 +72,21 @@ app.include_router(knowledge_base_routes.router)
 app.include_router(review_stages_routes.router)
 app.include_router(posting_period_routes.router)
 app.include_router(attachment_routes.router)
-
+app.include_router(whatsapp_routes.router)
+app.include_router(data_routes.router)
 # create tables at startup
 
 
 @app.on_event("startup")
 async def startup():
+    await init_client()
     async with engine.begin() as conn:
         print("Application starting up old...")
         await conn.run_sync(Base.metadata.create_all)
+        
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_client()
+    
+def get_httpsx_client():
+    return app.state.client

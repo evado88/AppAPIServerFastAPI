@@ -14,6 +14,7 @@ from models.monthly_post_model import (
     MonthlyPostingWithMemberDetail,
 )
 from models.param_models import ParamMonthlyPosting
+from models.posting_period_model import PostingPeriodDB
 from models.review_model import SACCOReview
 from models.transaction_model import Transaction, TransactionDB
 from models.user_model import UserDB
@@ -59,13 +60,12 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         type=posting.type,
         # user
         user_id=posting.user_id,
-        user_action_id=posting.user_action_id,
         # member
         member_id=posting.member_id,
         # period
         period_id=posting.period_id,
         # meeting
-        attendance_id=posting.attendance_id,
+        missed_meeting_penalty=posting.missed_meeting_penalty,
         # posting
         date=posting.date,
         saving=posting.saving,
@@ -419,7 +419,7 @@ async def list_status_postings(status_id: int, db: AsyncSession = Depends(get_db
 
 
 @router.get("/period/{period_id}", response_model=List[MonthlyPostingWithDetail])
-async def list_period_postings(period_id: int, db: AsyncSession = Depends(get_db)):
+async def list_period_postings(period_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)
         # .options(
@@ -436,7 +436,7 @@ async def list_period_postings(period_id: int, db: AsyncSession = Depends(get_db
     response_model=List[MonthlyPostingWithDetail],
 )
 async def list_status_period_postings(
-    period_id: int, status_id: int, db: AsyncSession = Depends(get_db)
+    period_id: str, status_id: int, db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
         select(MonthlyPostingDB)
@@ -519,8 +519,9 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
         )
 
     # get config
+    period = assist.get_current_period()
     result = await db.execute(
-        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+        select(PostingPeriodDB).filter(PostingPeriodDB.id == period)
     )
 
     config = result.scalars().first()
@@ -529,6 +530,14 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
             status_code=404,
             detail=f"Unable to load param: Configuration with id '{1}' not found",
         )
+    '''
+       if config.status_id != assist.STATUS_APPROVED:
+        raise HTTPException(
+            status_code=404,
+            detail=f"The period {period} is not available for posting",
+        )
+    '''    
+ 
 
     # get savings
     stmt = select(func.sum(TransactionDB.amount)).filter(

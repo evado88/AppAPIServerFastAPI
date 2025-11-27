@@ -31,22 +31,17 @@ class MonthlyPostingDB(Base):
     code = Column(String, nullable=True)
     type = Column(Integer, nullable=False)
 
-    # notifications
-    notice_status = Column(Integer, nullable=True, default=assist.NOTIFY_WAITING)
-    notice_at = Column(DateTime(timezone=True), nullable=True)
-
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    user_action_id = Column(Integer, nullable=False)
 
     # member
     member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
 
     # period
-    period_id = Column(Integer, ForeignKey("list_posting_periods.id"), nullable=False)
+    period_id = Column(String, ForeignKey("list_posting_periods.id"), nullable=False)
 
     # meeting
-    attendance_id = Column(Integer, nullable=False)
+    missed_meeting_penalty = Column(Float, nullable=False)
 
     # posting
     date = Column(DateTime(timezone=True), nullable=False)
@@ -127,29 +122,22 @@ class MonthlyPosting(BaseModel):
     id: Optional[int] = None
     code: Optional[str] = None
     type: int = Field(..., ge=1, description="The type must be more than or equal to 1")
-    # notifications
-    notice_status: Optional[int] = None
-    notice_at: Optional[datetime] = None
 
     # user
     user_id: int = Field(
         ..., ge=1, description="User id must be greater than or equal to 1"
     )
-    user_action_id: int = Field(
-        ..., ge=1, description="User action id must be more than or equal to 1"
-    )
+
     # member
     member_id: int = Field(
         ..., ge=1, description="Member id must be greater than or equal to 1"
     )
     # period
-    period_id: int = Field(
-        ..., ge=1, description="Period must be greater than or equal to 1"
-    )
+    period_id: Optional[str] = None
 
     # meeting
-    attendance_id: int = Field(
-        ..., ge=1, le=4, description="Attendance must be between 1 and 4"
+    missed_meeting_penalty: float = Field(
+        ..., ge=0, description="Misssed meetimh penalty amount must be greater or equal to zero"
     )
     # posting
     date: datetime = Field(..., description="The date for the monthly posting")
@@ -261,7 +249,7 @@ class MonthlyPostingWithDetail(MonthlyPosting):
     user: UserSimple
     stage: ReviewStage
     status: StatusType
-    period: PostingPeriod
+    period: Optional[PostingPeriod] = None
     attachment: Optional[Attachment] = None
 
 

@@ -12,6 +12,7 @@ from models.attachment_model import Attachment, AttachmentDB, AttachmentInput
 import csv
 
 from models.configuration_model import SACCOConfigurationDB
+from models.member_model import MemberDB
 from models.param_models import ParamAttachmentDetail
 from models.user_model import UserDB
 
@@ -32,16 +33,26 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
             detail=f"Unable to process meeting: Configuration with id '{1}' not found",
         )
 
-    result = await db.execute(select(UserDB))
-    users = result.scalars().all()
-    userList = {
-        user.email: {"Type": "None", "TypeId": None, "Penalty": 0.0} for user in users
+    result = await db.execute(
+        select(MemberDB).where(MemberDB.status_id == assist.STATUS_APPROVED)
+    )
+    members = result.scalars().all()
+
+    # absent is the default
+    memberList = {
+        mem.email: {
+            "Id": mem.user_id,
+            "Type": "Absent",
+            "TypeId": 4,
+            "Penalty": config.missed_meeting_rate,
+            "PenaltyId": 2,
+        }
+        for mem in members
     }
 
     attendanceList = {
         "In-Person": None,
         "Virtual": None,
-        "None": None,
         "Late": assist.PENALTY_LATE_MEETING,
         "Absent": assist.PENALTY_MISSED_MEETING,
     }
@@ -51,9 +62,15 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
         "Virtual": 0.0,
         "Late": config.late_meeting_rate,
         "Absent": config.missed_meeting_rate,
-        "None": 0.0,
     }
-
+    
+    penaltyIdList = {
+        "In-Person": None,
+        "Virtual": None,
+        "Late": assist.PENALTY_LATE_MEETING,
+        "Absent": assist.PENALTY_MISSED_MEETING,
+    }
+    
     try:
         contents = await file.read()
         decode_contents = contents.decode("utf-8")
@@ -63,6 +80,7 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
         data = list(csv_reader)
 
         index = 1
+
         for row in data:
             userMail = row["Email"]
             userAttendance = row["Attendance"]
@@ -72,26 +90,36 @@ async def validateAttendance(file: UploadFile, db=AsyncSession):
                     status_code=400,
                     detail=f"The attendance type on row {index} '{userAttendance}' is invalid",
                 )
-            if not userMail in userList.keys():
+            elif userAttendance == "Absent":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The attendance on row {index} is invalid. Absent members should not be included",
+                )
+            
+
+            if not userMail in memberList.keys():
                 raise HTTPException(
                     status_code=400,
                     detail=f"The user on row {index} '{userMail}' does not exist as a member",
                 )
 
-            userList[userMail]["Type"] = userAttendance
-            userList[userMail]["TypeId"] = attendanceList[userAttendance]
-            userList[userMail]["Penalty"] = penaltyFeeList[userAttendance]
-
+            memberList[userMail]["Type"] = userAttendance
+            memberList[userMail]["TypeId"] = attendanceList[userAttendance]
+            memberList[userMail]["Penalty"] = penaltyFeeList[userAttendance]
+            memberList[userMail]["PenaltyId"] = penaltyIdList[userAttendance]
+            
             index += 1
 
         listAttendace = [
             {
+                "id": memberList[user.email]["Id"],
                 "user": user.email,
-                "type": userList[user.email]["Type"],
-                "typeId": userList[user.email]["TypeId"],
-                "penalty": userList[user.email]["Penalty"],
+                "type": memberList[user.email]["Type"],
+                "typeId": memberList[user.email]["TypeId"],
+                "penalty": memberList[user.email]["Penalty"],
+                "penaltyId": memberList[user.email]["PenaltyId"],
             }
-            for user in users
+            for user in members
         ]
     except FileNotFoundError as e:
         raise HTTPException(
