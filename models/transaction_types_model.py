@@ -27,7 +27,7 @@ class TransactionTypeDB(Base):
 class TransactionType(BaseModel):
     #id
     id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")
-    type_category: int = Field(..., ge=1, le=3, description="Category must be between 1 and 3")
+    type_category: int = Field(..., ge=1, le=5, description="Category must be between 1 and 5")
     type_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
     description: Optional[str] = None
     #service columns

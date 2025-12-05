@@ -96,7 +96,7 @@ async def get_user_email(user_email: str, db: AsyncSession = Depends(get_db)):
     return users
 
 
-@router.get("/", response_model=List[UserWithDetail])
+@router.get("/list", response_model=List[UserWithDetail])
 async def list_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserDB))
     return result.scalars().all()

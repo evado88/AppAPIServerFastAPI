@@ -153,18 +153,18 @@ MonthlyPosting
 Configuration
 {
   "user_id": 3,
-  "late_posting_date_start": "2024-04-13",
   "saving_multiple": 500,
   "shares_multiple": 1000,
-  "social_min": 0,
+  "social_min": 50,
   "loan_interest_rate": 10,
   "loan_repayment_rate": 10,
   "loan_saving_ratio": 4,
   "loan_duration": 4,
+  "loan_apply_limit": 10000,
   "late_posting_rate": 250,
   "missed_meeting_rate": 100,
   "late_meeting_rate": 50,
-  "approval_levels": 2,
+  "approval_levels": 2
 }
 
 Annoucement
@@ -235,4 +235,42 @@ knowledge base article
   "status_id": 1,
   "stage_id": 1,
   "approval_levels": 1
+}
+
+Guarantor {
+  "user_id": 1,
+  "guar_fname": "Joe",
+  "guar_lname": "Doe",
+  "guar_code": "+260",
+  "guar_mobile": "+260978989259",
+  "guar_email": "joe.doe@example.com",
+  "status_id": 2,
+  "approval_levels": 2,
+  "stage_id": 2
+}
+
+Paymemt Method - Mobile{
+  "user_id": 1,
+  "name": "My Airtel",
+  "type": "Mobile",
+  "method_code": "+260",
+  "method_number": "260978989259",
+  "method_name": "Jane Doe",
+  "status_id": 2,
+  "approval_levels": 2,
+  "stage_id": 2
+}
+
+Paymemt Method - Bank {
+  "user_id": 1,
+  "name": "My ABSA",
+  "type": "BANK",
+  "bank_name": "ABSA",
+  "bank_branch_name": "Mutaba",
+  "bank_branch_code": "016",
+  "bank_account_name": "Jane Doe",
+  "bank_account_no": "1670316",
+  "status_id": 2,
+  "approval_levels": 2,
+  "stage_id": 2
 }

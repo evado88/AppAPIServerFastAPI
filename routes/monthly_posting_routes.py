@@ -29,11 +29,11 @@ router = APIRouter(prefix="/monthly-posting", tags=["MonthlyPosting"])
 @router.post("/create", response_model=MonthlyPosting)
 async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_db)):
     # check user exists
-    result = await db.execute(select(UserDB).where(UserDB.id == posting.user_id))
-    user = result.scalars().first()
-    if not user:
+    result = await db.execute(select(MemberDB).where(MemberDB.user_id == posting.user_id))
+    member = result.scalars().first()
+    if not member:
         raise HTTPException(
-            status_code=400, detail=f"The user with id {posting.user_id} does not exist"
+            status_code=400, detail=f"The member with user id {posting.user_id} does not exist"
         )
 
     # check if posting has been made this month
@@ -61,7 +61,7 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         # user
         user_id=posting.user_id,
         # member
-        member_id=posting.member_id,
+        member_id=member.id,
         # period
         period_id=posting.period_id,
         # meeting

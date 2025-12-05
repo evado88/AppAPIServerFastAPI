@@ -16,17 +16,18 @@ class SACCOConfigurationDB(Base):
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    #configurations
-    late_posting_date_start = Column(Date, nullable=False)
-    
     saving_multiple = Column(Float, nullable=False)
     shares_multiple  = Column(Float, nullable=False)
     social_min = Column(Float, nullable=False)
+    
     loan_interest_rate = Column(Float, nullable=False)
     loan_repayment_rate = Column(Float, nullable=False)
+    
     loan_saving_ratio = Column(Float, nullable=False)
+    
     loan_duration = Column(Integer, nullable=False)
     loan_apply_limit = Column(Integer, nullable=False)
+    
     late_posting_rate = Column(Float, nullable=False)
     missed_meeting_rate = Column(Float, nullable=False)
     late_meeting_rate = Column(Float, nullable=False)
@@ -41,18 +42,21 @@ class SACCOConfigurationDB(Base):
 # ---------- Pydantic Schemas ----------
 class SACCOConfiguration(BaseModel):
     #id
-    id: Optional[int] = None
-    #user
-    user_id: Optional[int] = None
-    #configurations
-    late_posting_date_start: date = Field(..., description="The maximum date for posting before late fees are applied")
     
+    id: Optional[int] = None
+    
+    #user
+    
+    user_id: Optional[int] = None
+    
+    #configurations
     saving_multiple: float = Field(..., gt=0, description="The multiple for savings must be greater than zero")
     shares_multiple: float = Field(..., gt=0, description="The multiple for shares must be greater than zero")
     social_min: float = Field(..., ge=0, description="The social amount must be greater or equal to zero")
    
     loan_interest_rate: float = Field(..., ge=0, description="The loan interest rate must be greater than zero")
     loan_repayment_rate: float = Field(..., ge=0, description="The loan repayment rate must be greater than zero")
+    
     loan_saving_ratio: float = Field(..., gt=0, description="The loan saving ratio must be greater than zero")
     loan_duration: float = Field(..., ge=1, le=12, description="The loan duration must be between 1 and 12")
     loan_apply_limit: float = Field(..., ge=0, description="The loan apply limit must be greater or equal to zero")

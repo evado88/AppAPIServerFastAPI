@@ -14,6 +14,9 @@ from routes import penalty_type_routes
 from routes import attachment_routes
 from routes import whatsapp_routes
 from routes import data_routes
+from routes import transaction_group_routes
+from routes import payment_method_routes
+from routes import guarantor_routes
 
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,6 +77,9 @@ app.include_router(posting_period_routes.router)
 app.include_router(attachment_routes.router)
 app.include_router(whatsapp_routes.router)
 app.include_router(data_routes.router)
+app.include_router(transaction_group_routes.router)
+app.include_router(guarantor_routes.router)
+app.include_router(payment_method_routes.router)
 # create tables at startup
 
 

@@ -69,6 +69,30 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         # Loop through all months (1–12)
         for monthNo in range(1, 13):
 
+            minDate = dt.datetime(yearNo, monthNo, 1)
+            maxDate = dt.datetime(yearNo, monthNo, 21)
+
+            loan_interest_rate = config.loan_interest_rate
+            loan_repayment_rate = config.loan_repayment_rate
+            loan_duration = config.loan_duration
+
+            # assign interest rates appropriately
+            if monthNo == 10:
+                # october 7.5%
+                loan_interest_rate = 0.075
+                loan_repayment_rate = 0.075
+                loan_duration = 3
+            elif monthNo == 11:
+                # november 5%
+                loan_interest_rate = 0.05
+                loan_repayment_rate = 0.05
+                loan_duration = 2
+            elif monthNo == 12:
+                # december 2.5%
+                loan_interest_rate = 0.025
+                loan_repayment_rate = 0.025
+                loan_duration = 1
+
             db_status = PostingPeriodDB(
                 # personal details
                 id=dt.datetime(yearNo, monthNo, 1).strftime("%Y%m"),
@@ -78,15 +102,20 @@ async def initialize(db: AsyncSession = Depends(get_db)):
                 # accounts
                 cash_at_bank=0,
                 # config
-                late_posting_date_start=config.late_posting_date_start,
+                late_posting_date_start=minDate,
+                late_posting_date_min=minDate,
+                late_posting_date_max=maxDate,
+                
                 saving_multiple=config.saving_multiple,
                 shares_multiple=config.shares_multiple,
                 social_min=config.social_min,
-                loan_interest_rate=config.loan_interest_rate,
-                loan_repayment_rate=config.loan_repayment_rate,
+                
+                loan_interest_rate=loan_interest_rate,
+                loan_repayment_rate=loan_repayment_rate,
                 loan_saving_ratio=config.loan_saving_ratio,
-                loan_duration=config.loan_duration,
+                loan_duration=loan_duration,
                 loan_apply_limit=config.loan_apply_limit,
+                
                 late_posting_rate=config.late_posting_rate,
                 missed_meeting_rate=config.missed_meeting_rate,
                 late_meeting_rate=config.late_meeting_rate,
@@ -176,6 +205,8 @@ async def get_posting(period_id: str, db: AsyncSession = Depends(get_db)):
         "month": period.month,
         "cash_at_bank": period.cash_at_bank,
         "late_posting_date_start": period.late_posting_date_start,
+        "late_posting_date_min": period.late_posting_date_min,
+        "late_posting_date_max": period.late_posting_date_max,
         "saving_multiple": period.saving_multiple,
         "shares_multiple": period.shares_multiple,
         "social_min": period.social_min,
@@ -346,7 +377,7 @@ async def update_period_postings(
 
 @router.put("/review-update/{post_id}", response_model=PostingPeriodWithDetail)
 async def review_posting(
-    post_id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
+    post_id: str, review: SACCOReview, db: AsyncSession = Depends(get_db)
 ):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == review.user_id))
@@ -585,26 +616,32 @@ async def review_posting(
 
 
 @router.get(
-    "/current/{period_id}/status/{status_id}", response_model=List[ParamPeriodSummary]
+    "/year/{year}/month/{month}/status/{status_id}",
+    response_model=List[ParamPeriodSummary],
 )
 async def list_current_periods(
-    period_id: str, status_id: int, db: AsyncSession = Depends(get_db)
+    year: int, month: int, status_id: int, db: AsyncSession = Depends(get_db)
 ):
     print("starting period summary", assist.get_current_date(False))
     # get all statuses
     result = await db.execute(select(ReviewStageDB))
     stages = result.scalars().all()
 
+    filterYear = year
+    filterMonth = month
+
     if status_id == 0:
         result = await db.execute(
             select(PostingPeriodDB).filter(
-                PostingPeriodDB.id <= period_id,
+                PostingPeriodDB.year == filterYear, PostingPeriodDB.month <= filterMonth
             )
         )
     else:
         result = await db.execute(
             select(PostingPeriodDB).filter(
-                PostingPeriodDB.id <= period_id, PostingPeriodDB.status_id == status_id
+                PostingPeriodDB.year == filterYear,
+                PostingPeriodDB.month <= filterMonth,
+                PostingPeriodDB.status_id == status_id,
             )
         )
 
@@ -619,6 +656,8 @@ async def list_current_periods(
             "month": period.month,
             "cash_at_bank": period.cash_at_bank,
             "late_posting_date_start": period.late_posting_date_start,
+            "late_posting_date_min": period.late_posting_date_min,
+            "late_posting_date_max": period.late_posting_date_max,
             "saving_multiple": period.saving_multiple,
             "shares_multiple": period.shares_multiple,
             "social_min": period.social_min,
@@ -645,6 +684,8 @@ async def list_current_periods(
             period[f"sid{status.id}"] = 0
 
     # get available postings
+    period_date = dt.datetime(year, month, 1)
+    period_id = assist.get_date_period(period_date)
     stmt = (
         select(
             MonthlyPostingDB.period_id,
@@ -676,7 +717,7 @@ async def list_current_periods(
 
 
 @router.get("/ddac/{period_id}", response_model=List[MonthlyPostingWithMemberDetail])
-async def list_current_periods(period_id: int, db: AsyncSession = Depends(get_db)):
+async def list_current_periods(period_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MonthlyPostingDB)
         # .options(

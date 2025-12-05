@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 from pydantic import BaseModel
 from models.attachment_model import Attachment
@@ -71,7 +71,17 @@ class ParamMemberTransaction(BaseModel):
     class Config:
         orm_mode = True
 
+class ParamExpenseEarningTransaction(BaseModel):
+    id: int
+    name: str
+    user: str
+    period: date
+    type: str
+    amount: float
 
+    class Config:
+        orm_mode = True
+        
 class ParamGroupSummary(BaseModel):
     summary: List[ParamSummary]
     members: List[ParamMemberSummary]
@@ -105,6 +115,8 @@ class ParamPeriodSummary(BaseModel):
     
     cash_at_bank: float
     late_posting_date_start: date
+    late_posting_date_min: date
+    late_posting_date_max: date
     
     saving_multiple: float
     shares_multiple: float

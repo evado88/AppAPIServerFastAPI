@@ -181,7 +181,7 @@ async def send_posting_reminder_messages(db: AsyncSession = Depends(get_db)):
                 MemberDB.last_reminder_date != current,
             )
         )
-        .limit(3)
+        .limit(1)
         .order_by(MemberDB.id)
     )
     members = result.scalars().all()

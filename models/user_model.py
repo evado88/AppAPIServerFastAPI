@@ -71,6 +71,7 @@ class UserDB(Base):
     categories = relationship("KnowledgeBaseCategoryDB", back_populates="user")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="user")
     periods = relationship("PostingPeriodDB", back_populates="user")
+    groups = relationship("TransactionGroupDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     # id

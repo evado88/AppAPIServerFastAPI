@@ -27,7 +27,7 @@ async def post_knowledgebase_category(category: KnowledgeBaseCategory, db: Async
         cat_name = category.cat_name,
         description = category.description,
         # service
-        created_by = category.created_by,
+        created_by = user.email,
     )
     db.add(db_tran)
     try:
@@ -39,19 +39,19 @@ async def post_knowledgebase_category(category: KnowledgeBaseCategory, db: Async
     return db_tran
 
 
-@router.put("/update/{config_id}", response_model=KnowledgeBaseCategory)
-async def update_configuration(config_id: int, config_update: KnowledgeBaseCategory, db: AsyncSession = Depends(get_db)):
+@router.put("/update/{cat_id}", response_model=KnowledgeBaseCategory)
+async def update_category(cat_id: int, category_update: KnowledgeBaseCategory, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(KnowledgeBaseCategoryDB)
-        .where(KnowledgeBaseCategoryDB.id == config_id)
+        .where(KnowledgeBaseCategoryDB.id == cat_id)
     )
     config = result.scalar_one_or_none()
     
     if not config:
-        raise HTTPException(status_code=404, detail=f"Unable to find category with id '{config_id}'")
+        raise HTTPException(status_code=404, detail=f"Unable to find category with id '{cat_id}'")
     
     # Update fields that are not None
-    for key, value in config_update.dict(exclude_unset=True).items():
+    for key, value in category_update.dict(exclude_unset=True).items():
         setattr(config, key, value)
         
     try:

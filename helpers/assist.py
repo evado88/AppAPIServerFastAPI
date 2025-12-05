@@ -33,6 +33,8 @@ TRANSACTION_INTEREST_PAID = 6
 TRANSACTION_SOCIAL_FUND = 7
 TRANSACTION_PENALTY_CHARGED = 8
 TRANSACTION_PENALTY_PAID = 9
+TRANSACTION_GROUP_EARNING = 10
+TRANSACTION_GROUP_EXPENSE = 11
 
 STATE_OPEN = 1
 STATE_CLOSED = 2
@@ -78,11 +80,13 @@ def get_current_date(date=True):
     return now
 
 
-def get_current_period(date=True):
+def get_current_period():
     # Set your timezon
     date = get_current_date()
-    return date.strftime("%Y%m")
+    return get_date_period(date)
 
+def get_date_period(date):
+    return date.strftime("%Y%m")
 
 def get_first_month_day(inputDate=None):
     # Set your timezon

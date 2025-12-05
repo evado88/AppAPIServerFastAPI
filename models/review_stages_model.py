@@ -30,6 +30,8 @@ class ReviewStageDB(Base):
     users = relationship("UserDB", back_populates="stage")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="stage")
     periods = relationship("PostingPeriodDB", back_populates="stage")
+    gurantor = relationship("GuarantorDB", back_populates="stage")
+    paymentmethod = relationship("PaymentMethodDB", back_populates="stage")
 # ---------- Pydantic Schemas ----------
 class ReviewStage(BaseModel):
     #id

@@ -26,8 +26,6 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         # user
         user_id = config.user_id,
         # posting
-        late_posting_date_start = config.late_posting_date_start,
-        
         saving_multiple = config.saving_multiple,
         shares_multiple = config.shares_multiple,
         social_min = config.social_min,

@@ -44,6 +44,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         ##posting periods
         "Guarantor Approvals",#9 member guarantor reviews (postings only)
         "Awaiting POP Uploads",#10 waiting for pop upload (postings only)
+        "Awaiting POP Approvals",#10 waiting for pop upload (postings only)
         "Posted", #11
     ]
     stageId = 1

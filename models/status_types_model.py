@@ -31,6 +31,8 @@ class StatusTypeDB(Base):
     users = relationship("UserDB", back_populates="status")
     kbarticles = relationship("KnowledgeBaseDB", back_populates="status")
     periods = relationship("PostingPeriodDB", back_populates="status")
+    gurantor = relationship("GuarantorDB", back_populates="status")
+    paymentmethod = relationship("PaymentMethodDB", back_populates="status")
 # ---------- Pydantic Schemas ----------
 class StatusType(BaseModel):
     #id

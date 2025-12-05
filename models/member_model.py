@@ -30,7 +30,7 @@ class MemberDB(Base):
     # id
     id_type = Column(String, nullable=False)
     id_no = Column(String, nullable=False)
-    id_attachment = Column(Integer, ForeignKey("attachments.id"), nullable=False)
+    id_attachment = Column(Integer, ForeignKey("attachments.id"), nullable=True)
 
     # contact, address
     email = Column(String, unique=True, index=True, nullable=False)
@@ -91,8 +91,8 @@ class MemberDB(Base):
     stage = relationship("ReviewStageDB", back_populates="members", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="members", lazy="selectin")
     attachment = relationship("AttachmentDB", back_populates="member", lazy="selectin")
-
-
+    gurantor= relationship("GuarantorDB", back_populates="member", lazy="selectin")
+    paymentmethod= relationship("PaymentMethodDB", back_populates="member", lazy="selectin")
 # ---------- Pydantic Schemas ----------
 class Member(BaseModel):
     # id
@@ -131,10 +131,9 @@ class Member(BaseModel):
         max_length=11,
         description="ID no must be between 8 and 11 characters",
     )
-    id_attachment: int = Field(
-        ..., description="The attachment for the ID must be provided"
-    )
-
+    
+    id_attachment: Optional[int] = None
+    
     # contact, address
     email: EmailStr
     mobile1: str = Field(
@@ -251,6 +250,6 @@ class Member(BaseModel):
 
 class MemberWithDetail(Member):
     user: Optional[UserSimple] = None
-    attachment: Attachment
+    attachment: Optional[Attachment] = None
     stage: ReviewStage
     status: StatusType

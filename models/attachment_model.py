@@ -36,6 +36,7 @@ class AttachmentDB(Base):
     kbarticles = relationship("KnowledgeBaseDB", back_populates="attachment")
     queries = relationship("MemberQueryDB", back_populates="attachment")
     period = relationship("PostingPeriodDB", back_populates="attachment")
+    transaction = relationship("TransactionDB", back_populates="attachment")
 # ---------- Pydantic Schemas ----------
 class Attachment(BaseModel):
     # id

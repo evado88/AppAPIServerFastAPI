@@ -36,11 +36,13 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         {"name": "Share", "type": 1},#2
         {"name": "Loan", "type": 2},#3
         {"name": "Loan Payment", "type": 2},#4
-        {"name": "Interest Charged", "type": 3},#5
-        {"name": "Interest Earned", "type": 1},#6
+        {"name": "Interest Charged", "type": 2},#5
+        {"name": "Interest Paid", "type": 3},#6
         {"name": "Social Fund", "type": 1},#7
-        {"name": "Penalty Charged", "type": 3},#8
-        {"name": "Penalty Earned", "type": 1},#9
+        {"name": "Penalty Charged", "type": 2},#8
+        {"name": "Penalty Paidd", "type": 3},#9
+        {"name": "Group Earning", "type": 4},#10
+        {"name": "Group Expense", "type": 5},#11
     ]
     transactionId = 1
 

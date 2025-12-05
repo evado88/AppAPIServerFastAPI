@@ -11,12 +11,14 @@ from database import get_db
 from helpers import assist
 from models.member_model import MemberDB
 from models.param_models import (
+    ParamExpenseEarningTransaction,
     ParamInterestSharingSummary,
     ParamMemberSummary,
     ParamGroupSummary,
     ParamMemberTransaction,
     ParamSummary,
 )
+from models.review_model import SACCOReview
 from models.transaction_model import Transaction, TransactionDB, TransactionWithDetail
 from models.user_model import UserDB
 from models.transaction_types_model import TransactionTypeDB
@@ -30,7 +32,7 @@ from sqlalchemy import or_
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
-@router.post("/", response_model=Transaction)
+@router.post("/create", response_model=Transaction)
 async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == tran.user_id))
@@ -43,9 +45,12 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
     db_tran = TransactionDB(
         # id
         type_id=tran.type_id,
+        group_id=tran.group_id,
         penalty_type_id=tran.penalty_type_id,
         # user
         user_id=tran.user_id,
+        # attachement
+        attachment_id=tran.attachment_id,
         # transaction
         date=tran.date,
         source_id=tran.source_id,
@@ -63,7 +68,7 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
         stage_id=tran.stage_id,
         approval_levels=tran.approval_levels,
         # service
-        created_by=tran.created_by,
+        created_by=user.email,
     )
     db.add(db_tran)
     try:
@@ -77,7 +82,7 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_db)
     return db_tran
 
 
-@router.get("/", response_model=List[TransactionWithDetail])
+@router.get("/list", response_model=List[TransactionWithDetail])
 async def list_transactions(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
@@ -119,7 +124,60 @@ async def list_user_status_transactions(
     return transactions
 
 
-@router.get("/{tran_id}", response_model=TransactionWithDetail)
+@router.get(
+    "/expense-earnings/status/{statusId}",
+    response_model=List[TransactionWithDetail],
+)
+async def list_expense_earnings_status_transactions(
+    statusId: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(TransactionDB)
+        # .options(
+        #    joinedload(TransactionDB.post),
+        #    joinedload(TransactionDB.status),
+        #    joinedload(TransactionDB.type),
+        #    joinedload(TransactionDB.source),
+        #
+        # )
+        .filter(
+            TransactionDB.status_id == statusId,
+            or_(
+                TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
+                TransactionDB.type_id == assist.TRANSACTION_GROUP_EXPENSE,
+            ),
+        )
+    )
+    transactions = result.scalars().all()
+    return transactions
+
+
+@router.get(
+    "/expense-earnings/list",
+    response_model=List[TransactionWithDetail],
+)
+async def list_expense_earnings(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(TransactionDB)
+        # .options(
+        #    joinedload(TransactionDB.post),
+        #    joinedload(TransactionDB.status),
+        #    joinedload(TransactionDB.type),
+        #    joinedload(TransactionDB.source),
+        #
+        # )
+        .filter(
+            or_(
+                TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
+                TransactionDB.type_id == assist.TRANSACTION_GROUP_EXPENSE,
+            ),
+        )
+    )
+    transactions = result.scalars().all()
+    return transactions
+
+
+@router.get("/id/{tran_id}", response_model=TransactionWithDetail)
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
@@ -137,6 +195,32 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=404, detail=f"Unable to find transaction with id '{tran_id}'"
         )
+    return transaction
+
+
+@router.put("/update/{id}", response_model=TransactionWithDetail)
+async def update_transaction(
+    id: int, transaction_update: Transaction, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(TransactionDB).where(TransactionDB.id == id))
+    transaction = result.scalar_one_or_none()
+
+    if not transaction:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find transaction with id '{id}'",
+        )
+
+    # Update fields that are not None
+    for key, value in transaction_update.dict(exclude_unset=True).items():
+        setattr(transaction, key, value)
+
+    try:
+        await db.commit()
+        await db.refresh(transaction)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update transaction {e}")
     return transaction
 
 
@@ -193,6 +277,9 @@ async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
             TransactionTypeDB.type_name,
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
+        .filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+        )
         .outerjoin(TransactionDB, TransactionTypeDB.id == TransactionDB.type_id)
         .group_by(TransactionTypeDB.type_name)
     )
@@ -207,6 +294,141 @@ async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
                 break
 
     return summary
+
+
+@router.put("/review-update/{id}", response_model=TransactionWithDetail)
+async def review_posting(
+    id: int, review: SACCOReview, db: AsyncSession = Depends(get_db)
+):
+    # check user exists
+    result = await db.execute(select(UserDB).where(UserDB.id == review.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The user with id '{review.user_id}' does not exist",
+        )
+
+    # check if item exists
+    result = await db.execute(select(TransactionDB).where(TransactionDB.id == id))
+    transaction = result.scalar_one_or_none()
+
+    if not transaction:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find transaction with id '{id}' not found",
+        )
+
+    if transaction.status_id == assist.STATUS_APPROVED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The transaction with id '{id}' has already been approved",
+        )
+
+    transaction.updated_by = user.email
+
+    approveTransaction = False
+
+    if transaction.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
+        # submitted stage
+
+        if transaction.created_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the primary reviewer of an transaction you created",
+            )
+
+        transaction.review1_at = assist.get_current_date(False)
+        transaction.review1_by = user.email
+        transaction.review1_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            transaction.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if transaction.approval_levels == 1:
+                # one level, no furthur stage approvers
+
+                # approve transaction
+                approveTransaction = True
+
+            elif transaction.approval_levels == 2 or transaction.approval_levels == 3:
+                # two or three levels, move to primary
+
+                transaction.stage_id = assist.APPROVAL_STAGE_PRIMARY
+
+    elif transaction.stage_id == assist.APPROVAL_STAGE_PRIMARY:
+        # primary stage
+
+        if transaction.review1_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
+            )
+
+        transaction.review2_at = assist.get_current_date(False)
+        transaction.review2_by = user.email
+        transaction.review2_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            transaction.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if transaction.approval_levels == 2:
+                # two levels, no furthur stage approvers
+
+                approveTransaction = True
+
+            elif transaction.approval_levels == 3:
+                # three levels, move to secondary
+                transaction.stage_id = assist.APPROVAL_STAGE_SECONDARY
+
+    elif transaction.stage_id == assist.APPROVAL_STAGE_SECONDARY:
+        # secondary stage
+
+        if transaction.review2_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the final reviewer since you were the secondary reviewer",
+            )
+
+        transaction.review3_at = assist.get_current_date(False)
+        transaction.review3_by = user.email
+        transaction.review3_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            transaction.status_id = assist.STATUS_REJECTED
+        else:
+            # approve
+            # three levels and on last stage
+            approveTransaction = True
+
+    if approveTransaction:
+        # change transaction status
+        transaction.status_id = assist.STATUS_APPROVED
+        transaction.stage_id = assist.APPROVAL_STAGE_APPROVED
+
+        # attachment may or may not be provided
+
+    try:
+        await db.commit()
+        await db.refresh(transaction)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, detail=f"Unable to update transaction: {e}"
+        )
+    return transaction
 
 
 @router.get("/year-to-date/all", response_model=List[ParamMemberSummary])
@@ -554,6 +776,8 @@ async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db))
     result = await db.execute(
         select(TransactionDB).filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.type_id != assist.TRANSACTION_GROUP_EARNING,
+            TransactionDB.type_id != assist.TRANSACTION_GROUP_EXPENSE,
         )
     )
     rows = result.scalars().all()
@@ -566,6 +790,42 @@ async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db))
                 "name": f"{tran.user.fname} {tran.user.lname}",
                 "email": tran.user.email,
                 "phone": tran.user.mobile,
+                "period": tran.date,
+                "type": tran.type.type_name,
+                "amount": tran.amount,
+            }
+        )
+
+    return summary
+
+
+@router.get(
+    "/expense-earning-summary/all", response_model=List[ParamExpenseEarningTransaction]
+)
+async def get_all_expense_earnings_summary(db: AsyncSession = Depends(get_db)):
+
+    # create a summary
+    summary = []
+
+    # get available transactions
+    result = await db.execute(
+        select(TransactionDB).filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            or_(
+                TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
+                TransactionDB.type_id == assist.TRANSACTION_GROUP_EXPENSE,
+            ),
+        )
+    )
+    rows = result.scalars().all()
+
+    # map transactions to base items
+    for tran in rows:
+        summary.append(
+            {
+                "id": tran.id,
+                "name": f"{tran.group.group_name}",
+                "user": f"{tran.user.fname} {tran.user.lname}",
                 "period": tran.date,
                 "type": tran.type.type_name,
                 "amount": tran.amount,

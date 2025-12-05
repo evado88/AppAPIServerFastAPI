@@ -3,8 +3,10 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from database import Base
+from models.attachment_model import Attachment
 from models.penalty_types_model import PenaltyType
 from models.review_stages_model import ReviewStage
+from models.transaction_group_model import TransactionGroup
 from models.transaction_states_model import TransactionState
 from models.user_model import User, UserSimple
 from models.transaction_types_model import TransactionType
@@ -13,141 +15,189 @@ from models.status_types_model import StatusType
 from models.monthly_post_model import MonthlyPosting
 from datetime import date, datetime
 
+
 # ---------- SQLAlchemy Models ----------
 class TransactionDB(Base):
     __tablename__ = "transactions"
 
-    #id
+    # id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    code = Column(String,  nullable=True)
-    
-    #for transactions that target another transaction such as a penalty or loan repayment
+    code = Column(String, nullable=True)
+
+    # for transactions that target another transaction such as a penalty or loan repayment
     parent_id = Column(Integer, nullable=True)
-    
-    #type of transaction i.e. saving, loan, penalty payment, etc
+
+    # type of transaction i.e. saving, loan, penalty payment, etc
     type_id = Column(Integer, ForeignKey("list_transaction_types.id"), nullable=False)
-    
-    #state of the transaction for loans and penalties i.e. open/closed
+
+    # group of transaction i.e. Logistics, Surveyor, Legal, Land Survey
+    # Chief, Google meets expense, Land , OSAWE  Pay out works, OSACCO admin, Admin, etc
+    group_id = Column(Integer, ForeignKey("list_transaction_groups.id"), nullable=True)
+
+    # state of the transaction for loans and penalties i.e. open/closed
     state_id = Column(Integer, ForeignKey("list_transaction_states.id"), nullable=False)
-    
-    #user
+
+    # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
-    #user
-    member_id = Column(Integer, nullable=False)
-    
-    
-    #transaction
-    post_id = Column(Integer, ForeignKey("monthly_postings.id", ondelete="CASCADE"), nullable=True)
+
+    # user
+    member_id = Column(Integer, nullable=True)
+
+    # attachments
+    attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
+
+    # transaction
+    post_id = Column(
+        Integer, ForeignKey("monthly_postings.id", ondelete="CASCADE"), nullable=True
+    )
     date = Column(DateTime(timezone=True), nullable=False)
-    source_id = Column(Integer, ForeignKey("list_transaction_sources.id"), nullable=False)
+    source_id = Column(
+        Integer, ForeignKey("list_transaction_sources.id"), nullable=True
+    )
     amount = Column(Float, nullable=False)
     comments = Column(String, nullable=True)
     reference = Column(String, nullable=True)
-    
-    #loans only
+
+    # loans only
     term_months = Column(Integer, nullable=True)
     interest_rate = Column(Float, nullable=True)
-    
-    #penalty payment only
-    penalty_type_id = Column(Integer, ForeignKey("list_penalty_types.id"), nullable=True)   
-    
-    #approval
+
+    # penalty payment only
+    penalty_type_id = Column(
+        Integer, ForeignKey("list_penalty_types.id"), nullable=True
+    )
+
+    # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
-    
+
     approval_levels = Column(Integer, nullable=False)
-    
+
     stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
-       
+
     review1_at = Column(DateTime(timezone=True), nullable=True)
     review1_by = Column(String, nullable=True)
     review1_comments = Column(String, nullable=True)
-      
+
     review2_at = Column(DateTime(timezone=True), nullable=True)
     review2_by = Column(String, nullable=True)
     review2_comments = Column(String, nullable=True)
-        
+
     review3_at = Column(DateTime(timezone=True), nullable=True)
     review3_by = Column(String, nullable=True)
     review3_comments = Column(String, nullable=True)
-    
-    #service columns
+
+    # service columns
     created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=True)
     created_by = Column(String, nullable=True)
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
-    
-    #relationships
-    user = relationship("UserDB", back_populates="transactions", lazy='selectin')
-    type = relationship("TransactionTypeDB", back_populates="transactions", lazy='selectin')
-    ptype = relationship("PenaltyTypeDB", back_populates="transactions", lazy='selectin')
-    state = relationship("TransactionStateDB", back_populates="transactions", lazy='selectin')
-    source = relationship("TransactionSourceDB", back_populates="transactions", lazy='selectin')
-    status = relationship("StatusTypeDB", back_populates="transactions", lazy='selectin')
-    stage = relationship("ReviewStageDB", back_populates="transactions", lazy='selectin')
-    post = relationship("MonthlyPostingDB", back_populates="transactions", lazy='selectin')
+
+    # relationships
+    user = relationship("UserDB", back_populates="transactions", lazy="selectin")
+    type = relationship(
+        "TransactionTypeDB", back_populates="transactions", lazy="selectin"
+    )
+    group = relationship(
+        "TransactionGroupDB", back_populates="transactions", lazy="selectin"
+    )
+    ptype = relationship(
+        "PenaltyTypeDB", back_populates="transactions", lazy="selectin"
+    )
+    state = relationship(
+        "TransactionStateDB", back_populates="transactions", lazy="selectin"
+    )
+    source = relationship(
+        "TransactionSourceDB", back_populates="transactions", lazy="selectin"
+    )
+    status = relationship(
+        "StatusTypeDB", back_populates="transactions", lazy="selectin"
+    )
+    stage = relationship(
+        "ReviewStageDB", back_populates="transactions", lazy="selectin"
+    )
+    post = relationship(
+        "MonthlyPostingDB", back_populates="transactions", lazy="selectin"
+    )
+    attachment = relationship(
+        "AttachmentDB", back_populates="transaction", lazy="selectin"
+    )
+
+
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
-    #id
+    # id
     id: Optional[int] = None
     code: Optional[str] = None
-    
-    #for transactions that target another transaction such as a penalty or loan repayment
+
+    # for transactions that target another transaction such as a penalty or loan repayment
     parent_id: Optional[int] = None
-    
-    #type of transaction i.e. saving, loan, penalty payment, etc
-    type_id: int = Field(..., ge=1, description="Type must be greater than or equal to 1")
-    
-    #state of the transaction for loans and penalties i.e. open/close
+
+    # type of transaction i.e. saving, loan, penalty payment, etc
+    type_id: int = Field(
+        ..., ge=1, description="Type must be greater than or equal to 1"
+    )
+
+    # grouo
+    group_id: Optional[int] = None
+
+    # state of the transaction for loans and penalties i.e. open/close
     state_id: int = Field(..., ge=1, le=2, description="State must be between 1 and 2")
-    
-    #user
+
+    # user
     user_id: int
-    
-    #memebr
-    member_id: int
-    
-    #transaction
+
+    # memebr
+    member_id: Optional[int] = None
+
+    # attachment
+    attachment_id: Optional[int] = None
+
+    # transaction
     post_id: Optional[int] = None
     date: datetime = Field(..., description="The date for the transaction")
     source_id: Optional[int] = None
-    amount: float = Field(..., ge=0, description="Transaction amount must be greater or equal zero")
+    amount: float = Field(
+        ..., ge=0, description="Transaction amount must be greater or equal zero"
+    )
     comments: Optional[str] = None
     reference: Optional[str] = None
-    
-    #loans only
+
+    # loans only
     term_months: Optional[int] = None
     interest_rate: Optional[float] = None
-    
-    
-    #penalty payment only
+
+    # penalty payment only
     penalty_type_id: Optional[int] = None
-    
-    #approval
-    status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
-    
-    approval_levels: int = Field(..., ge=1, le=3, description="Approval level must be between 1 and 3")
-   
-    stage_id: int =  Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
-    
+
+    # approval
+    status_id: int = Field(
+        ..., ge=1, description="Status must be greater than or equal to 1"
+    )
+
+    approval_levels: int = Field(
+        ..., ge=1, le=3, description="Approval level must be between 1 and 3"
+    )
+
+    stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
+
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
     review1_comments: Optional[str] = None
-        
+
     review2_at: Optional[datetime] = None
     review2_by: Optional[str] = None
     review2_comments: Optional[str] = None
-        
+
     review3_at: Optional[datetime] = None
     review3_by: Optional[str] = None
     review3_comments: Optional[str] = None
-    
-    #service columns
+
+    # service columns
     created_at: Optional[datetime] = None
-    created_by: Optional[str]  = None
+    created_by: Optional[str] = None
     updated_at: Optional[datetime] = None
-    updated_by: Optional[str]  = None
-    
+    updated_by: Optional[str] = None
+
     class Config:
         orm_mode = True
 
@@ -155,13 +205,16 @@ class Transaction(BaseModel):
 class TransactionWithDetail(Transaction):
     user: UserSimple
     type: TransactionType
+    group: Optional[TransactionGroup] = None
     status: StatusType
     state: TransactionState
     source: Optional[TransactionSource] = None
     post: Optional[MonthlyPosting] = None
-    ptype : Optional[PenaltyType] = None
+    ptype: Optional[PenaltyType] = None
     stage: ReviewStage
-    
+    attachment: Optional[Attachment] = None
+
+
 class TransactionWithPenalty(Transaction):
     type: TransactionType
-    ptype : Optional[PenaltyType] = None
+    ptype: Optional[PenaltyType] = None

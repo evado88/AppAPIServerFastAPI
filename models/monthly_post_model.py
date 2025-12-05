@@ -129,9 +129,8 @@ class MonthlyPosting(BaseModel):
     )
 
     # member
-    member_id: int = Field(
-        ..., ge=1, description="Member id must be greater than or equal to 1"
-    )
+    member_id:  Optional[int] = None
+    
     # period
     period_id: Optional[str] = None
 

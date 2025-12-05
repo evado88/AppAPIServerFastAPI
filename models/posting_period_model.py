@@ -33,6 +33,8 @@ class PostingPeriodDB(Base):
     
     #configuration for period
     late_posting_date_start = Column(Date, nullable=False)
+    late_posting_date_min = Column(Date, nullable=False)
+    late_posting_date_max = Column(Date, nullable=False)
     
     saving_multiple = Column(Float, nullable=False)
     shares_multiple  = Column(Float, nullable=False)
@@ -104,7 +106,9 @@ class PostingPeriod(BaseModel):
     
      #configurations for period
     late_posting_date_start: date = Field(..., description="The maximum date for posting before late fees are applied")
-    
+    late_posting_date_min: date = Field(..., description="The earliest date for posting before late fees are applied")
+    late_posting_date_max: date = Field(..., description="The latest date for posting before late fees are applied")
+            
     saving_multiple: float = Field(..., gt=0, description="The multiple for savings must be greater than zero")
     shares_multiple: float = Field(..., gt=0, description="The multiple for shares must be greater than zero")
     social_min: float = Field(..., ge=0, description="The social amount must be greater or equal to zero")
