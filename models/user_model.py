@@ -24,6 +24,7 @@ class UserDB(Base):
     
     #contact, address 
     email = Column(String, unique=True, index=True, nullable=False)
+    mobile_code = Column(String, nullable=False)
     mobile = Column(String, nullable=False)
     address_physical = Column(String, nullable=True)
     address_postal = Column(String, nullable=True)
@@ -76,6 +77,9 @@ class UserDB(Base):
 class User(BaseModel):
     # id
     id: Optional[int] = None
+    
+    user_id: Optional[int] = None
+    
     code: Optional[str] = None
     type: Optional[int] = None
     
@@ -96,11 +100,17 @@ class User(BaseModel):
     
     #contact, address 
     email: EmailStr
+    mobile_code: str = Field(
+        ...,
+        min_length=2,
+        max_length=5,
+        description="Mobile code must be between 3 and 15 characters",
+    )
     mobile: str = Field(
         ...,
         min_length=3,
         max_length=15,
-        description="Mobile1 must be between 3 and 15 characters",
+        description="Mobile must be between 3 and 15 characters",
     )
     address_physical: Optional[str] = None
     address_postal: Optional[str] = None

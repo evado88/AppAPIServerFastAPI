@@ -19,6 +19,7 @@ User model - 2
   "type": 1,
   "fname": "Mary",
   "lname": "Edward",
+  "mobile_code": "+260977123001",
   "mobile": "+260977123001",
   "position": "Member",
   "address": "Libala South",
