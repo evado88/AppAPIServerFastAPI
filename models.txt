@@ -3,6 +3,7 @@ User model - 1
   "type": 1,
   "fname": "John",
   "lname": "Doe",
+  "mobile_code": "+260",
   "mobile": "+260978989259",
   "position": "Clerk",
   "address": "Libala South",

@@ -252,14 +252,15 @@ async def review_posting(
         member.stage_id = assist.APPROVAL_STAGE_APPROVED
 
         # get attachment
-        result = await db.execute(
-            select(AttachmentDB).filter(AttachmentDB.id == member.id_attachment)
-        )
-        attachment = result.scalars().first()
-        if not attachment:
-            raise HTTPException(
-                status_code=404, detail=f"Attachment with id '{id}' not found"
+        if not member.id_attachment == None:
+            result = await db.execute(
+                select(AttachmentDB).filter(AttachmentDB.id == member.id_attachment)
             )
+            attachment = result.scalars().first()
+            if not attachment:
+                raise HTTPException(
+                    status_code=404, detail=f"Attachment with id '{id}' not found"
+                )
             
          # add corresponding user
         db_user = UserDB(
