@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
 from database import engine, Base
 from routes import status_type_routes, transaction_routes, transaction_source_routes
 from routes import transaction_type_routes, user_routes
@@ -34,7 +36,8 @@ async def lifespan(app: FastAPI):
 origins = [
         "http://localhost",
         "http://localhost:5173",
-        "https://your-frontend-domain.com",
+        "http://osawe.space",
+        "https://osawe.space"
     ]
 
 
@@ -50,6 +53,12 @@ app.add_middleware(
         allow_methods=["*"],  # Allows all HTTP methods
         allow_headers=["*"],  # Allows all headers
     )
+
+# SSL
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["api.api-zm.online", "www.api-zm.online"]
+)
 
 # include routers
 app.include_router(status_type_routes.router)

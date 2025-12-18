@@ -157,7 +157,7 @@ class Transaction(BaseModel):
     date: datetime = Field(..., description="The date for the transaction")
     source_id: Optional[int] = None
     amount: float = Field(
-        ..., ge=0, description="Transaction amount must be greater or equal zero"
+        ..., description="Transaction amount must be provided"
     )
     comments: Optional[str] = None
     reference: Optional[str] = None
