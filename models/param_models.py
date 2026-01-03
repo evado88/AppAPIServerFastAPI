@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from models.attachment_model import Attachment
 from models.configuration_model import SACCOConfiguration
 from models.member_model import Member
+from models.monthly_post_model import MonthlyPosting
 from models.transaction_model import Transaction, TransactionWithPenalty
 
 
@@ -17,6 +18,7 @@ class ParamDetail(BaseModel):
 
 class ParamMonthlyPosting(BaseModel):
     member: Member
+    monthlyPosting: Optional[MonthlyPosting] = None
     config: SACCOConfiguration
     loan: Optional[Transaction] = None
     totalSavings: float
@@ -114,9 +116,18 @@ class ParamPeriodSummary(BaseModel):
     month: int
     
     cash_at_bank: float
+    
+    period_start: date
+    period_end: date
+    
+    posting_date_start: date
+    posting_date_end: date
+    
     late_posting_date_start: date
-    late_posting_date_min: date
-    late_posting_date_max: date
+    late_posting_date_end: date
+    
+    mid_posting_date_start: date
+    mid_posting_date_end: date
     
     saving_multiple: float
     shares_multiple: float

@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
     print("Application shutting down new...")
 
 origins = [
+        "http://127.0.0.1",
         "http://localhost",
         "http://localhost:5173",
         "http://osawe.space",
@@ -55,10 +56,13 @@ app.add_middleware(
     )
 
 # SSL
+'''
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["api.api-zm.online", "www.api-zm.online"]
 )
+'''
+
 
 # include routers
 app.include_router(status_type_routes.router)

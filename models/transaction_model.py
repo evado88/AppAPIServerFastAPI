@@ -50,6 +50,7 @@ class TransactionDB(Base):
     post_id = Column(
         Integer, ForeignKey("monthly_postings.id", ondelete="CASCADE"), nullable=True
     )
+    period_id = Column(Integer, nullable=True)
     date = Column(DateTime(timezone=True), nullable=False)
     source_id = Column(
         Integer, ForeignKey("list_transaction_sources.id"), nullable=True
@@ -154,11 +155,10 @@ class Transaction(BaseModel):
 
     # transaction
     post_id: Optional[int] = None
+    period_id: Optional[int] = None
     date: datetime = Field(..., description="The date for the transaction")
     source_id: Optional[int] = None
-    amount: float = Field(
-        ..., description="Transaction amount must be provided"
-    )
+    amount: float = Field(..., description="Transaction amount must be provided")
     comments: Optional[str] = None
     reference: Optional[str] = None
 

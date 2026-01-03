@@ -116,6 +116,18 @@ async def get_member(member_id: int, db: AsyncSession = Depends(get_db)):
         )
     return transaction
 
+@router.get("/user/{user_id}", response_model=MemberWithDetail)
+async def get_member(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MemberDB)
+        .filter(MemberDB.user_id == user_id)
+    )
+    member = result.scalars().first()
+    if not member:
+        raise HTTPException(
+            status_code=404, detail=f"Member with user id '{user_id}' not found"
+        )
+    return member
 
 @router.get("/list", response_model=List[MemberWithDetail])
 async def list_members(db: AsyncSession = Depends(get_db)):

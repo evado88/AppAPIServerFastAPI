@@ -32,9 +32,17 @@ class PostingPeriodDB(Base):
     cash_at_bank = Column(Float, nullable=False)
     
     #configuration for period
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+    
+    posting_date_start = Column(Date, nullable=False)
+    posting_date_end = Column(Date, nullable=False)
+    
     late_posting_date_start = Column(Date, nullable=False)
-    late_posting_date_min = Column(Date, nullable=False)
-    late_posting_date_max = Column(Date, nullable=False)
+    late_posting_date_end = Column(Date, nullable=False)
+    
+    mid_posting_date_start = Column(Date, nullable=False)
+    mid_posting_date_end = Column(Date, nullable=False)
     
     saving_multiple = Column(Float, nullable=False)
     shares_multiple  = Column(Float, nullable=False)
@@ -104,11 +112,19 @@ class PostingPeriod(BaseModel):
     #accounts
     cash_at_bank: float = Field(..., ge=0, description="The cash at bank must be greater than or equal to zero")
     
-     #configurations for period
-    late_posting_date_start: date = Field(..., description="The maximum date for posting before late fees are applied")
-    late_posting_date_min: date = Field(..., description="The earliest date for posting before late fees are applied")
-    late_posting_date_max: date = Field(..., description="The latest date for posting before late fees are applied")
-            
+    #configurations for period
+    period_start: date = Field(..., description="The start date for the period")
+    period_end: date = Field(..., description="The end date for the period")
+
+    posting_date_start: date = Field(..., description="The start date for posting before late fees are applied")
+    posting_date_end: date = Field(..., description="The end date for posting before late fees are applied")
+    
+    late_posting_date_start: date = Field(..., description="The start date for posting when late fees are applied")
+    late_posting_date_end: date = Field(..., description="The end date for posting when late fees are applied")
+    
+    mid_posting_date_start: date = Field(..., description="The start date for posting for mid-month posting")
+    mid_posting_date_end: date = Field(..., description="The end date for posting for mid-month posting")
+
     saving_multiple: float = Field(..., gt=0, description="The multiple for savings must be greater than zero")
     shares_multiple: float = Field(..., gt=0, description="The multiple for shares must be greater than zero")
     social_min: float = Field(..., ge=0, description="The social amount must be greater or equal to zero")

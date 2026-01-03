@@ -18,6 +18,7 @@ from models.param_models import (
     ParamMemberTransaction,
     ParamSummary,
 )
+from models.posting_period_model import PostingPeriodDB
 from models.review_model import SACCOReview
 from models.transaction_model import Transaction, TransactionDB, TransactionWithDetail
 from models.user_model import UserDB
@@ -159,13 +160,6 @@ async def list_expense_earnings_status_transactions(
 async def list_expense_earnings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
         .filter(
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
@@ -176,6 +170,36 @@ async def list_expense_earnings(db: AsyncSession = Depends(get_db)):
     transactions = result.scalars().all()
     return transactions
 
+@router.get(
+    "/mid-month-posting/type/{type}/list",
+    response_model=List[TransactionWithDetail],
+)
+async def list_mid_month_posting(type: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(TransactionDB)
+        .filter(
+            TransactionDB.type_id == type,
+            TransactionDB.period_id == assist.TRANSACTION_PERIOD_MID,
+        )
+    )
+    transactions = result.scalars().all()
+    return transactions
+
+@router.get(
+    "/mid-month-posting/type/{type}/status/{status}/list",
+    response_model=List[TransactionWithDetail],
+)
+async def list_mid_month_posting_status(type: int, status: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(TransactionDB)
+        .filter(
+            TransactionDB.type_id == type,
+            TransactionDB.period_id == assist.TRANSACTION_PERIOD_MID,
+            TransactionDB.status_id == status,
+        )
+    )
+    transactions = result.scalars().all()
+    return transactions
 
 @router.get("/id/{tran_id}", response_model=TransactionWithDetail)
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
@@ -739,6 +763,303 @@ async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
         member["proportional_final_share"] = round(
             (member["time_value_total"] / totals["group_time_value_total"])
             * totals["total_loan_balance"],
+            3,
+        )
+
+        member["payout_balance"] = (
+            member["proportional_final_share"] - member["loan_balance"]
+        )
+
+        totals["group_proportional_final_share"] += member["proportional_final_share"]
+        totals["group_payout_balance"] += member["payout_balance"]
+
+    totals["group_money_growth_total"] = (
+        totals["group_proportional_final_share"] - totals["group_share_total"]
+    )
+
+    totals["group_money_growth_percent"] = round(
+        (totals["group_money_growth_total"] / totals["group_share_total"]) * 100, 0
+    )
+
+    totals["group_payout_balance"] = round(totals["group_payout_balance"], 1)
+
+    fullSummary = {"totals": totals, "members": summary}
+
+    print("ending starting all member interest sharing", assist.get_current_date(False))
+
+    return JSONResponse(content=fullSummary, status_code=200)
+
+
+@router.get("/payout-sharing/all", response_model=ParamInterestSharingSummary)
+async def get_all_member_payout_sharing(db: AsyncSession = Depends(get_db)):
+    print("starting all member interest sharing", assist.get_current_date(False))
+    
+    period_id = assist.get_current_date().strftime("%Y%m")
+    
+    
+    result = await db.execute(
+        select(PostingPeriodDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(PostingPeriodDB.id == period_id)
+    )
+    period = result.scalars().first()
+    if not period:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find posting period with id '{period_id}'",
+        )
+    
+    # get all users
+    result = await db.execute(select(MemberDB))
+    users = result.scalars().all()
+
+    # create a summary for all members
+    summary = [
+        {
+            "id": user.id,
+            "fname": user.fname,
+            "lname": user.lname,
+            "email": user.email,
+            "phone": user.mobile1,
+            "bank_name": user.bank_name,
+            "branch_name": user.bank_branch_name,
+            "branch_code": user.bank_branch_code,
+            "bank_account_no": user.bank_account_no,
+            "bank_account_name": user.bank_account_name,
+            "itotal": 0,
+            "stotal": 0,
+            "loan_total": 0,
+            "loan_interest_total": 0,
+            "loan_repayment_total": 0,
+            "loan_plus_interest_total": 0,
+            "loan_balance": 0,
+            "time_value_total": 0,
+            "proportional_final_share": 0,
+            "payout_balance": 0,
+            "tsavings": {"id": "Member Savings"},
+            "isharing": {"id": "Member Sharing"},
+        }
+        for user in users
+    ]
+
+    # add transaction info
+    for member in summary:
+        for m in range(1, 13):
+            member["tsavings"][f"m{m}"] = 0
+
+    # get total savings for member per month
+    stmt = (
+        select(
+            TransactionDB.user_id,
+            TransactionDB.type_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+        )
+        .group_by(
+            TransactionDB.user_id,
+            TransactionDB.type_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+        )
+    )
+
+    result = await db.execute(stmt)
+    memberRows = result.all()
+
+    # get group total savings, interest and loans per month
+    stmt = (
+        select(
+            TransactionDB.type_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+            func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
+        )
+        .filter(
+            TransactionDB.status_id == assist.STATUS_APPROVED,
+            or_(
+                TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
+                TransactionDB.type_id == assist.TRANSACTION_LOAN,
+                TransactionDB.type_id == assist.TRANSACTION_INTEREST_CHARGED,
+            ),
+        )
+        .group_by(
+            TransactionDB.type_id,
+            func.extract("year", TransactionDB.date).label("year"),
+            func.extract("month", TransactionDB.date).label("month"),
+        )
+    )
+
+    result = await db.execute(stmt)
+    totalRows = result.all()
+
+    # get all totals
+    totals = {
+        "total_loan_balance": 0,
+        "group_time_value_total": 0,
+        "group_proportional_final_share": 0,
+        "group_share_total": 0,
+        "group_money_growth_total": 0,
+        "group_money_growth_percent": 0,
+        "group_payout_balance": 0,
+        f"t{assist.TRANSACTION_SAVINGS}": {"id": "Group Savings"},
+        f"t{assist.TRANSACTION_LOAN}": {"id": "Group Loans"},
+        f"t{assist.TRANSACTION_INTEREST_CHARGED}": {"id": "Group Interest"},
+        f"r1": {"id": "Current Month Loan/Savings Proportion"},
+        f"r2": {"id": "Cummulative Month Loan/Savings Proportion"},
+        f"r3": {"id": "Interest rate"},
+    }
+
+    for m in range(1, 13):
+        totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{m}"] = 0
+        totals[f"t{assist.TRANSACTION_LOAN}"][f"m{m}"] = 0
+        totals[f"t{assist.TRANSACTION_INTEREST_CHARGED}"][f"m{m}"] = 0
+        totals[f"r1"][f"m{m}"] = 0
+        totals[f"r2"][f"m{m}"] = 0
+
+    # map total transactions to base items
+    for tran in totalRows:
+        tid = tran["type_id"]
+        mid = tran["month"]
+        totals[f"t{tid}"][f"m{mid}"] = tran["amount"]
+
+    # calculate row 1 and row 2
+    for m in range(1, 13):
+        # get savings, loans and interest
+        savings = totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{m}"]
+        loans = totals[f"t{assist.TRANSACTION_LOAN}"][f"m{m}"]
+
+        # get interest rate
+        if m < 10:
+            rate = 0.10
+        elif m == 10:
+            rate = 0.075
+        elif m == 11:
+            rate = 0.05
+        else:
+            rate = 0.025
+
+        # set rows
+        totals[f"r1"][f"m{m}"] = (
+            round(loans * rate, 3) if savings >= loans else round(savings * rate, 3)
+        )
+        totals[f"r2"][f"m{m}"] = (
+            0 if savings >= loans else round(((loans - savings) * rate), 3)
+        )
+
+    # calculate interest rates
+    for m in range(1, 13):
+        # get interest rate
+
+        if m < 10:
+            rate = 0.10
+        elif m == 10:
+            rate = 0.075
+        elif m == 11:
+            rate = 0.05
+        else:
+            rate = 0.025
+        # set rows
+        totals[f"r3"][f"m{m}"] = rate
+
+    # map transactions to base items
+    for member in summary:
+        # set transactions
+        for tran in memberRows:
+            if member["id"] == tran["user_id"]:
+                if tran["type_id"] == assist.TRANSACTION_SAVINGS:
+                    mid = tran["month"]
+
+                    # set saving
+                    member["tsavings"][f"m{mid}"] = tran["amount"]
+
+                elif tran["type_id"] == assist.TRANSACTION_LOAN:
+                    # set loan total
+                    member["loan_total"] += tran["amount"]
+                elif tran["type_id"] == assist.TRANSACTION_INTEREST_CHARGED:
+                    # set loan interest total
+                    member["loan_interest_total"] += tran["amount"]
+                elif tran["type_id"] == assist.TRANSACTION_LOAN_PAYMENT:
+                    # set loan payment total
+                    member["loan_repayment_total"] += tran["amount"]
+
+        # set sharing
+        for m in range(1, 13):
+
+            sharing = 0
+            msavings = member["tsavings"][f"m{m}"]
+            r1 = totals[f"r1"][f"m{m}"]
+            r2 = totals[f"r2"][f"m{m}"]
+            tsavinsg = totals[f"t{assist.TRANSACTION_SAVINGS}"][f"m{m}"]
+            tinterest = totals[f"t{assist.TRANSACTION_INTEREST_CHARGED}"][f"m{m}"]
+
+            if m == 1:
+                if tsavinsg == 0:
+                    # will produce error, set zero
+                    sharing = 0
+                else:
+                    # calculate
+                    sharing = round((msavings / tsavinsg) * tinterest, 3)
+            else:
+                # get total upto current month
+                memberSavingTotal = 0
+                groupSavingTotal = 0
+
+                for mindex in range(1, m):
+                    memberSavingTotal += member["tsavings"][f"m{mindex}"]
+                    groupSavingTotal += totals[f"t{assist.TRANSACTION_SAVINGS}"][
+                        f"m{mindex}"
+                    ]
+
+                if tsavinsg == 0 or groupSavingTotal == 0:
+                    # will produce error, set zero
+                    sharing = 0
+                else:
+                    # calcute
+                    sharing1 = round((msavings / tsavinsg) * r1, 3)
+                    sharing2 = round((memberSavingTotal / groupSavingTotal) * r2, 3)
+
+                    sharing = sharing1 + sharing2
+
+            member["isharing"][f"m{m}"] = sharing
+
+        # set sharing totals
+        totalMemberSharing = 0
+        totalMemberSavings = 0
+
+        for mindex in range(1, 13):
+            totalMemberSharing += member["isharing"][f"m{mindex}"]
+            totalMemberSavings += member["tsavings"][f"m{mindex}"]
+
+        member["itotal"] = totalMemberSharing
+        member["stotal"] = totalMemberSavings
+
+        # set calculated fields
+        member["loan_plus_interest_total"] = (
+            member["loan_total"] + member["loan_interest_total"]
+        )
+        member["loan_balance"] = (
+            member["loan_plus_interest_total"] - member["loan_repayment_total"]
+        )
+        member["time_value_total"] = member["stotal"] + member["itotal"]
+
+        totals["total_loan_balance"] += member["loan_balance"]
+
+        totals["group_time_value_total"] += member["time_value_total"]
+
+        totals["group_share_total"] += member["stotal"]
+
+    # calculate proportional share for each member
+    for member in summary:
+
+        member["proportional_final_share"] = round(
+            (member["time_value_total"] / totals["group_time_value_total"])
+            * period.cash_at_bank,
             3,
         )
 

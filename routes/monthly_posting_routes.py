@@ -36,14 +36,13 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
             status_code=400, detail=f"The member with user id {posting.user_id} does not exist"
         )
 
-    # check if posting has been made this month
-    start_date = assist.get_first_month_day(posting.date)
-    end_date = assist.get_last_month_day(posting.date)
-
+    # check if posting for period already exists
+    periodId = assist.get_date_period(posting.date)
+ 
     result = await db.execute(
         select(MonthlyPostingDB).filter(
-            MonthlyPostingDB.date.between(start_date, end_date),
-            MonthlyPostingDB.user_id == posting.user_id,
+            MonthlyPostingDB.period_id == periodId,
+            MonthlyPostingDB.member_id == member.id,
         )
     )
 
@@ -507,6 +506,18 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=401, detail=f"The specified user '{user_id}' does not exist"
         )
+        
+    # get current period
+    periodId = assist.get_current_period()
+ 
+    result = await db.execute(
+        select(MonthlyPostingDB).filter(
+            MonthlyPostingDB.period_id == periodId,
+            MonthlyPostingDB.user_id == user_id,
+        )
+    )
+
+    monthPosting = result.scalars().first()
 
     # get member
     result = await db.execute(select(MemberDB).filter(MemberDB.user_id == user_id))
@@ -612,6 +623,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
 
     param = {
         "member": member,
+        "monthlyPosting": monthPosting,
         "config": config,
         "totalSavings": totalSavings,
         "loan": loan,

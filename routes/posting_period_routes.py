@@ -69,8 +69,17 @@ async def initialize(db: AsyncSession = Depends(get_db)):
         # Loop through all months (1–12)
         for monthNo in range(1, 13):
 
-            minDate = dt.datetime(yearNo, monthNo, 1)
-            maxDate = dt.datetime(yearNo, monthNo, 21)
+            periodStart = dt.datetime(yearNo, monthNo, 1)
+            periodEnd = assist.get_last_month_day(periodStart)
+
+            postingDateStart = dt.datetime(yearNo, monthNo, 5)
+            postingDateEnd = dt.datetime(yearNo, monthNo, 9)
+
+            latePostingStart = dt.datetime(yearNo, monthNo, 10)
+            latePostingEnd = dt.datetime(yearNo, monthNo, 14)
+
+            midPostingStart = dt.datetime(yearNo, monthNo, 15)
+            midPostingEnd = dt.datetime(yearNo, monthNo, 21)
 
             loan_interest_rate = config.loan_interest_rate
             loan_repayment_rate = config.loan_repayment_rate
@@ -95,27 +104,29 @@ async def initialize(db: AsyncSession = Depends(get_db)):
 
             db_status = PostingPeriodDB(
                 # personal details
-                id=dt.datetime(yearNo, monthNo, 1).strftime("%Y%m"),
+                id=assist.get_date_period(dt.datetime(yearNo, monthNo, 1)),
                 period_name=f"{calendar.month_name[monthNo]} {yearNo}",
                 month=monthNo,
                 year=yearNo,
                 # accounts
                 cash_at_bank=0,
                 # config
-                late_posting_date_start=minDate,
-                late_posting_date_min=minDate,
-                late_posting_date_max=maxDate,
-                
+                period_start=periodStart,
+                period_end=periodEnd,
+                posting_date_start=postingDateStart,
+                posting_date_end=postingDateEnd,
+                late_posting_date_start=latePostingStart,
+                late_posting_date_end=latePostingEnd,
+                mid_posting_date_start=midPostingStart,
+                mid_posting_date_end=midPostingEnd,
                 saving_multiple=config.saving_multiple,
                 shares_multiple=config.shares_multiple,
                 social_min=config.social_min,
-                
                 loan_interest_rate=loan_interest_rate,
                 loan_repayment_rate=loan_repayment_rate,
                 loan_saving_ratio=config.loan_saving_ratio,
                 loan_duration=loan_duration,
                 loan_apply_limit=config.loan_apply_limit,
-                
                 late_posting_rate=config.late_posting_rate,
                 missed_meeting_rate=config.missed_meeting_rate,
                 late_meeting_rate=config.late_meeting_rate,
@@ -204,9 +215,14 @@ async def get_posting(period_id: str, db: AsyncSession = Depends(get_db)):
         "year": period.year,
         "month": period.month,
         "cash_at_bank": period.cash_at_bank,
+        "period_start": period.period_start,
+        "period_end": period.period_end,
+        "posting_date_start": period.posting_date_start,
+        "posting_date_end": period.posting_date_end,
         "late_posting_date_start": period.late_posting_date_start,
-        "late_posting_date_min": period.late_posting_date_min,
-        "late_posting_date_max": period.late_posting_date_max,
+        "late_posting_date_end": period.late_posting_date_end,
+        "mid_posting_date_start": period.mid_posting_date_start,
+        "mid_posting_date_end": period.mid_posting_date_end,
         "saving_multiple": period.saving_multiple,
         "shares_multiple": period.shares_multiple,
         "social_min": period.social_min,
@@ -655,9 +671,14 @@ async def list_current_periods(
             "year": period.year,
             "month": period.month,
             "cash_at_bank": period.cash_at_bank,
+            "period_start": period.period_start,
+            "period_end": period.period_end,
+            "posting_date_start": period.posting_date_start,
+            "posting_date_end": period.posting_date_end,
             "late_posting_date_start": period.late_posting_date_start,
-            "late_posting_date_min": period.late_posting_date_min,
-            "late_posting_date_max": period.late_posting_date_max,
+            "late_posting_date_end": period.late_posting_date_end,
+            "mid_posting_date_start": period.mid_posting_date_start,
+            "mid_posting_date_end": period.mid_posting_date_end,
             "saving_multiple": period.saving_multiple,
             "shares_multiple": period.shares_multiple,
             "social_min": period.social_min,
