@@ -93,7 +93,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
     for value in typeList:
         db_status = TransactionGroupDB(
             # personal details
-            user_id=207,
+            user_id=1,
             group_name=value,
         )
         db.add(db_status)
