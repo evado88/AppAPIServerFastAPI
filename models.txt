@@ -162,7 +162,7 @@ Configuration
   "loan_repayment_rate": 10,
   "loan_saving_ratio": 4,
   "loan_duration": 4,
-  "loan_apply_limit": 10000,
+  "loan_apply_limit": 500000,
   "late_posting_rate": 250,
   "missed_meeting_rate": 100,
   "late_meeting_rate": 50,

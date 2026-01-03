@@ -86,6 +86,8 @@ async def initialize(db: AsyncSession = Depends(get_db)):
     for value in typeList:
         db_status = KnowledgeBaseCategoryDB(
             #personal details
+            user_id = 1,
+            # details
             cat_name = value,
         )
         db.add(db_status)
