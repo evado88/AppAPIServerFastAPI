@@ -285,6 +285,7 @@ async def review_posting(
             # contact, address
             email=member.email,
             mobile=member.mobile1,
+            mobile_code='+260',
             address_physical=member.address_physical,
             address_postal=member.address_postal,
             # account
