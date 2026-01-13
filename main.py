@@ -19,6 +19,7 @@ from routes import data_routes
 from routes import transaction_group_routes
 from routes import payment_method_routes
 from routes import guarantor_routes
+from routes import sensor_routes
 
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
@@ -93,6 +94,7 @@ app.include_router(data_routes.router)
 app.include_router(transaction_group_routes.router)
 app.include_router(guarantor_routes.router)
 app.include_router(payment_method_routes.router)
+app.include_router(sensor_routes.router)
 # create tables at startup
 
 
