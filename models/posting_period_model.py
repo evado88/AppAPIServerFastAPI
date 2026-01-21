@@ -56,6 +56,7 @@ class PostingPeriodDB(Base):
     loan_apply_limit = Column(Integer, nullable=False)
     
     late_posting_rate = Column(Float, nullable=False)
+    incorrect_posting_rate = Column(Float, nullable=False)
     missed_meeting_rate = Column(Float, nullable=False)
     late_meeting_rate = Column(Float, nullable=False)
 
@@ -137,6 +138,7 @@ class PostingPeriod(BaseModel):
     loan_apply_limit: float = Field(..., ge=0, description="The loan apply limit must be greater or equal to zero")
          
     late_posting_rate: float = Field(..., ge=0, description="The late posting rate must be greater than zero")
+    incorrect_posting_rate: float = Field(..., ge=0, description="The incorrect posting rate must be greater than zero")
     missed_meeting_rate: float = Field(..., ge=0, description="The missed meeting rate must be greater than zero")
     late_meeting_rate: float = Field(..., gt=0, description="The late meeting rate must be greater than zero")
     

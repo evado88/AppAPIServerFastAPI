@@ -12,7 +12,8 @@ User model - 1
   "password": "12345678",
   "status_id": 1,
   "stage_id": 1,
-  "approval_levels": 3
+  "approval_levels": 3,
+  "created_by":"nkoleevans@gmail.com"
 }
 
 User model - 2
@@ -82,14 +83,14 @@ Transaction - Loan Payment
 
 Transaction - Penalty Charged - Missed Meeting
 {
-  "user_id": 3,
+  "user_id": 1,
   "type_id": 8,
   "penalty_type_id": 2,
   "date": "2025-10-02 18:24",
   "source_id": 2,
   "amount": 100,
   "status_id": 4,
-  "state_id": 2,
+  "state_id": 1,
   "stage_id": 4,
   "approval_levels": 1,
   "comments": "No comment",
@@ -98,14 +99,14 @@ Transaction - Penalty Charged - Missed Meeting
 
 Transaction - Penalty Charged - Late Posting
 {
-  "user_id": 3,
+  "user_id": 1,
   "type_id": 8,
   "penalty_type_id": 1,
   "date": "2025-10-02 18:24",
   "source_id": 2,
   "amount": 100,
   "status_id": 4,
-  "state_id": 2,
+  "state_id": 1,
   "stage_id": 4,
   "approval_levels": 1,
   "comments": "No comment",
@@ -154,7 +155,7 @@ MonthlyPosting
 }
 Configuration
 {
-  "user_id": 3,
+  "user_id": 1,
   "saving_multiple": 500,
   "shares_multiple": 1000,
   "social_min": 50,
@@ -164,6 +165,7 @@ Configuration
   "loan_duration": 4,
   "loan_apply_limit": 500000,
   "late_posting_rate": 250,
+  "incorrect_posting_rate": 150,
   "missed_meeting_rate": 100,
   "late_meeting_rate": 50,
   "approval_levels": 2

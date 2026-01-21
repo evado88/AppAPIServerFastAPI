@@ -128,6 +128,7 @@ async def initialize(db: AsyncSession = Depends(get_db)):
                 loan_duration=loan_duration,
                 loan_apply_limit=config.loan_apply_limit,
                 late_posting_rate=config.late_posting_rate,
+                incorrect_posting_rate=config.incorrect_posting_rate,
                 missed_meeting_rate=config.missed_meeting_rate,
                 late_meeting_rate=config.late_meeting_rate,
                 # approval

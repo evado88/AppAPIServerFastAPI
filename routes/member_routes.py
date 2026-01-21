@@ -116,18 +116,17 @@ async def get_member(member_id: int, db: AsyncSession = Depends(get_db)):
         )
     return transaction
 
+
 @router.get("/user/{user_id}", response_model=MemberWithDetail)
 async def get_member(user_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(MemberDB)
-        .filter(MemberDB.user_id == user_id)
-    )
+    result = await db.execute(select(MemberDB).filter(MemberDB.user_id == user_id))
     member = result.scalars().first()
     if not member:
         raise HTTPException(
             status_code=404, detail=f"Member with user id '{user_id}' not found"
         )
     return member
+
 
 @router.get("/list", response_model=List[MemberWithDetail])
 async def list_members(db: AsyncSession = Depends(get_db)):
@@ -273,8 +272,8 @@ async def review_posting(
                 raise HTTPException(
                     status_code=404, detail=f"Attachment with id '{id}' not found"
                 )
-            
-         # add corresponding user
+
+        # add corresponding user
         db_user = UserDB(
             # id
             code=f"UM00{member.id}",
@@ -285,7 +284,7 @@ async def review_posting(
             # contact, address
             email=member.email,
             mobile=member.mobile1,
-            mobile_code='+260',
+            mobile_code="+260",
             address_physical=member.address_physical,
             address_postal=member.address_postal,
             # account
@@ -303,18 +302,19 @@ async def review_posting(
     try:
         await db.commit()
         await db.refresh(member)
-        
+
         if approveMember:
-            #only do this at last stage
+            # only do this at last stage
             await db.refresh(db_user)
-            
+
             member.user_id = db_user.id
-            
+
             await db.commit()
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Unable to review member: {e}")
     return member
+
 
 @router.post("/initialize-validation-members")
 async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
@@ -332,7 +332,7 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             # id
             number=f"M00{index}",
             # user_id
-            user_id = index,
+            user_id=index,
             # personal details
             fname=value["fname"],
             lname=value["lname"],
@@ -341,7 +341,6 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             # id
             id_type=value["id_type"],
             id_no=value["id_no"],
-            id_attachment=value["id_attachment"],
             # contact, address
             email=value["email"],
             mobile1=value["mobile1"],
@@ -368,7 +367,6 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             # service
             created_by=value["created_by"],
         )
-    
 
         # add corresponding user
         db_user = UserDB(
@@ -381,6 +379,7 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             # contact, address
             email=value["email"],
             mobile=value["mobile1"],
+            mobile_code="+260",
             address_physical=value["address_physical"],
             address_postal=value["address_postal"],
             # account
@@ -393,7 +392,7 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             # service
             created_by=value["created_by"],
         )
-        
+
         db.add(db_user)
         db.add(db_member)
 
@@ -406,7 +405,7 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
                 status_code=400,
                 detail=f"Unable to initialize member {index} '{username}': f{e}",
             )
-            
+
     for value in admins:
         # add  user
         username = value["email"]
@@ -421,6 +420,7 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             # contact, address
             email=value["email"],
             mobile=value["mobile"],
+            mobile_code="+260",
             address_physical=value["address_physical"],
             address_postal=value["address_postal"],
             # account
@@ -444,7 +444,7 @@ async def initialize_validation_members(db: AsyncSession = Depends(get_db)):
             raise HTTPException(
                 status_code=400,
                 detail=f"Unable to initialize user {index} '{username}': f{e}",
-        )
+            )
 
     return {
         "succeeded": True,

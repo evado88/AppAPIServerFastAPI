@@ -1,12 +1,13 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from typing import Optional
+from typing import Any, Optional
 from database import Base
 from helpers import assist
 from models.attachment_model import Attachment
 from models.configuration_model import SACCOConfiguration
 from models.member_model import Member
+from models.payment_method_model import PaymentMethod
 from models.posting_period_model import PostingPeriod
 from models.review_stages_model import ReviewStage
 from models.user_model import User, UserSimple
@@ -15,6 +16,7 @@ from models.transaction_sources_model import TransactionSource
 from models.status_types_model import StatusType
 from datetime import date, datetime
 from sqlalchemy import Sequence
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 # ---------- SQLAlchemy Models ----------
@@ -37,36 +39,54 @@ class MonthlyPostingDB(Base):
     # member
     member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
 
+    # guarantor
+    guarantor_id = Column(Integer, ForeignKey("guarantors.id"), nullable=False)
+
     # period
     period_id = Column(String, ForeignKey("list_posting_periods.id"), nullable=False)
 
     # meeting
+    meeting_attendance = Column(String, nullable=False)
     missed_meeting_penalty = Column(Float, nullable=False)
 
     # posting
+
+    # mid
+    mid_status = Column(Integer, nullable=False)
+    mid_date = Column(DateTime(timezone=True), nullable=True)
+
+    # monthly
     date = Column(DateTime(timezone=True), nullable=False)
 
+    saving_mon = Column(Float, nullable=False)
+    saving_mid = Column(Float, nullable=False)
     saving = Column(Float, nullable=False)
+
     shares = Column(Float, nullable=False)
     social = Column(Float, nullable=False)
     penalty = Column(Float, nullable=False)
+
+    penalty_list = Column(JSONB, nullable=False)
 
     late_post_penalty = Column(Float, nullable=False)
 
     loan_interest = Column(Float, nullable=False)
     loan_month_repayment = Column(Float, nullable=False)
 
+    loan_application_mon = Column(Float, nullable=False)
+    loan_application_mid = Column(Float, nullable=False)
     loan_application = Column(Float, nullable=False)
 
     comments = Column(String, nullable=True)
-
+    comments_mid = Column(String, nullable=True)
     # validation
     contribution_total = Column(Float, nullable=False)
     deposit_total = Column(Float, nullable=False)
     receive_total = Column(Float, nullable=False)
-    payment_method_type = Column(String, nullable=False)
-    payment_method_number = Column(String, nullable=True)
-    payment_method_name = Column(String, nullable=True)
+
+    payment_method_id = Column(
+        Integer, ForeignKey("payment_methods.id"), nullable=False
+    )
     # pop
     pop_attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
     pop_comments = Column(String, nullable=True)
@@ -109,6 +129,10 @@ class MonthlyPostingDB(Base):
     # relationships
     user = relationship("UserDB", back_populates="postings", lazy="selectin")
     member = relationship("MemberDB", back_populates="postings", lazy="selectin")
+    guarantor = relationship("GuarantorDB", back_populates="posting", lazy="selectin")
+    paymentmethod = relationship(
+        "PaymentMethodDB", back_populates="posting", lazy="selectin"
+    )
     status = relationship("StatusTypeDB", back_populates="postings", lazy="selectin")
     stage = relationship("ReviewStageDB", back_populates="postings", lazy="selectin")
     transactions = relationship("TransactionDB", back_populates="post", lazy="selectin")
@@ -129,21 +153,62 @@ class MonthlyPosting(BaseModel):
     )
 
     # member
-    member_id:  Optional[int] = None
-    
+    member_id: Optional[int] = None
+
+    # guarantor
+    guarantor_id: int = Field(
+        ..., ge=1, description="The guarantor id must be greater than or equal to 1"
+    )
+
     # period
-    period_id: Optional[str] = None
+    period_id: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        description="The posting period id must be specifed and must be 6-characters",
+    )
 
     # meeting
+    meeting_attendance: str = Field(
+        ...,
+        min_length=2,
+        max_length=3,
+        description="Meeting attendace must be equal or more than 2 characters",
+    )
+
     missed_meeting_penalty: float = Field(
-        ..., ge=0, description="Misssed meetimh penalty amount must be greater or equal to zero"
+        ...,
+        ge=0,
+        description="Missed meeting penalty amount must be greater or equal to zero",
     )
     # posting
+
+    # mid
+    mid_status: int = Field(
+        ...,
+        ge=1,
+        le=2,
+        description="The mid-month posting statu must be between 1 and 2",
+    )
+    mid_date: Optional[datetime] = None
+
+    # monthly
     date: datetime = Field(..., description="The date for the monthly posting")
 
-    saving: float = Field(
-        ..., gt=0, description="Saving amount must be greater than zero"
+    saving_mon: float = Field(
+        ...,
+        ge=0,
+        description="Saving amount month must be greater or equal to zero",
     )
+    saving_mid: float = Field(
+        ...,
+        ge=0,
+        description="Saving amount mid-month must be greater or equal to zero",
+    )
+    saving: float = Field(
+        ..., ge=0, description="Saving amount must be greater than zero"
+    )
+
     shares: float = Field(
         ..., gt=0, description="Share amount must be greater than zero"
     )
@@ -152,6 +217,10 @@ class MonthlyPosting(BaseModel):
     )
     penalty: float = Field(
         ..., ge=0, description="Penalty amount must be greater or equal to zero"
+    )
+
+    penalty_list: list[dict[str, Any]] = Field(
+        ..., description="The penalty list must be provided"
     )
 
     late_post_penalty: float = Field(
@@ -169,13 +238,23 @@ class MonthlyPosting(BaseModel):
         description="Loan monthly repayment amount must be greater or equal to zero",
     )
 
+    loan_application_mon: float = Field(
+        ...,
+        ge=0,
+        description="Loan application amount month must be greater or equal to zero",
+    )
+    loan_application_mid: float = Field(
+        ...,
+        ge=0,
+        description="Loan application amount mid-month must be greater or equal to zero",
+    )
     loan_application: float = Field(
         ...,
         ge=0,
         description="Loan application amount must be greater or equal to zero",
     )
-
     comments: Optional[str] = None
+    comments_mid: Optional[str] = None
     # validation
     contribution_total: float = Field(
         ...,
@@ -190,12 +269,10 @@ class MonthlyPosting(BaseModel):
         ...,
         description="Receive total amount must be greater or equal to zero",
     )
-    payment_method_type: str = Field(
-        ...,
-        description="The payment method is required",
+
+    payment_method_id: int = Field(
+        ..., description="Payment method must be a valid number"
     )
-    payment_method_number: Optional[str] = None
-    payment_method_name: Optional[str] = None
 
     # pop
     pop_attachment_id: Optional[int] = None
@@ -250,6 +327,7 @@ class MonthlyPostingWithDetail(MonthlyPosting):
     status: StatusType
     period: Optional[PostingPeriod] = None
     attachment: Optional[Attachment] = None
+    paymentmethod: PaymentMethod
 
 
 class MonthlyPostingWithMemberDetail(MonthlyPosting):
@@ -259,3 +337,4 @@ class MonthlyPostingWithMemberDetail(MonthlyPosting):
     period: PostingPeriod
     attachment: Optional[Attachment] = None
     member: Member
+    paymentmethod: PaymentMethod

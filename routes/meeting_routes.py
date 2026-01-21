@@ -7,7 +7,7 @@ from typing import List
 from database import get_db
 from helpers import assist
 from models.attachment_model import AttachmentDB
-from models.meeting_model import Meeting, MeetingDB, MeetingWithDetail
+from models.meeting_model import Meeting, MeetingDB, MeetingSimpleWithDetail, MeetingWithDetail
 from models.review_model import SACCOReview
 from models.transaction_model import TransactionDB
 from models.user_model import UserDB
@@ -35,7 +35,7 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
         date=meeting.date,
         title=meeting.title,
         content=meeting.content,
-        attendanceList=meeting.attendanceList,
+        attendance_list=meeting.attendance_list,
         # approval
         status_id=meeting.status_id,
         stage_id=meeting.stage_id,
@@ -49,9 +49,7 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
         await db.refresh(db_tran)
 
         # add meeting penaltys
-        list = json.loads(db_tran.attendanceList)
-
-        for item in list:
+        for item in db_tran.attendance_list:
             user = item["user"]
             type = item["type"]
             penalty = item["penalty"]
@@ -74,17 +72,12 @@ async def post_meeting(meeting: Meeting, db: AsyncSession = Depends(get_db)):
     return db_tran
 
 
-@router.get("/list", response_model=List[MeetingWithDetail])
+@router.get("/list", response_model=List[MeetingSimpleWithDetail])
 async def list_meetings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(MeetingDB)
-        # .options(
-        #    joinedload(MeetingDB.post),
-        #    joinedload(MeetingDB.status),
-        #    joinedload(MeetingDB.type),
-        #    joinedload(MeetingDB.source),
-        #
-        # )
+        select(
+            MeetingDB
+        )
     )
     meetings = result.scalars().all()
     return meetings
@@ -141,14 +134,14 @@ async def get_meeting(meeting_id: int, db: AsyncSession = Depends(get_db)):
 async def postAttendance(meeting: any, db=AsyncSession):
 
     try:
-        attendanceList = json.loads(meeting.attendanceList)
+        attendance_list = json.loads(meeting.attendance_list)
 
-        for attend in attendanceList:
+        for attend in attendance_list:
             memId = attend["id"]
             penalty = attend["penalty"]
             typeId = attend["penaltyId"]
-            
-            #do not add those without penalties
+
+            # do not add those without penalties
             if penalty == 0:
                 continue
 

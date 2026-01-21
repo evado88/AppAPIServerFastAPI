@@ -1,13 +1,14 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import Any, Optional
 from database import Base
 from models.attachment_model import Attachment
 from models.review_stages_model import ReviewStage
 from models.user_model import User, UserSimple
 from models.status_types_model import StatusType
 from datetime import datetime
+from sqlalchemy.dialects.postgresql import JSONB
 
 # ---------- SQLAlchemy Models ----------
 class MeetingDB(Base):
@@ -26,7 +27,7 @@ class MeetingDB(Base):
     date = Column(DateTime(timezone=True), nullable=False)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
-    attendanceList = Column(String, nullable=False)
+    attendance_list = Column(JSONB, nullable=False)
     
     #approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
@@ -75,7 +76,7 @@ class Meeting(BaseModel):
     date: datetime = Field(..., description="The date and time for the meeting")
     title: str = Field(..., min_length=2, max_length=50, description="Title must be between 2 and 50 characters")
     content: str = Field(..., min_length=10, description="The content must be at least 10 characters")
-    attendanceList: str = Field(..., description="The attendance list must be provided")
+    attendance_list: list[dict[str, Any]]= Field(..., description="The attendance list must be provided")
     #approval
     status_id: int = Field(..., ge=1, description="Status must be greater than or equal to 1")
     
@@ -104,7 +105,27 @@ class Meeting(BaseModel):
     class Config:
         orm_mode = True
 
+class MeetingSimple(BaseModel):
+    #id
+    id: Optional[int] = None
+    
 
+    #query
+    date: datetime = Field(..., description="The date and time for the meeting")
+    title: str = Field(..., min_length=2, max_length=50, description="Title must be between 2 and 50 characters")
+
+    #service columns
+    created_at: Optional[datetime] = None
+
+    
+    class Config:
+        orm_mode = True 
+
+class MeetingSimpleWithDetail(MeetingSimple):
+    user: UserSimple
+    status: StatusType
+    stage: ReviewStage
+        
 class MeetingWithDetail(Meeting):
     user: UserSimple
     attachment: Attachment

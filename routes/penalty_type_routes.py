@@ -28,7 +28,7 @@ async def create_type(transaction: PenaltyType, db: AsyncSession = Depends(get_d
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_db)):
-    penaltyList = ['Late Posting', 'Missed Meeting', 'Late Joining']
+    penaltyList = ['Late Posting', 'Missed Meeting', 'Late Joining', 'Incorrect Posting']
     penaltyId = 1
     
     for value in penaltyList:

@@ -50,7 +50,7 @@ async def post_announcement(announcement: Announcement, db: AsyncSession = Depen
     return db_tran
 
 @router.put("/update/{config_id}", response_model=AnnouncementWithDetail)
-async def update_configuration(config_id: int, config_update: Announcement, db: AsyncSession = Depends(get_db)):
+async def update_item(config_id: int, config_update: Announcement, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AnnouncementDB)
         .where(AnnouncementDB.id == config_id)

@@ -90,7 +90,7 @@ async def get_memberquery(memberquery_id: int, db: AsyncSession = Depends(get_db
 
 
 @router.put("/update/{query_id}", response_model=MemberQueryWithDetail)
-async def update_configuration(
+async def update_item(
     query_id: int, config_update: MemberQuery, db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(MemberQueryDB).where(MemberQueryDB.id == query_id))

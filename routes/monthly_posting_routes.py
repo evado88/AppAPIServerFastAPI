@@ -6,6 +6,7 @@ from typing import List
 from sqlalchemy import func
 from database import get_db
 from models.configuration_model import SACCOConfigurationDB
+from models.guarantor_model import GuarantorDB
 from models.member_model import MemberDB
 from models.monthly_post_model import (
     MonthlyPosting,
@@ -14,6 +15,7 @@ from models.monthly_post_model import (
     MonthlyPostingWithMemberDetail,
 )
 from models.param_models import ParamMonthlyPosting
+from models.payment_method_model import PaymentMethodDB
 from models.posting_period_model import PostingPeriodDB
 from models.review_model import SACCOReview
 from models.transaction_model import Transaction, TransactionDB
@@ -61,30 +63,40 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         user_id=posting.user_id,
         # member
         member_id=member.id,
+        guarantor_id=posting.guarantor_id,
         # period
         period_id=posting.period_id,
         # meeting
+        meeting_attendance = posting.meeting_attendance,
         missed_meeting_penalty=posting.missed_meeting_penalty,
         # posting
+        # mid month
+        mid_status=posting.mid_status,
+        mid_date = posting.mid_date,
+        # monthly
         date=posting.date,
+        saving_mid=posting.saving_mid,
+        saving_mon=posting.saving_mon,
         saving=posting.saving,
         shares=posting.shares,
         social=posting.social,
         penalty=posting.penalty,
+        penalty_list=posting.penalty_list,
         late_post_penalty=posting.late_post_penalty,
         loan_interest=posting.loan_interest,
         loan_month_repayment=posting.loan_month_repayment,
+        loan_application_mon=posting.loan_application_mon,
+        loan_application_mid=posting.loan_application_mid,
         loan_application=posting.loan_application,
         guarantor_required=posting.guarantor_required,
         guarantor_user_email=posting.guarantor_user_email,
         comments=posting.comments,
+        comments_mid=posting.comments_mid,
         # validation
         contribution_total=posting.contribution_total,
         deposit_total=posting.deposit_total,
         receive_total=posting.receive_total,
-        payment_method_type=posting.payment_method_type,
-        payment_method_number=posting.payment_method_number,
-        payment_method_name=posting.payment_method_name,
+        payment_method_id=posting.payment_method_id,
         # pop
         pop_attachment_id=posting.pop_attachment_id,
         pop_comments=posting.pop_comments,
@@ -470,7 +482,7 @@ async def get_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/update/{id}", response_model=MonthlyPosting)
-async def update_configuration(
+async def update_posting(
     id: int, posting_update: MonthlyPosting, db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(MonthlyPostingDB).where(MonthlyPostingDB.id == id))
@@ -613,6 +625,19 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
 
     penalties = result.scalars().all()
     totalPenalties = sum(item.amount for item in penalties)
+    
+    #pay methods
+    result = await db.execute(
+        select(PaymentMethodDB)
+       .filter(PaymentMethodDB.user_id == user_id)
+    )
+    paymentmethods = result.scalars().all()
+    
+    #guarantors
+    result = await db.execute(
+        select(GuarantorDB)
+    )
+    guarantors = result.scalars().all()
 
     # postingDate = assist.get_current_date()
 
@@ -631,6 +656,8 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
         "totalLoanPaymentsNo": totalLoanPaymentsNo,
         "totalPenaltiesAmount": totalPenalties,
         "penalties": penalties,
+        "paymentMethods": paymentmethods,
+        "guarantors": guarantors,
         "latePostingStartDay": config.late_posting_date_start.day,
     }
 

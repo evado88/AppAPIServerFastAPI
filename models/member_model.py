@@ -91,7 +91,7 @@ class MemberDB(Base):
     stage = relationship("ReviewStageDB", back_populates="members", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="members", lazy="selectin")
     attachment = relationship("AttachmentDB", back_populates="member", lazy="selectin")
-    gurantor= relationship("GuarantorDB", back_populates="member", lazy="selectin")
+    guarantor= relationship("GuarantorDB", back_populates="member", lazy="selectin")
     paymentmethod= relationship("PaymentMethodDB", back_populates="member", lazy="selectin")
 # ---------- Pydantic Schemas ----------
 class Member(BaseModel):

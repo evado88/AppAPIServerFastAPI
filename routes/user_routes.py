@@ -13,14 +13,6 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post("/create", response_model=User)
 async def create_user(user: User, db: AsyncSession = Depends(get_db)):
-    # Check user
-    result = await db.execute(select(UserDB).where(UserDB.id == user.user_id))
-    current = result.scalar_one_or_none()
-    if not current:
-        raise HTTPException(
-            status_code=400, detail=f"The user with id '{user.user_id}' does not exist"
-        )
-        
     # Check duplicate email
     result = await db.execute(select(UserDB).where(UserDB.email == user.email))
     existing = result.scalar_one_or_none()
@@ -51,7 +43,7 @@ async def create_user(user: User, db: AsyncSession = Depends(get_db)):
         stage_id=user.stage_id,
         approval_levels=user.approval_levels,
         # service
-        created_by=current.email,
+        created_by=user.created_by,
     )
     db.add(db_user)
     try:
@@ -63,7 +55,7 @@ async def create_user(user: User, db: AsyncSession = Depends(get_db)):
     return db_user
 
 @router.put("/update/{user_id}", response_model=UserWithDetail)
-async def update_configuration(user_id: int, config_update: User, db: AsyncSession = Depends(get_db)):
+async def update_item(user_id: int, config_update: User, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(UserDB)
         .where(UserDB.id == user_id)

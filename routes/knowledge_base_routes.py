@@ -57,7 +57,7 @@ async def post_kbarticle(kbarticle: KnowledgeBase, db: AsyncSession = Depends(ge
 
 
 @router.put("/update/{config_id}", response_model=KnowledgeBaseWithDetail)
-async def update_configuration(
+async def update_item(
     config_id: int, config_update: KnowledgeBase, db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

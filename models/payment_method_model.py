@@ -67,6 +67,7 @@ class PaymentMethodDB(Base):
 
     # relationships
     member = relationship("MemberDB", back_populates="paymentmethod", lazy="selectin")
+    posting = relationship("MonthlyPostingDB", back_populates="paymentmethod", lazy="selectin")
     stage = relationship("ReviewStageDB", back_populates="paymentmethod", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="paymentmethod", lazy="selectin")
 

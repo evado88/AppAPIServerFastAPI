@@ -57,7 +57,7 @@ async def post_guarantor(guarantor: Guarantor, db: AsyncSession = Depends(get_db
 
 
 @router.put("/update/{config_id}", response_model=GuarantorWithDetail)
-async def update_configuration(
+async def update_item(
     config_id: int, config_update: Guarantor, db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(GuarantorDB).where(GuarantorDB.id == config_id))

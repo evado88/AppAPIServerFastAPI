@@ -202,6 +202,20 @@ class Transaction(BaseModel):
         orm_mode = True
 
 
+class TransactionSimple(BaseModel):
+    # id
+    id: Optional[int] = None
+    date: datetime = Field(..., description="The date for the transaction")
+    amount: float = Field(..., description="Transaction amount must be provided")
+    comments: Optional[str] = None
+
+    # service columns
+    created_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+        
+        
 class TransactionWithDetail(Transaction):
     user: UserSimple
     type: TransactionType
@@ -215,6 +229,6 @@ class TransactionWithDetail(Transaction):
     attachment: Optional[Attachment] = None
 
 
-class TransactionWithPenalty(Transaction):
+class TransactionWithPenalty(TransactionSimple):
     type: TransactionType
     ptype: Optional[PenaltyType] = None

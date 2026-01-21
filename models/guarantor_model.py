@@ -58,7 +58,8 @@ class GuarantorDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    member = relationship("MemberDB", back_populates="gurantor", lazy="selectin")
+    member = relationship("MemberDB", back_populates="guarantor", lazy="selectin")
+    posting = relationship("MonthlyPostingDB", back_populates="guarantor", lazy="selectin")
     stage = relationship("ReviewStageDB", back_populates="gurantor", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="gurantor", lazy="selectin")
 

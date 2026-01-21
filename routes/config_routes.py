@@ -37,6 +37,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         loan_apply_limit = config.loan_apply_limit,
         
         late_posting_rate = config.late_posting_rate,
+        incorrect_posting_rate = config.incorrect_posting_rate,
         missed_meeting_rate = config.missed_meeting_rate,
         late_meeting_rate = config.late_meeting_rate,
         
@@ -54,7 +55,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
     return db_tran
 
 @router.put("/update/{config_id}", response_model=SACCOConfigurationWithDetail)
-async def update_configuration(config_id: int, config_update: SACCOConfiguration, db: AsyncSession = Depends(get_db)):
+async def update_item(config_id: int, config_update: SACCOConfiguration, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SACCOConfigurationDB)
         .where(SACCOConfigurationDB.id == config_id)

@@ -3,8 +3,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 from models.attachment_model import Attachment
 from models.configuration_model import SACCOConfiguration
+from models.guarantor_model import Guarantor
 from models.member_model import Member
-from models.monthly_post_model import MonthlyPosting
+from models.monthly_post_model import MonthlyPosting, MonthlyPostingWithDetail
+from models.payment_method_model import PaymentMethod
 from models.transaction_model import Transaction, TransactionWithPenalty
 
 
@@ -18,14 +20,16 @@ class ParamDetail(BaseModel):
 
 class ParamMonthlyPosting(BaseModel):
     member: Member
-    monthlyPosting: Optional[MonthlyPosting] = None
+    monthlyPosting: Optional[MonthlyPostingWithDetail] = None
     config: SACCOConfiguration
     loan: Optional[Transaction] = None
     totalSavings: float
     totalLoanPaymentsAmount: float
     totalLoanPaymentsNo: float
     totalPenaltiesAmount: float
-    penalties: Optional[List[TransactionWithPenalty]] = None
+    penalties: List[TransactionWithPenalty]
+    paymentMethods: List[PaymentMethod]
+    guarantors: List[Guarantor]
     latePostingStartDay: int
 
     class Config:
