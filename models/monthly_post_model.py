@@ -76,6 +76,7 @@ class MonthlyPostingDB(Base):
     loan_application_mon = Column(Float, nullable=False)
     loan_application_mid = Column(Float, nullable=False)
     loan_application = Column(Float, nullable=False)
+    loan_refinance  = Column(Integer, nullable=False)
 
     comments = Column(String, nullable=True)
     comments_mid = Column(String, nullable=True)
@@ -253,6 +254,13 @@ class MonthlyPosting(BaseModel):
         ge=0,
         description="Loan application amount must be greater or equal to zero",
     )
+    loan_refinance: int = Field(
+        ..., 
+        ge=1,
+        le=3,
+        description="Loan refinance must be between 1 and 3"
+    )
+
     comments: Optional[str] = None
     comments_mid: Optional[str] = None
     # validation

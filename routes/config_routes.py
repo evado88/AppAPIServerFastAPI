@@ -41,6 +41,7 @@ async def post_config(config: SACCOConfiguration, db: AsyncSession = Depends(get
         missed_meeting_rate = config.missed_meeting_rate,
         late_meeting_rate = config.late_meeting_rate,
         
+        enable_2FA = config.enable_2FA,
         approval_levels = config.approval_levels,
         #service columns
         updated_by = config.updated_by,

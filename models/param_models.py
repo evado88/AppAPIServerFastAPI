@@ -7,6 +7,7 @@ from models.guarantor_model import Guarantor
 from models.member_model import Member
 from models.monthly_post_model import MonthlyPosting, MonthlyPostingWithDetail
 from models.payment_method_model import PaymentMethod
+from models.posting_period_model import PostingPeriod
 from models.transaction_model import Transaction, TransactionWithPenalty
 
 
@@ -21,7 +22,7 @@ class ParamDetail(BaseModel):
 class ParamMonthlyPosting(BaseModel):
     member: Member
     monthlyPosting: Optional[MonthlyPostingWithDetail] = None
-    config: SACCOConfiguration
+    config: PostingPeriod
     loan: Optional[Transaction] = None
     totalSavings: float
     totalLoanPaymentsAmount: float

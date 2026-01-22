@@ -88,6 +88,7 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         loan_application_mon=posting.loan_application_mon,
         loan_application_mid=posting.loan_application_mid,
         loan_application=posting.loan_application,
+        loan_refinance = posting.loan_refinance,
         guarantor_required=posting.guarantor_required,
         guarantor_user_email=posting.guarantor_user_email,
         comments=posting.comments,

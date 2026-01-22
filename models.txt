@@ -50,11 +50,11 @@ Transaction - Saving
 
 Transaction - Loan - K300 @ 10% for 4 months
 {
-  "user_id": 3,
+  "user_id": 1,
   "type_id": 3,
-  "date": "2025-10-02 18:24",
+  "date": "2026-10-02 18:24",
   "source_id": 2,
-  "amount": 300,
+  "amount": 12000,
   "term_months": 4,
   "interest_rate": 10,
   "status_id": 4,
@@ -67,10 +67,10 @@ Transaction - Loan - K300 @ 10% for 4 months
 
 Transaction - Loan Payment
 {
-  "user_id": 3,
+  "user_id": 1,
   "type_id": 4,
   "parent_id": 7,
-  "date": "2025-10-02 18:24",
+  "date": "2026-10-05 18:24",
   "source_id": 2,
   "amount": 75,
   "status_id": 4,
@@ -168,6 +168,7 @@ Configuration
   "incorrect_posting_rate": 150,
   "missed_meeting_rate": 100,
   "late_meeting_rate": 50,
+  "enable_2FA": 1,
   "approval_levels": 2
 }
 
