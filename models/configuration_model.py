@@ -37,6 +37,11 @@ class SACCOConfigurationDB(Base):
     approval_levels = Column(Integer, nullable=False)
     enable_2FA = Column(Integer, nullable=False)
     
+    smtp_server = Column(String, nullable=False)
+    smtp_port = Column(Integer, nullable=False)
+    smtp_user = Column(String, nullable=False)
+    smtp_password = Column(String, nullable=False)
+    
     # service columns
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
     updated_by = Column(String, nullable=True)
@@ -102,6 +107,21 @@ class SACCOConfiguration(BaseModel):
     enable_2FA : int = Field(
         ..., ge=1, le=2, description="Enable Two-Factor Authentication must be between 1 and 2"
     )
+    
+    # SMTP
+    smtp_server : str = Field(
+        ..., min_length=4, description="The SMTP server must be greater than or equal to 4 characters"
+    )
+    smtp_port : int = Field(
+        ..., ge=20, description="The SMTP port must be greater than or equal to 20"
+    )
+    smtp_user: str = Field(
+        ..., min_length=4, description="The SMTP user must be greater than or equal to 4 characters"
+    )
+    smtp_password : str = Field(
+        ..., min_length=4, description="The SMTP password must be greater than or equal to 4 characters"
+    )
+    
     # service columns
     updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None

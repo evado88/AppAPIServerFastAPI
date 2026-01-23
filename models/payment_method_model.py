@@ -111,7 +111,7 @@ class PaymentMethod(BaseModel):
 
     # approval
     status_id: int = Field(
-        ..., ge=1, le=4, description="Status must be greater than or equal to 1"
+        ..., ge=1, le=5, description="Status must be greater than or equal to 1"
     )
 
     approval_levels: int = Field(

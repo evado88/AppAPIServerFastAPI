@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +14,13 @@ from models.monthly_post_model import MonthlyPostingDB
 from models.transaction_model import TransactionDB
 from models.user_model import User, UserDB
 import helpers.assist as assist
-from models.whatsapp_models import AuthParam, MobileParam, ItemReviewParam, TransactionReviewParam
+from models.coomunication_channel_models import AuthParam, MobileParam, ItemReviewParam, TransactionReviewParam
 from helpers.http_client import get_http_client
 from sqlalchemy import or_
+import smtplib
+from email.message import EmailMessage
+import os
+
 
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp"])
 
@@ -316,70 +320,42 @@ async def send_posting_reviewed(
 
     return {"status": response.status_code, "data": response.json()}
 
-@router.post("/send-infobip-transaction-reviewed-message")
-async def send_transaction_reviewed(
-    param: TransactionReviewParam, db: AsyncSession = Depends(get_db)
+def send_email(to: str, subject: str, body: str, config: SACCOConfigurationDB ):
+    msg = EmailMessage()
+    msg["From"] = config.smtp_user
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
+
+    with smtplib.SMTP(config.smtp_server, config.smtp_port) as server:
+        server.starttls()
+        server.login(config.smtp_user, config.smtp_password)
+        server.send_message(msg)
+        
+@router.post("/send-email-message")
+async def send_email_endpoint(
+    to: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
 ):
-
+    
+      # get config
     result = await db.execute(
-        select(TransactionDB).where(TransactionDB.id == param.id)
+        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
     )
-    transation = result.scalar_one_or_none()
 
-    if not transation:
+    config = result.scalars().first()
+    if not config:
         raise HTTPException(
             status_code=404,
-            detail=f"Unable to find transaction with id '{param.id}'",
-        )
-
-    # check user exists
-    result = await db.execute(select(MemberDB).where(MemberDB.id == transation.member_id))
-    member = result.scalars().first()
-
-    # check if this person has registered as a member
-    if not member:
-        # not registered
-        raise HTTPException(
-            status_code=401,
-            detail=f"The specified member id '{transation.member_id}' is incorrect",
+            detail=f"Unable to load param: Configuration with id '{1}' not found",
         )
         
-    period = transation.date.strftime("%B %Y")
-
-    messageId = uuid.uuid4()
-
-    headers = {
-        "Authorization": f"App {assist.INFOBIP_API_TOKEN}",
-        "Content-type": "application/json",
-        "Accept": "application/json",
-    }
-
-    data = {
-        "messages": [
-            {
-                "from": assist.INFOBIP_PHONE_NUMBER,
-                "to": f"+{member.mobile1}",
-                "messageId": str(messageId),
-                "content": {
-                    "templateName": "transaction_reviewed",
-                    "templateData": {
-                        "body": {
-                            "placeholders": [
-                                f"{member.fname}",
-                                f"{param.type}",
-                                f"{param.amount}",
-                                f"{param.action}",
-                            ]
-                        },
-                    },
-                    "language": "en_GB",
-                },
-            }
-        ]
-    }
-
-    client = get_http_client()
-
-    response = await client.post(assist.INFOBIP_API_URL, json=data, headers=headers)
-
-    return {"status": response.status_code, "data": response.json()}
+    background_tasks.add_task(
+        send_email,
+        to,
+        "Welcome",
+        "Thanks for signing up!",
+        config
+    )
+    return {"status": "Email queued"}

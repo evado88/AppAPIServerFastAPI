@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,6 +49,7 @@ async def login(
         "role": user.role,
         "mobile": user.mobile,
         "exp":  datetime.now(timezone.utc) + timedelta( minutes=30),
+        "jti": uuid4().hex
     }
     token = jwt.encode(to_encode, assist.SECRET_KEY, algorithm=assist.ALGORITHM)
 

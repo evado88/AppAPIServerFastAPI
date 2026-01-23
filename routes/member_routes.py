@@ -96,17 +96,35 @@ async def update_member(
     return member
 
 
+@router.put("/update/user/{id}", response_model=MemberWithDetail)
+async def update_user_member(
+    id: int, member_update: Member, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(MemberDB).where(MemberDB.user_id == id))
+    member = result.scalar_one_or_none()
+
+    if not member:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find member with user id '{id}'",
+        )
+
+    # Update fields that are not None
+    for key, value in member_update.dict(exclude_unset=True).items():
+        setattr(member, key, value)
+
+    try:
+        await db.commit()
+        await db.refresh(member)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update member {e}")
+    return member
+
 @router.get("/id/{member_id}", response_model=MemberWithDetail)
 async def get_member(member_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(MemberDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
         .filter(MemberDB.id == member_id)
     )
     transaction = result.scalars().first()

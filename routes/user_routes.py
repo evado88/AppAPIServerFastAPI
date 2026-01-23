@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
@@ -54,25 +55,27 @@ async def create_user(user: User, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Unable to create user: f{e}")
     return db_user
 
+
 @router.put("/update/{user_id}", response_model=UserWithDetail)
-async def update_item(user_id: int, config_update: User, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(UserDB)
-        .where(UserDB.id == user_id)
-    )
+async def update_item(
+    user_id: int, config_update: User, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(UserDB).where(UserDB.id == user_id))
     config = result.scalar_one_or_none()
-    
+
     if not config:
-        raise HTTPException(status_code=404, detail=f"Unable to find user with id '{user_id}'")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find user with id '{user_id}'"
+        )
+
     # Update fields that are not None
     for key, value in config_update.dict(exclude_unset=True).items():
         # if password, encrypt
-        if key == 'password':
+        if key == "password":
             setattr(config, key, assist.hash_password(value))
         else:
             setattr(config, key, value)
-        
+
     try:
         await db.commit()
         await db.refresh(config)
@@ -81,19 +84,10 @@ async def update_item(user_id: int, config_update: User, db: AsyncSession = Depe
         raise HTTPException(status_code=400, detail=f"Unable to update user {e}")
     return config
 
+
 @router.get("/id/{user_id}", response_model=UserWithDetail)
 async def get_user_id(user_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(UserDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
-        .filter(UserDB.id == user_id)
-    )
+    result = await db.execute(select(UserDB).filter(UserDB.id == user_id))
     transaction = result.scalars().first()
     if not transaction:
         raise HTTPException(
@@ -104,17 +98,7 @@ async def get_user_id(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/email/{user_email}", response_model=List[UserSimple])
 async def get_user_email(user_email: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(UserDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
-        .filter(UserDB.email == user_email)
-    )
+    result = await db.execute(select(UserDB).filter(UserDB.email == user_email))
     users = []
 
     user = result.scalars().first()
@@ -128,6 +112,37 @@ async def get_user_email(user_email: str, db: AsyncSession = Depends(get_db)):
 async def list_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserDB))
     return result.scalars().all()
+
+
+@router.put("/update-password", response_model=UserSimple)
+async def login(
+    username: str = Form(...),
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    # check user exists
+    result = await db.execute(select(UserDB).where(UserDB.email == username))
+    user = result.scalars().first()
+
+    if not user:
+        # user not found
+        raise HTTPException(status_code=401, detail=f"The specified username incorrect")
+
+    if not assist.verify_password(current_password, user.password):
+        raise HTTPException(
+            status_code=401, detail=f"The specified current password is incorrect"
+        )
+
+    user.password = assist.hash_password(new_password)
+
+    try:
+        await db.commit()
+        await db.refresh(user)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to update user: {e}")
+    return user
 
 
 @router.put("/review-update/{id}", response_model=UserWithDetail)
@@ -165,12 +180,12 @@ async def review_posting(
 
     if user.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
         # submitted stage
-        
+
         if user.created_by == approveUser.email:
             raise HTTPException(
                 status_code=400,
                 detail=f"You cannot be the primary reviewer of an user you created",
-        )
+            )
 
         user.review1_at = assist.get_current_date(False)
         user.review1_by = approveUser.email
@@ -197,12 +212,12 @@ async def review_posting(
 
     elif user.stage_id == assist.APPROVAL_STAGE_PRIMARY:
         # primary stage
-        
+
         if user.review1_by == approveUser.email:
             raise HTTPException(
                 status_code=400,
                 detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
-        )
+            )
 
         user.review2_at = assist.get_current_date(False)
         user.review2_by = approveUser.email
@@ -227,12 +242,12 @@ async def review_posting(
 
     elif user.stage_id == assist.APPROVAL_STAGE_SECONDARY:
         # secondary stage
-        
+
         if user.review2_by == approveUser.email:
             raise HTTPException(
                 status_code=400,
                 detail=f"You cannot be the final reviewer since you were the secondary reviewer",
-        )
+            )
 
         user.review3_at = assist.get_current_date(False)
         user.review3_by = approveUser.email

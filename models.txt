@@ -169,7 +169,11 @@ Configuration
   "missed_meeting_rate": 100,
   "late_meeting_rate": 50,
   "enable_2FA": 1,
-  "approval_levels": 2
+  "approval_levels": 2,
+  "smtp_server": "mail5008.site4now.net",
+  "smtp_port": 25,
+  "smtp_user": "postmaster@osawe.space",
+  "smtp_password": "Rabecca@1989",
 }
 
 Annoucement

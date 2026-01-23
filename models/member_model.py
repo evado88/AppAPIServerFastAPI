@@ -40,12 +40,15 @@ class MemberDB(Base):
     address_postal = Column(String, nullable=True)
 
     # guarantor
+    guarantor_id = Column(Integer, nullable=True)
     guar_fname = Column(String, nullable=False)
     guar_lname = Column(String, nullable=False)
     guar_mobile = Column(String, nullable=False)
     guar_email = Column(String, nullable=False)
 
     # banking
+    payment_method_id = Column(Integer, nullable=True)
+    payout_method_id = Column(Integer, nullable=True)
     bank_name = Column(String, nullable=False)
     bank_branch_name = Column(String, nullable=False)
     bank_branch_code = Column(String, nullable=False)
@@ -91,8 +94,12 @@ class MemberDB(Base):
     stage = relationship("ReviewStageDB", back_populates="members", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="members", lazy="selectin")
     attachment = relationship("AttachmentDB", back_populates="member", lazy="selectin")
-    guarantor= relationship("GuarantorDB", back_populates="member", lazy="selectin")
-    paymentmethod= relationship("PaymentMethodDB", back_populates="member", lazy="selectin")
+    guarantor = relationship("GuarantorDB", back_populates="member", lazy="selectin")
+    paymentmethod = relationship(
+        "PaymentMethodDB", back_populates="member", lazy="selectin"
+    )
+
+
 # ---------- Pydantic Schemas ----------
 class Member(BaseModel):
     # id
@@ -131,9 +138,9 @@ class Member(BaseModel):
         max_length=11,
         description="ID no must be between 8 and 11 characters",
     )
-    
+
     id_attachment: Optional[int] = None
-    
+
     # contact, address
     email: EmailStr
     mobile1: str = Field(
@@ -152,6 +159,7 @@ class Member(BaseModel):
     address_postal: Optional[str] = None
 
     # guarantor
+    guarantor_id: Optional[int] = None
     guar_fname: str = Field(
         ...,
         min_length=2,
@@ -173,6 +181,8 @@ class Member(BaseModel):
     guar_email: EmailStr
 
     # banking
+    payment_method_id: Optional[int] = None
+    payout_method_id: Optional[int] = None
     bank_name: str = Field(
         ...,
         min_length=3,

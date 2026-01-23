@@ -31,16 +31,19 @@ router = APIRouter(prefix="/monthly-posting", tags=["MonthlyPosting"])
 @router.post("/create", response_model=MonthlyPosting)
 async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_db)):
     # check user exists
-    result = await db.execute(select(MemberDB).where(MemberDB.user_id == posting.user_id))
+    result = await db.execute(
+        select(MemberDB).where(MemberDB.user_id == posting.user_id)
+    )
     member = result.scalars().first()
     if not member:
         raise HTTPException(
-            status_code=400, detail=f"The member with user id {posting.user_id} does not exist"
+            status_code=400,
+            detail=f"The member with user id {posting.user_id} does not exist",
         )
 
     # check if posting for period already exists
     periodId = assist.get_date_period(posting.date)
- 
+
     result = await db.execute(
         select(MonthlyPostingDB).filter(
             MonthlyPostingDB.period_id == periodId,
@@ -67,12 +70,12 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         # period
         period_id=posting.period_id,
         # meeting
-        meeting_attendance = posting.meeting_attendance,
+        meeting_attendance=posting.meeting_attendance,
         missed_meeting_penalty=posting.missed_meeting_penalty,
         # posting
         # mid month
         mid_status=posting.mid_status,
-        mid_date = posting.mid_date,
+        mid_date=posting.mid_date,
         # monthly
         date=posting.date,
         saving_mid=posting.saving_mid,
@@ -88,7 +91,7 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_d
         loan_application_mon=posting.loan_application_mon,
         loan_application_mid=posting.loan_application_mid,
         loan_application=posting.loan_application,
-        loan_refinance = posting.loan_refinance,
+        loan_refinance=posting.loan_refinance,
         guarantor_required=posting.guarantor_required,
         guarantor_user_email=posting.guarantor_user_email,
         comments=posting.comments,
@@ -152,6 +155,21 @@ async def review_posting(
         )
 
     posting.updated_by = user.email
+
+    # get current period
+    periodId = assist.get_current_period()
+
+    result = await db.execute(
+        select(PostingPeriodDB).filter(PostingPeriodDB.id == periodId)
+    )
+
+    config = result.scalars().first()
+
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to approve monthly posting. Period with id '{periodId}' not found",
+        )
 
     if posting.stage_id == assist.APPROVAL_STAGE_SUBMITTED:
         # submitted stage
@@ -259,16 +277,6 @@ async def review_posting(
 
     elif posting.stage_id == assist.APPROVAL_STAGE_POP_APPROVAL:
         # move to approved and post transactions
-        result = await db.execute(
-            select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
-        )
-
-        config = result.scalars().first()
-        if not config:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Unable to approve monthly posting. Configuration with id '{1}' not found",
-            )
 
         posting.pop_review_at = assist.get_current_date(False)
         posting.pop_review_by = user.email
@@ -301,6 +309,8 @@ async def review_posting(
                 "penaltyType": None,
             },
         ]
+
+        # penalties
 
         if posting.late_post_penalty != 0:
 
@@ -363,6 +373,33 @@ async def review_posting(
             )
             db.add(db_tran)
 
+    # check if rejected
+    if posting.status_id == assist.STATUS_REJECTED:
+
+        if review.penalize == assist.RESPONSE_YES:
+
+            db_tran = TransactionDB(
+                # id
+                type_id=assist.TRANSACTION_PENALTY_CHARGED,
+                penalty_type_id=assist.PENALTY_INCORRECT_POSTING,
+                # user
+                user_id=posting.user_id,
+                post_id=posting.id,
+                # transaction
+                date=assist.get_current_date(False),
+                source_id=1,
+                amount=config.incorrect_posting_rate,
+                comments=posting.period.period_name,
+                # approval
+                status_id=assist.STATUS_APPROVED,
+                state_id=assist.STATE_CLOSED,
+                stage_id=assist.APPROVAL_STAGE_APPROVED,
+                approval_levels=posting.approval_levels,
+                # service
+                created_by=user.email,
+            )
+            db.add(db_tran)
+
     try:
         await db.commit()
         await db.refresh(posting)
@@ -394,6 +431,19 @@ async def list_user_postings(userId: int, db: AsyncSession = Depends(get_db)):
         #    joinedload(MonthlyPostingDB.status),
         # )
         .filter(MonthlyPostingDB.user_id == userId)
+    )
+    postings = result.scalars().all()
+    return postings
+
+
+@router.get("/user/{userId}/mid", response_model=List[MonthlyPostingWithDetail])
+async def list_user_mid_postings(userId: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(MonthlyPostingDB)
+        # .options(
+        #    joinedload(MonthlyPostingDB.status),
+        # )
+        .filter(MonthlyPostingDB.user_id == userId, MonthlyPostingDB.mid_status == 2)
     )
     postings = result.scalars().all()
     return postings
@@ -519,10 +569,10 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=401, detail=f"The specified user '{user_id}' does not exist"
         )
-        
+
     # get current period
     periodId = assist.get_current_period()
- 
+
     result = await db.execute(
         select(MonthlyPostingDB).filter(
             MonthlyPostingDB.period_id == periodId,
@@ -543,9 +593,8 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
         )
 
     # get config
-    period = assist.get_current_period()
     result = await db.execute(
-        select(PostingPeriodDB).filter(PostingPeriodDB.id == period)
+        select(PostingPeriodDB).filter(PostingPeriodDB.id == periodId)
     )
 
     config = result.scalars().first()
@@ -554,14 +603,13 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
             status_code=404,
             detail=f"Unable to load param: Configuration with id '{1}' not found",
         )
-    '''
+    """
        if config.status_id != assist.STATUS_APPROVED:
         raise HTTPException(
             status_code=404,
             detail=f"The period {period} is not available for posting",
         )
-    '''    
- 
+    """
 
     # get savings
     stmt = select(func.sum(TransactionDB.amount)).filter(
@@ -626,26 +674,24 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
 
     penalties = result.scalars().all()
     totalPenalties = sum(item.amount for item in penalties)
-    
-    #pay methods
+
+    # pay methods
     result = await db.execute(
-        select(PaymentMethodDB)
-       .filter(PaymentMethodDB.user_id == user_id)
+        select(PaymentMethodDB).filter(
+            PaymentMethodDB.user_id == user_id,
+            PaymentMethodDB.status_id == assist.STATUS_APPROVED,
+        )
     )
     paymentmethods = result.scalars().all()
-    
-    #guarantors
+
+    # guarantors
     result = await db.execute(
-        select(GuarantorDB)
+        select(GuarantorDB).filter(
+            GuarantorDB.user_id == user_id,
+            GuarantorDB.status_id == assist.STATUS_APPROVED,
+        )
     )
     guarantors = result.scalars().all()
-
-    # postingDate = assist.get_current_date()
-
-    # latePostingdate = datetime(postingDate.year, postingDate.month, config.late_posting_date_start.day)
-
-    # postingStatus = 'Late' if postingDate >= latePostingdate else 'Normal'
-    # return
 
     param = {
         "member": member,
