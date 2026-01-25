@@ -83,6 +83,18 @@ async def list_meetings(db: AsyncSession = Depends(get_db)):
     return meetings
 
 
+@router.get("/status/{statusId}", response_model=List[MeetingSimpleWithDetail])
+async def list_status_meetings(statusId: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(
+            MeetingDB
+        ) .filter(
+            MeetingDB.status_id == assist.STATUS_APPROVED,
+        )
+    )
+    meetings = result.scalars().all()
+    return meetings
+
 @router.put("/update/{id}", response_model=MeetingWithDetail)
 async def update_meeting(
     id: int, meeting_update: Meeting, db: AsyncSession = Depends(get_db)

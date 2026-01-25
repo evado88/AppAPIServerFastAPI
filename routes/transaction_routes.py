@@ -108,13 +108,6 @@ async def list_user_status_transactions(
 ):
     result = await db.execute(
         select(TransactionDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
         .filter(
             TransactionDB.status_id == statusId,
             TransactionDB.user_id == userId,
@@ -124,6 +117,26 @@ async def list_user_status_transactions(
     transactions = result.scalars().all()
     return transactions
 
+@router.get(
+    "/type/{typeId}/status/{statusId}/year/{year}",
+    response_model=List[TransactionWithDetail],
+)
+async def list_status_transactions(typeId: int, statusId: int, year: int, db: AsyncSession = Depends(get_db)
+):
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+    
+    result = await db.execute(
+        select(TransactionDB)
+        .filter(
+            TransactionDB.status_id == statusId,
+            TransactionDB.type_id == typeId,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
+        )
+    )
+    transactions = result.scalars().all()
+    return transactions
 
 @router.get(
     "/expense-earnings/status/{statusId}",
@@ -134,13 +147,6 @@ async def list_expense_earnings_status_transactions(
 ):
     result = await db.execute(
         select(TransactionDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
         .filter(
             TransactionDB.status_id == statusId,
             or_(
@@ -207,13 +213,6 @@ async def list_mid_month_posting_status(
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TransactionDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
         .filter(TransactionDB.id == tran_id)
     )
     transaction = result.scalars().first()
