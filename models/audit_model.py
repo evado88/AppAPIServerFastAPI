@@ -25,6 +25,7 @@ class AuditDB(Base):
     #audit
     date = Column(DateTime(timezone=True), nullable=False)
     feature = Column(String, nullable=False)
+    model = Column(String, nullable=True)
     object_id = Column(Integer, nullable=True)
     action = Column(String, nullable=False)
     before = Column(JSONB, nullable=True)
@@ -47,6 +48,7 @@ class Audit(BaseModel):
     #audit
     date: datetime = Field(..., description="The date and time for the audit is required")
     feature: str = Field(..., description="The feature for the audit is required")
+    model: Optional[str] = None
     object_id: Optional[int] = None
     action: str = Field(..., description="The action for the audit is required")
     before: Optional[dict[str, Any]]= None
@@ -66,12 +68,13 @@ class AuditSimple(BaseModel):
     
     #user
     user_id: int
-    user_email: EmailStr
+    user_email: str = Field(..., description="The user for the audit is required")
     token: str = Field(..., description="The token for the audit is required")
       
     #audit
     date: datetime = Field(..., description="The date and time for the audit is required")
     feature: str = Field(..., description="The feature for the audit is required")
+    model: Optional[str] = None
     object_id: Optional[int] = None
     action: str = Field(..., description="The action for the audit is required")
     

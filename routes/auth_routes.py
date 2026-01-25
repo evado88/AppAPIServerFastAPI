@@ -22,21 +22,25 @@ async def login(
     result = await db.execute(select(UserDB).where(UserDB.email == form_data.username))
     user = result.scalars().first()
     if not user:
-        #check if this person has registered as a member
-        result = await db.execute(select(MemberDB).where(MemberDB.email == form_data.username))
+        # check if this person has registered as a member
+        result = await db.execute(
+            select(MemberDB).where(MemberDB.email == form_data.username)
+        )
         member = result.scalars().first()
-        
+
         if member and member.status_id == assist.STATUS_SUBMITTED:
-            #registered as a member
+            # registered as a member
             raise HTTPException(
-                status_code=401, detail=f"Your account is not yet active. You will be notifed once approved"
+                status_code=401,
+                detail=f"Your account is not yet active. You will be notifed once approved",
             )
         else:
-            #not registered
+            # not registered
             raise HTTPException(
-                status_code=401, detail=f"The specified username or password is incorrect"
+                status_code=401,
+                detail=f"The specified username or password is incorrect",
             )
-            
+
     if not assist.verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=401, detail=f"The specified username or password is incorrect"
@@ -48,8 +52,8 @@ async def login(
         "name": f"{user.fname} {user.lname}",
         "role": user.role,
         "mobile": user.mobile,
-        "exp":  datetime.now(timezone.utc) + timedelta( minutes=30),
-        "jti": uuid4().hex
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+        "jti": uuid4().hex,
     }
     token = jwt.encode(to_encode, assist.SECRET_KEY, algorithm=assist.ALGORITHM)
 

@@ -19,12 +19,14 @@ router = APIRouter(prefix="/audits", tags=["Audits"])
 @router.post("/create", response_model=Audit)
 async def post_audit(audit: Audit, db: AsyncSession = Depends(get_db)):
     # check user exists
-    result = await db.execute(select(UserDB).where(UserDB.id == audit.user_id))
-    user = result.scalars().first()
-    if not user:
-        raise HTTPException(
-            status_code=400, detail=f"User with id {audit.user_id} does not exist"
-        )
+
+    if audit.user_id != 0:
+        result = await db.execute(select(UserDB).where(UserDB.id == audit.user_id))
+        user = result.scalars().first()
+        if not user:
+            raise HTTPException(
+                status_code=400, detail=f"User with id {audit.user_id} does not exist"
+            )
 
     db_tran = AuditDB(
         # user
@@ -34,12 +36,13 @@ async def post_audit(audit: Audit, db: AsyncSession = Depends(get_db)):
         # audit
         date=audit.date,
         feature=audit.feature,
+        model=audit.model,
         object_id=audit.object_id,
         action=audit.action,
         before=audit.before,
         after=audit.after,
         # service
-        created_by=user.email,
+        created_by=audit.user_email,
     )
     db.add(db_tran)
     try:

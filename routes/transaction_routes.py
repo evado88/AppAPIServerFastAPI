@@ -27,7 +27,7 @@ from models.transaction_sources_model import TransactionSourceDB
 from models.status_types_model import StatusTypeDB
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import date, datetime
 from sqlalchemy import or_
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
@@ -159,8 +159,7 @@ async def list_expense_earnings_status_transactions(
 )
 async def list_expense_earnings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(TransactionDB)
-        .filter(
+        select(TransactionDB).filter(
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EXPENSE,
@@ -170,14 +169,14 @@ async def list_expense_earnings(db: AsyncSession = Depends(get_db)):
     transactions = result.scalars().all()
     return transactions
 
+
 @router.get(
     "/mid-month-posting/type/{type}/list",
     response_model=List[TransactionWithDetail],
 )
 async def list_mid_month_posting(type: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(TransactionDB)
-        .filter(
+        select(TransactionDB).filter(
             TransactionDB.type_id == type,
             TransactionDB.period_id == assist.TRANSACTION_PERIOD_MID,
         )
@@ -185,14 +184,16 @@ async def list_mid_month_posting(type: int, db: AsyncSession = Depends(get_db)):
     transactions = result.scalars().all()
     return transactions
 
+
 @router.get(
     "/mid-month-posting/type/{type}/status/{status}/list",
     response_model=List[TransactionWithDetail],
 )
-async def list_mid_month_posting_status(type: int, status: int, db: AsyncSession = Depends(get_db)):
+async def list_mid_month_posting_status(
+    type: int, status: int, db: AsyncSession = Depends(get_db)
+):
     result = await db.execute(
-        select(TransactionDB)
-        .filter(
+        select(TransactionDB).filter(
             TransactionDB.type_id == type,
             TransactionDB.period_id == assist.TRANSACTION_PERIOD_MID,
             TransactionDB.status_id == status,
@@ -200,6 +201,7 @@ async def list_mid_month_posting_status(type: int, status: int, db: AsyncSession
     )
     transactions = result.scalars().all()
     return transactions
+
 
 @router.get("/id/{tran_id}", response_model=TransactionWithDetail)
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_db)):
@@ -248,8 +250,14 @@ async def update_transaction(
     return transaction
 
 
-@router.get("/member-summary/{userId}", response_model=List[ParamSummary])
-async def get_member_summary(userId: int, db: AsyncSession = Depends(get_db)):
+@router.get("/member-summary/{userId}/{year}", response_model=List[ParamSummary])
+async def get_member_summary(
+    userId: int, year: int, db: AsyncSession = Depends(get_db)
+):
+    # year
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+
     # get user
     result = await db.execute(select(UserDB).where(UserDB.id == userId))
     user = result.scalars().first()
@@ -271,7 +279,11 @@ async def get_member_summary(userId: int, db: AsyncSession = Depends(get_db)):
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
         .outerjoin(TransactionDB, TransactionTypeDB.id == TransactionDB.type_id)
-        .filter(TransactionDB.user_id == userId)
+        .filter(
+            TransactionDB.user_id == userId,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
+        )
         .group_by(TransactionTypeDB.type_name)
     )
 
@@ -287,8 +299,8 @@ async def get_member_summary(userId: int, db: AsyncSession = Depends(get_db)):
     return summary
 
 
-@router.get("/summary/all", response_model=List[ParamSummary])
-async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
+@router.get("/summary/{year}", response_model=List[ParamSummary])
+async def get_all_member_summary(year: int, db: AsyncSession = Depends(get_db)):
     # get all transaction types
     result = await db.execute(select(TransactionTypeDB))
     types = result.scalars().all()
@@ -296,6 +308,10 @@ async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
     summary = [{"id": type.id, "name": type.type_name, "amount": 0} for type in types]
 
     # get available transactions
+
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+
     stmt = (
         select(
             TransactionTypeDB.type_name,
@@ -303,6 +319,8 @@ async def get_all_member_summary(db: AsyncSession = Depends(get_db)):
         )
         .filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
         )
         .outerjoin(TransactionDB, TransactionTypeDB.id == TransactionDB.type_id)
         .group_by(TransactionTypeDB.type_name)
@@ -455,8 +473,8 @@ async def review_posting(
     return transaction
 
 
-@router.get("/year-to-date/all", response_model=List[ParamMemberSummary])
-async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
+@router.get("/year-to-date/{year}", response_model=List[ParamMemberSummary])
+async def get_all_member_ytd(year: int, db: AsyncSession = Depends(get_db)):
     print("starting summary", assist.get_current_date(False))
     # get all users
     result = await db.execute(select(UserDB).filter(UserDB.role == assist.USER_MEMBER))
@@ -484,6 +502,9 @@ async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
             member[f"tid{type.id}"] = 0.0
 
     # get available transactions
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+
     stmt = (
         select(
             TransactionDB.user_id,
@@ -492,6 +513,8 @@ async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
         )
         .filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
         )
         .group_by(TransactionDB.user_id, TransactionDB.type_id)
     )
@@ -511,8 +534,8 @@ async def get_all_member_ytd(db: AsyncSession = Depends(get_db)):
     return summary
 
 
-@router.get("/interest-sharing/all", response_model=ParamInterestSharingSummary)
-async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
+@router.get("/interest-sharing/{year}", response_model=ParamInterestSharingSummary)
+async def get_all_member_interest_sharing(year: int, db: AsyncSession = Depends(get_db)):
     print("starting all member interest sharing", assist.get_current_date(False))
     # get all users
     result = await db.execute(select(MemberDB))
@@ -553,6 +576,9 @@ async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
             member["tsavings"][f"m{m}"] = 0
 
     # get total savings for member per month
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+    
     stmt = (
         select(
             TransactionDB.user_id,
@@ -563,6 +589,8 @@ async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
         )
         .filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
         )
         .group_by(
             TransactionDB.user_id,
@@ -585,6 +613,8 @@ async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
         )
         .filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
                 TransactionDB.type_id == assist.TRANSACTION_LOAN,
@@ -790,13 +820,15 @@ async def get_all_member_interest_sharing(db: AsyncSession = Depends(get_db)):
     return JSONResponse(content=fullSummary, status_code=200)
 
 
-@router.get("/payout-sharing/all", response_model=ParamInterestSharingSummary)
-async def get_all_member_payout_sharing(db: AsyncSession = Depends(get_db)):
+@router.get("/payout-sharing/{year}", response_model=ParamInterestSharingSummary)
+async def get_all_member_payout_sharing(year: int, db: AsyncSession = Depends(get_db)):
     print("starting all member interest sharing", assist.get_current_date(False))
+
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
     
     period_id = assist.get_current_date().strftime("%Y%m")
-    
-    
+
     result = await db.execute(
         select(PostingPeriodDB)
         # .options(
@@ -810,7 +842,7 @@ async def get_all_member_payout_sharing(db: AsyncSession = Depends(get_db)):
             status_code=404,
             detail=f"Unable to find posting period with id '{period_id}'",
         )
-    
+
     # get all users
     result = await db.execute(select(MemberDB))
     users = result.scalars().all()
@@ -860,6 +892,8 @@ async def get_all_member_payout_sharing(db: AsyncSession = Depends(get_db)):
         )
         .filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
         )
         .group_by(
             TransactionDB.user_id,
@@ -882,6 +916,8 @@ async def get_all_member_payout_sharing(db: AsyncSession = Depends(get_db)):
         )
         .filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
                 TransactionDB.type_id == assist.TRANSACTION_LOAN,
@@ -1087,18 +1123,23 @@ async def get_all_member_payout_sharing(db: AsyncSession = Depends(get_db)):
     return JSONResponse(content=fullSummary, status_code=200)
 
 
-@router.get("/transaction-summary/all", response_model=List[ParamMemberTransaction])
-async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db)):
+@router.get("/transaction-summary/{year}", response_model=List[ParamMemberTransaction])
+async def get_all_member_transaction_summary(year: int, db: AsyncSession = Depends(get_db)):
 
     # create a summary
     summary = []
 
     # get available transactions
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+    
     result = await db.execute(
         select(TransactionDB).filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.type_id != assist.TRANSACTION_GROUP_EARNING,
             TransactionDB.type_id != assist.TRANSACTION_GROUP_EXPENSE,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
         )
     )
     rows = result.scalars().all()
@@ -1121,17 +1162,22 @@ async def get_all_member_transaction_summary(db: AsyncSession = Depends(get_db))
 
 
 @router.get(
-    "/expense-earning-summary/all", response_model=List[ParamExpenseEarningTransaction]
+    "/expense-earning-summary/{year}", response_model=List[ParamExpenseEarningTransaction]
 )
-async def get_all_expense_earnings_summary(db: AsyncSession = Depends(get_db)):
+async def get_all_expense_earnings_summary(year: int, db: AsyncSession = Depends(get_db)):
 
     # create a summary
     summary = []
 
     # get available transactions
+    start_of_year = date(year, 1, 1)
+    start_of_next_year = date(year + 1, 1, 1)
+    
     result = await db.execute(
         select(TransactionDB).filter(
             TransactionDB.status_id == assist.STATUS_APPROVED,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year,
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EXPENSE,

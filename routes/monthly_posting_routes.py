@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -570,6 +570,10 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
             status_code=401, detail=f"The specified user '{user_id}' does not exist"
         )
 
+    currentDate = assist.get_current_date()
+    start_of_year = date(currentDate.year, 1, 1)
+    start_of_next_year = date(currentDate.year + 1, 1, 1)
+
     # get current period
     periodId = assist.get_current_period()
 
@@ -616,19 +620,23 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
         TransactionDB.user_id == user_id,
         TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
         TransactionDB.status_id == assist.STATUS_APPROVED,
+        TransactionDB.date >= start_of_year,
+        TransactionDB.date < start_of_next_year
     )
 
     result = await db.execute(stmt)
 
     totalSavings = result.scalar() or 0.0
 
-    # get loan that is open
+    # get loan that is open in current period
     result = await db.execute(
         select(TransactionDB).filter(
             TransactionDB.user_id == user_id,
             TransactionDB.type_id == assist.TRANSACTION_LOAN,
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.state_id == assist.STATE_OPEN,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year
         )
     )
 
@@ -662,13 +670,15 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_db)):
 
         totalLoanPaymentsNo = result.scalar() or 0.0
 
-    # penelties
+    # penalties
     result = await db.execute(
         select(TransactionDB).filter(
             TransactionDB.user_id == user_id,
             TransactionDB.type_id == assist.TRANSACTION_PENALTY_CHARGED,
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.state_id == assist.STATE_OPEN,
+            TransactionDB.date >= start_of_year,
+            TransactionDB.date < start_of_next_year
         )
     )
 
