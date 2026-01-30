@@ -24,7 +24,7 @@ origins = [
     ]
 
 
-app = FastAPI(title="SACCO [FastAPI/PostgreSQL]")
+app = FastAPI(title="API System [FastAPI/PostgreSQL]")
 
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
