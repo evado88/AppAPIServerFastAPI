@@ -1,0 +1,348 @@
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
+from sqlalchemy.orm import relationship
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from typing import Any, Optional
+from apps.osawe.osawedb import Base
+from helpers import assist
+from apps.osawe.models.attachment_model import Attachment
+from apps.osawe.models.configuration_model import SACCOConfiguration
+from apps.osawe.models.member_model import Member
+from apps.osawe.models.payment_method_model import PaymentMethod
+from apps.osawe.models.posting_period_model import PostingPeriod
+from apps.osawe.models.review_stages_model import ReviewStage
+from apps.osawe.models.user_model import User, UserSimple
+from apps.osawe.models.transaction_types_model import TransactionType
+from apps.osawe.models.transaction_sources_model import TransactionSource
+from apps.osawe.models.status_types_model import StatusType
+from datetime import date, datetime
+from sqlalchemy import Sequence
+from sqlalchemy.dialects.postgresql import JSONB
+
+
+# ---------- SQLAlchemy Models ----------
+class MonthlyPostingDB(Base):
+    __tablename__ = "monthly_postings"
+
+    # id
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+        autoincrement=True,
+    )
+    code = Column(String, nullable=True)
+    type = Column(Integer, nullable=False)
+
+    # user
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # member
+    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
+
+    # guarantor
+    guarantor_id = Column(Integer, ForeignKey("guarantors.id"), nullable=False)
+
+    # period
+    period_id = Column(String, ForeignKey("list_posting_periods.id"), nullable=False)
+
+    # meeting
+    meeting_attendance = Column(String, nullable=False)
+    missed_meeting_penalty = Column(Float, nullable=False)
+
+    # posting
+
+    # mid
+    mid_status = Column(Integer, nullable=False)
+    mid_date = Column(DateTime(timezone=True), nullable=True)
+
+    # monthly
+    date = Column(DateTime(timezone=True), nullable=False)
+
+    saving_mon = Column(Float, nullable=False)
+    saving_mid = Column(Float, nullable=False)
+    saving = Column(Float, nullable=False)
+
+    shares = Column(Float, nullable=False)
+    social = Column(Float, nullable=False)
+    penalty = Column(Float, nullable=False)
+
+    penalty_list = Column(JSONB, nullable=False)
+
+    late_post_penalty = Column(Float, nullable=False)
+
+    loan_interest = Column(Float, nullable=False)
+    loan_month_repayment = Column(Float, nullable=False)
+
+    loan_application_mon = Column(Float, nullable=False)
+    loan_application_mid = Column(Float, nullable=False)
+    loan_application = Column(Float, nullable=False)
+    loan_refinance  = Column(Integer, nullable=False)
+
+    comments = Column(String, nullable=True)
+    comments_mid = Column(String, nullable=True)
+    # validation
+    contribution_total = Column(Float, nullable=False)
+    deposit_total = Column(Float, nullable=False)
+    receive_total = Column(Float, nullable=False)
+
+    payment_method_id = Column(
+        Integer, ForeignKey("payment_methods.id"), nullable=False
+    )
+    # pop
+    pop_attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
+    pop_comments = Column(String, nullable=True)
+
+    # approval
+    status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
+
+    approval_levels = Column(Integer, nullable=False)
+
+    stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
+
+    guarantor_user_email = Column(String, nullable=True)
+    guarantor_required = Column(Integer, nullable=True)
+    guarantor_at = Column(DateTime(timezone=True), nullable=True)
+    guarantor_by = Column(String, nullable=True)
+    guarantor_comments = Column(String, nullable=True)
+
+    pop_review_at = Column(DateTime(timezone=True), nullable=True)
+    pop_review_by = Column(String, nullable=True)
+    pop_review_comments = Column(String, nullable=True)
+
+    review1_at = Column(DateTime(timezone=True), nullable=True)
+    review1_by = Column(String, nullable=True)
+    review1_comments = Column(String, nullable=True)
+
+    review2_at = Column(DateTime(timezone=True), nullable=True)
+    review2_by = Column(String, nullable=True)
+    review2_comments = Column(String, nullable=True)
+
+    review3_at = Column(DateTime(timezone=True), nullable=True)
+    review3_by = Column(String, nullable=True)
+    review3_comments = Column(String, nullable=True)
+
+    # service columns
+    created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=True)
+    created_by = Column(String, nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=datetime.now, nullable=True)
+    updated_by = Column(String, nullable=True)
+
+    # relationships
+    user = relationship("UserDB", back_populates="postings", lazy="selectin")
+    member = relationship("MemberDB", back_populates="postings", lazy="selectin")
+    guarantor = relationship("GuarantorDB", back_populates="posting", lazy="selectin")
+    paymentmethod = relationship(
+        "PaymentMethodDB", back_populates="posting", lazy="selectin"
+    )
+    status = relationship("StatusTypeDB", back_populates="postings", lazy="selectin")
+    stage = relationship("ReviewStageDB", back_populates="postings", lazy="selectin")
+    transactions = relationship("TransactionDB", back_populates="post", lazy="selectin")
+    period = relationship("PostingPeriodDB", back_populates="postings", lazy="selectin")
+    attachment = relationship("AttachmentDB", back_populates="post", lazy="selectin")
+
+
+# ---------- Pydantic Schemas ----------
+class MonthlyPosting(BaseModel):
+    # id
+    id: Optional[int] = None
+    code: Optional[str] = None
+    type: int = Field(..., ge=1, description="The type must be more than or equal to 1")
+
+    # user
+    user_id: int = Field(
+        ..., ge=1, description="User id must be greater than or equal to 1"
+    )
+
+    # member
+    member_id: Optional[int] = None
+
+    # guarantor
+    guarantor_id: int = Field(
+        ..., ge=1, description="The guarantor id must be greater than or equal to 1"
+    )
+
+    # period
+    period_id: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        description="The posting period id must be specifed and must be 6-characters",
+    )
+
+    # meeting
+    meeting_attendance: str = Field(
+        ...,
+        min_length=2,
+        max_length=3,
+        description="Meeting attendace must be equal or more than 2 characters",
+    )
+
+    missed_meeting_penalty: float = Field(
+        ...,
+        ge=0,
+        description="Missed meeting penalty amount must be greater or equal to zero",
+    )
+    # posting
+
+    # mid
+    mid_status: int = Field(
+        ...,
+        ge=1,
+        le=2,
+        description="The mid-month posting statu must be between 1 and 2",
+    )
+    mid_date: Optional[datetime] = None
+
+    # monthly
+    date: datetime = Field(..., description="The date for the monthly posting")
+
+    saving_mon: float = Field(
+        ...,
+        ge=0,
+        description="Saving amount month must be greater or equal to zero",
+    )
+    saving_mid: float = Field(
+        ...,
+        ge=0,
+        description="Saving amount mid-month must be greater or equal to zero",
+    )
+    saving: float = Field(
+        ..., ge=0, description="Saving amount must be greater than zero"
+    )
+
+    shares: float = Field(
+        ..., gt=0, description="Share amount must be greater than zero"
+    )
+    social: float = Field(
+        ..., ge=0, description="Social amount must be greater or equal to zero"
+    )
+    penalty: float = Field(
+        ..., ge=0, description="Penalty amount must be greater or equal to zero"
+    )
+
+    penalty_list: list[dict[str, Any]] = Field(
+        ..., description="The penalty list must be provided"
+    )
+
+    late_post_penalty: float = Field(
+        ...,
+        ge=0,
+        description="Late post penalty amount must be greater or equal to zero",
+    )
+
+    loan_interest: float = Field(
+        ..., ge=0, description="Loan interest amount must be greater or equal to zero"
+    )
+    loan_month_repayment: float = Field(
+        ...,
+        ge=0,
+        description="Loan monthly repayment amount must be greater or equal to zero",
+    )
+
+    loan_application_mon: float = Field(
+        ...,
+        ge=0,
+        description="Loan application amount month must be greater or equal to zero",
+    )
+    loan_application_mid: float = Field(
+        ...,
+        ge=0,
+        description="Loan application amount mid-month must be greater or equal to zero",
+    )
+    loan_application: float = Field(
+        ...,
+        ge=0,
+        description="Loan application amount must be greater or equal to zero",
+    )
+    loan_refinance: int = Field(
+        ..., 
+        ge=1,
+        le=3,
+        description="Loan refinance must be between 1 and 3"
+    )
+
+    comments: Optional[str] = None
+    comments_mid: Optional[str] = None
+    # validation
+    contribution_total: float = Field(
+        ...,
+        ge=0,
+        description="Contribution total amount must be greater or equal to zero",
+    )
+    deposit_total: float = Field(
+        ...,
+        description="Deposit total amount must be greater or equal to zero",
+    )
+    receive_total: float = Field(
+        ...,
+        description="Receive total amount must be greater or equal to zero",
+    )
+
+    payment_method_id: int = Field(
+        ..., description="Payment method must be a valid number"
+    )
+
+    # pop
+    pop_attachment_id: Optional[int] = None
+    pop_comments: Optional[str] = None
+
+    # approval
+    status_id: int = Field(
+        ..., ge=1, description="Status must be greater than or equal to 1"
+    )
+
+    approval_levels: int = Field(
+        ..., ge=1, le=3, description="Approval level must be between 1 and 3"
+    )
+
+    stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
+
+    guarantor_user_email: Optional[str] = None
+    guarantor_required: Optional[int] = None
+    guarantor_at: Optional[datetime] = None
+    guarantor_by: Optional[str] = None
+    guarantor_comments: Optional[str] = None
+
+    pop_review_at: Optional[datetime] = None
+    pop_review_by: Optional[str] = None
+    pop_review_comments: Optional[str] = None
+
+    review1_at: Optional[datetime] = None
+    review1_by: Optional[str] = None
+    review1_comments: Optional[str] = None
+
+    review2_at: Optional[datetime] = None
+    review2_by: Optional[str] = None
+    review2_comments: Optional[str] = None
+
+    review3_at: Optional[datetime] = None
+    review3_by: Optional[str] = None
+    review3_comments: Optional[str] = None
+
+    # service columns
+    created_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    updated_by: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class MonthlyPostingWithDetail(MonthlyPosting):
+    user: UserSimple
+    stage: ReviewStage
+    status: StatusType
+    period: Optional[PostingPeriod] = None
+    attachment: Optional[Attachment] = None
+    paymentmethod: PaymentMethod
+
+
+class MonthlyPostingWithMemberDetail(MonthlyPosting):
+    user: UserSimple
+    stage: ReviewStage
+    status: StatusType
+    period: PostingPeriod
+    attachment: Optional[Attachment] = None
+    member: Member
+    paymentmethod: PaymentMethod

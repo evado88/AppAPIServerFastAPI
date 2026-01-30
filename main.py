@@ -1,31 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-
-from database import engine, Base
-from routes import status_type_routes, transaction_routes, transaction_source_routes
-from routes import transaction_type_routes, user_routes
-from routes import monthly_posting_routes, config_routes, auth_routes
-from routes import announcement_routes, notification_routes
-from routes import member_query_routes, member_query_type_routes
-from routes import meeting_routes, attendance_routes, attendance_type_routes
-from routes import member_routes, knowledge_base_category_routes, knowledge_base_routes
-from routes import review_stages_routes
-from routes import posting_period_routes
-from routes import transaction_state_routes
-from routes import penalty_type_routes
-from routes import attachment_routes
-from routes import communication_channel_routes
-from routes import data_routes
-from routes import transaction_group_routes
-from routes import payment_method_routes
-from routes import guarantor_routes
-from routes import sensor_routes
-from routes import audit_routes
-
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from helpers.http_client import init_client, close_client
+from apps.osawe import osaweapp
+from apps.lwsc import lwscapp
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -67,45 +47,20 @@ app.add_middleware(
 
 
 # include routers
-app.include_router(status_type_routes.router)
-app.include_router(transaction_type_routes.router)
-app.include_router(penalty_type_routes.router)
-app.include_router(transaction_state_routes.router)
-app.include_router(transaction_source_routes.router)
-app.include_router(user_routes.router)
-app.include_router(transaction_routes.router)
-app.include_router(monthly_posting_routes.router)
-app.include_router(config_routes.router)
-app.include_router(auth_routes.router)
-app.include_router(member_query_type_routes.router)
-app.include_router(member_query_routes.router)
-app.include_router(announcement_routes.router)
-app.include_router(notification_routes.router)
-app.include_router(meeting_routes.router)
-app.include_router(attendance_type_routes.router)
-app.include_router(attendance_routes.router)
-app.include_router(member_routes.router)
-app.include_router(knowledge_base_category_routes.router)
-app.include_router(knowledge_base_routes.router)
-app.include_router(review_stages_routes.router)
-app.include_router(posting_period_routes.router)
-app.include_router(attachment_routes.router)
-app.include_router(communication_channel_routes.router)
-app.include_router(data_routes.router)
-app.include_router(transaction_group_routes.router)
-app.include_router(guarantor_routes.router)
-app.include_router(payment_method_routes.router)
-app.include_router(sensor_routes.router)
-app.include_router(audit_routes.router)
-# create tables at startup
+# osawe
+# osaweapp.include_osawe_routes(app)
+# lwsc
+lwscapp.include_lwsc_routes(app)
 
+# create tables at startup
 
 @app.on_event("startup")
 async def startup():
     await init_client()
-    async with engine.begin() as conn:
-        print("Application starting up old...")
-        await conn.run_sync(Base.metadata.create_all)
+    #osawe
+    #osaweapp.init_osawe_db(app)
+    #lwsc
+    lwscapp.init_lwsc_db(app)
         
 @app.on_event("shutdown")
 async def shutdown_event():
