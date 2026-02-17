@@ -14,7 +14,9 @@
                 "main:app",
                 "--reload",
                 "--port",
-                "8700"
+                "8700",
+                "--log-level",
+                "debug"
             ],
             "jinja": true
         }

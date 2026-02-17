@@ -1,4 +1,4 @@
-from apps.osawe.osawedb import engine, Base
+from apps.lwsc.lwscdb import engine, Base
 
 from apps.lwsc.routes import auth_routes
 from apps.lwsc.routes import user_routes
@@ -13,6 +13,7 @@ from apps.lwsc.routes import status_type_routes
 from apps.lwsc.routes import town_routes
 from apps.lwsc.routes import config_routes
 from apps.lwsc.routes import user_role_routes
+from apps.lwsc.routes.meter_status_routes import router as meter_status_routes
 
 APP_ROUTE = "/lwsc"
 
@@ -32,6 +33,7 @@ def include_lwsc_routes(app):
     app.include_router(customer_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_reading_routes.router, prefix=APP_ROUTE)
+    app.include_router(meter_status_routes, prefix=APP_ROUTE)
     
 async def init_lwsc_db(app):
     async with engine.begin() as conn:

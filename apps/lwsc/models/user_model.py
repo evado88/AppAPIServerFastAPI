@@ -68,6 +68,7 @@ class UserDB(Base):
     config = relationship("AppConfigurationDB", back_populates="user")
     customers = relationship("CustomerDB", back_populates="user")
     categories = relationship("CategoryDB", back_populates="user")
+    meter_statuses = relationship("MeterStatusDB", back_populates="user")
     towns = relationship("TownDB", back_populates="user")
     meters = relationship("MeterDB", back_populates="user")
     routes = relationship("WalkRouteDB", back_populates="user")

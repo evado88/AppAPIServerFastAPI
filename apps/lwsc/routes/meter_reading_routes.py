@@ -30,6 +30,8 @@ async def create_type(meterreading: MeterReading, db: AsyncSession = Depends(get
         uuid=meterreading.uuid,
         # user
         user_id=meterreading.user_id,
+        # attachment
+        attachment_id=meterreading.attachment_id,
         # customer
         customer_id=meterreading.customer_id,
         # meter

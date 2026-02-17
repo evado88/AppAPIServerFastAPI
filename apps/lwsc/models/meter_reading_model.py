@@ -120,11 +120,7 @@ class MeterReading(BaseModel):
         ge=0,
         description="Reading must be equal to or greater than zero",
     )
-    previous: float = Field(
-        ...,
-        ge=0,
-        description="Reading must be equal to or greater than zero",
-    )
+    previous: Optional[float] = None
     comments: Optional[str] = None
 
     # address

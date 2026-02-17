@@ -20,7 +20,7 @@ router = APIRouter(prefix="/attachments", tags=["Attachment"])
 
 
 @router.post(
-    "/create/type/{typeId}/parent/{parentId}", response_model=ParamAttachmentDetail
+    "/create/type/{typeId}/parent/{parentId}", response_model=Attachment
 )
 async def post_attachment(
     typeId: str = "Attachment",
@@ -71,12 +71,7 @@ async def post_attachment(
         await db.refresh(db_attachment)
 
         # rerturn response
-        param = {
-            "attachment": db_attachment,
-            "attendance": userList,
-        }
-
-        return param
+        return db_attachment
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")

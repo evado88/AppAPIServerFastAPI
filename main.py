@@ -1,11 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from helpers.http_client import init_client, close_client
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from apps.osawe import osaweapp
 from apps.lwsc import lwscapp
+import logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +30,19 @@ origins = [
 
 app = FastAPI(title="API System [FastAPI/PostgreSQL]")
 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error: {exc.errors()}")
+    logger.error(f"Body received: {exc.body}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+    
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 #COR
@@ -59,9 +75,9 @@ lwscapp.include_lwsc_routes(app)
 async def startup():
     await init_client()
     #osawe
-    #osaweapp.init_osawe_db(app)
+    #await osaweapp.init_osawe_db(app)
     #lwsc
-    lwscapp.init_lwsc_db(app)
+    await lwscapp.init_lwsc_db(app)
         
 @app.on_event("shutdown")
 async def shutdown_event():
