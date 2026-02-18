@@ -95,6 +95,12 @@ async def list_configurations(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/{config_id}", response_model=SACCOConfigurationWithDetail)
 async def get_configuration(config_id: int, db: AsyncSession = Depends(get_lwsc_db)):
+    
+    test = True
+    
+    if test:
+        raise HTTPException(status_code=404, detail=f"You are not authorized to update configuration in test environments")
+    
     result = await db.execute(
         select(AppConfigurationDB)
         .options(
