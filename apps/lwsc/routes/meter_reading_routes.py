@@ -131,10 +131,6 @@ async def get_knowledgebase_category(
         )
     return category
 
-
-
-
-
 @router.get("/list", response_model=List[MeterReadingWithDetail])
 async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(MeterReadingDB))

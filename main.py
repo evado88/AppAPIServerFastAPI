@@ -65,9 +65,9 @@ app.add_middleware(
 
 # include routers
 # osawe
-# osaweapp.include_osawe_routes(app)
+osaweapp.include_osawe_routes(app)
 # lwsc
-lwscapp.include_lwsc_routes(app)
+#lwscapp.include_lwsc_routes(app)
 
 # create tables at startup
 
@@ -75,7 +75,7 @@ lwscapp.include_lwsc_routes(app)
 async def startup():
     await init_client()
     #osawe
-    #await osaweapp.init_osawe_db(app)
+    await osaweapp.init_osawe_db(app)
     #lwsc
     await lwscapp.init_lwsc_db(app)
         
