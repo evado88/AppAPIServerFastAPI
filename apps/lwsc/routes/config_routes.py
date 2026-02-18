@@ -64,6 +64,12 @@ async def update_configuration(config_id: int, config_update: AppConfiguration, 
     if not config:
         raise HTTPException(status_code=404, detail=f"Unable to find configuration with id '{config_id}' not found")
     
+    test = True
+    
+    if test:
+        raise HTTPException(status_code=404, detail=f"You are not authorized to update configuration in test environments")
+    
+    
     # Update fields that are not None
     for key, value in config_update.dict(exclude_unset=True).items():
         setattr(config, key, value)
