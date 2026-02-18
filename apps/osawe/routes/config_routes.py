@@ -71,6 +71,11 @@ async def update_item(
     config_update: SACCOConfiguration,
     db: AsyncSession = Depends(get_osawe_db),
 ):
+    test = True
+    
+    if test:
+        raise HTTPException(status_code=404, detail=f"You are not authorized to update configuration in test environments")
+    
     result = await db.execute(
         select(SACCOConfigurationDB).where(SACCOConfigurationDB.id == config_id)
     )
