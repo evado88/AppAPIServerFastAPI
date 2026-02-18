@@ -13,9 +13,7 @@ from apps.lwsc.models.user_model import UserDB
 
 router = APIRouter(prefix="/meter-readings", tags=["MeterReadings"])
 
-
-@router.post("/create", response_model=MeterReadingWithDetail)
-async def create_type(meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)):
+async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == meterreading.user_id))
     user = result.scalars().first()
@@ -60,31 +58,10 @@ async def create_type(meterreading: MeterReading, db: AsyncSession = Depends(get
         raise HTTPException(
             status_code=400, detail=f"Unable to create meterreading: f{e}"
         )
+        
     return db_user
 
-
-@router.get("/id/{meterreading_id}", response_model=MeterReadingWithDetail)
-async def get_knowledgebase_category(
-    meterreading_id: int, db: AsyncSession = Depends(get_lwsc_db)
-):
-    result = await db.execute(
-        select(MeterReadingDB).filter(MeterReadingDB.id == meterreading_id)
-    )
-    category = result.scalars().first()
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unable to find meterreading with id '{meterreading_id}'",
-        )
-    return category
-
-
-@router.put("/update/{meterreading_id}", response_model=MeterReadingWithDetail)
-async def update_category(
-    meterreading_id: int,
-    meterreading_update: MeterReading,
-    db: AsyncSession = Depends(get_lwsc_db),
-):
+async def update_meterreading(meterreading_id: int, meterreading_update: MeterReading, db: AsyncSession):
     result = await db.execute(
         select(MeterReadingDB).where(MeterReadingDB.id == meterreading_id)
     )
@@ -109,6 +86,53 @@ async def update_category(
             status_code=400, detail=f"Unable to update meterreading {e}"
         )
     return config
+        
+        
+@router.post("/upload", response_model=MeterReadingWithDetail)
+async def upload_meterreading(meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)):
+    # check if reading with same uuid exists
+    result = await db.execute(select(MeterReadingDB).where(MeterReadingDB.uuid == meterreading.uuid))
+    existing = result.scalars().first()     
+    if existing:
+        # update existing record instead of creating new one
+        return await update_meterreading(existing.id, meterreading, db)
+    else:
+        # create new record
+        return await create_meterreading(meterreading, db)
+    
+
+@router.post("/create", response_model=MeterReadingWithDetail)
+async def create_new(meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)):
+    # check if reading with same uuid exists
+    return await create_meterreading(meterreading, db)
+
+        
+@router.put("/update/{meterreading_id}", response_model=MeterReadingWithDetail)
+async def update_existing(
+    meterreading_id: int,
+    meterreading_update: MeterReading,
+    db: AsyncSession = Depends(get_lwsc_db),
+):
+    return await update_meterreading(meterreading_id, meterreading_update, db)
+    
+
+@router.get("/id/{meterreading_id}", response_model=MeterReadingWithDetail)
+async def get_knowledgebase_category(
+    meterreading_id: int, db: AsyncSession = Depends(get_lwsc_db)
+):
+    result = await db.execute(
+        select(MeterReadingDB).filter(MeterReadingDB.id == meterreading_id)
+    )
+    category = result.scalars().first()
+    if not category:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find meterreading with id '{meterreading_id}'",
+        )
+    return category
+
+
+
 
 
 @router.get("/list", response_model=List[MeterReadingWithDetail])
