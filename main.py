@@ -27,7 +27,8 @@ origins = [
         "http://localhost:5173",
         "http://osawe.space",
         "https://osawe.space",
-        "http://lpwsc.zam-services.online"
+        "http://lpwsc.zam-services.online",
+        "http://ccl.iom-demo.online"
     ]
 
 
