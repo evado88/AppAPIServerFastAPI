@@ -27,12 +27,9 @@ class ParamTestComponentDetail(BaseModel):
 class ParamTestCost(BaseModel):
     name: str
     lab: str
-    annual_credit: int
-    annual_nhima: int
-    annual_research: int
-    annual_walkins: int 
-    annual_shift: int
     annual_total: int
+    total_labor_analysis_year: float
+    total_labor_result_year: float
     total_cost: float
     components: list[ParamTestComponentDetail]=[]
     

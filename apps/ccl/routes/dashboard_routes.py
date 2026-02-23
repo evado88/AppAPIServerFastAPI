@@ -107,12 +107,9 @@ async def get_test_dashboard(db: AsyncSession = Depends(get_ccl_db)):
         testCost = ParamTestCost(
             name=test.name,
             lab=test.lab.name,
-            annual_credit=test.annual_credit,
-            annual_nhima=test.annual_nhima,
-            annual_research =test.annual_research,
-            annual_walkins=test.annual_walkins,
-            annual_shift = test.annual_shift,
             annual_total=test.annual_total,
+            total_labor_result_year=test.total_labor_result_year,
+            total_labor_analysis_year=test.total_labor_analysis_year,
             total_cost=totalReagentCost + actualInstrumentCost,
             components=[
                 ParamTestComponentDetail(
