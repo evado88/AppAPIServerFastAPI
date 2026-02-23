@@ -82,7 +82,9 @@ async def startup():
     #osawe
     await osaweapp.init_osawe_db(app)
     #lwsc
-    await lwscapp.init_lwsc_db(app)
+    await lwscapp.init_lwsc_db(app)    
+    #ccl
+    await cclapp.init_ccl_db(app)
         
 @app.on_event("shutdown")
 async def shutdown_event():

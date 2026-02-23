@@ -29,6 +29,7 @@ async def create(test: Test, db: AsyncSession = Depends(get_ccl_db)):
     db_user = TestDB(
         # user
         user_id=test.user_id,
+        lab_id=test.lab_id,
         # details
         name=test.name,
         description=test.description,
@@ -51,6 +52,22 @@ async def create(test: Test, db: AsyncSession = Depends(get_ccl_db)):
         # lists
         reagent_list=test.reagent_list,
         instrument_list=test.instrument_list,
+        # labor per sample
+        avg_hr_wage_analysis=test.avg_hr_wage_analysis,
+        setup_min=test.setup_min,
+        analysis_min=test.analysis_min,
+        result_review_min=test.result_review_min,
+        result_doc_min=test.result_doc_min,
+        retention=test.retention,
+        total_labor_analysis_min=test.total_labor_analysis_min,
+        total_labor_analysis_year=test.total_labor_analysis_year,
+        # labor per result
+        avg_hr_wage_report=test.avg_hr_wage_report,
+        result_entry_min=test.result_entry_min, 
+        report_preparation_min=test.report_preparation_min,
+        report_distribution_min=test.report_distribution_min,   
+        total_labor_result_min=test.total_labor_result_min,
+        total_labor_result_year=test.total_labor_result_year,
         # service
         created_by=user.email,
     )
