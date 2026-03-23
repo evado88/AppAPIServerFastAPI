@@ -7,7 +7,7 @@ from datetime import datetime
 
 from apps.lwsc.models.review_stages_model import ReviewStage
 from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.town_model import Town, TownSimple
+from apps.lwsc.models.district_model import District, DistrictSimple
 from apps.lwsc.models.user_model import User
 
 
@@ -21,8 +21,8 @@ class WalkRouteDB(Base):
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    # town
-    town_id = Column(Integer, ForeignKey("towns.id"), nullable=False)
+    # district
+    district_id = Column(Integer, ForeignKey("districts.id"), nullable=False)
     
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
@@ -53,7 +53,7 @@ class WalkRouteDB(Base):
 
     # relationships
     user = relationship("UserDB", back_populates="routes", lazy="selectin")
-    town = relationship("TownDB", back_populates="routes", lazy="selectin")
+    district = relationship("DistrictDB", back_populates="routes", lazy="selectin")
     stage = relationship("ReviewStageDB", back_populates="routes", lazy="selectin")
     status = relationship("StatusTypeDB", back_populates="routes", lazy="selectin")
     customer = relationship("CustomerDB", back_populates="route", lazy="selectin")
@@ -63,8 +63,8 @@ class WalkRouteSimple(BaseModel):
     # id
     id: Optional[int] = None
     
-    # town
-    town_id: int
+    # district
+    district_id: int
     
     name: str = Field(
         ...,
@@ -83,8 +83,8 @@ class WalkRoute(BaseModel):
     # user
     user_id: int
     
-    # town
-    town_id: int
+    # district
+    district_id: int
 
     name: str = Field(
         ...,
@@ -127,9 +127,9 @@ class WalkRoute(BaseModel):
 
 class WalkRouteWithDetail(WalkRoute):
     user: User
-    town: Town
+    district: District
     stage : ReviewStage
     status: StatusType
     
 class WalkRouteWithSimpleDetail(WalkRouteSimple):
-    town: TownSimple
+    district: DistrictSimple

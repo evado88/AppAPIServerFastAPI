@@ -22,7 +22,7 @@ class StatusTypeDB(Base):
     
     #relationships
     users = relationship("UserDB", back_populates="status")
-    towns = relationship("TownDB", back_populates="status")
+    districts = relationship("DistrictDB", back_populates="status")
     routes = relationship("WalkRouteDB", back_populates="status")
     customers = relationship("CustomerDB", back_populates="status")
     meters = relationship("MeterDB", back_populates="status")

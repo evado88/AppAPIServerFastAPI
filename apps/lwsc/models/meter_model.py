@@ -3,12 +3,12 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from apps.lwsc.lwscdb import Base
-from datetime import datetime
+from datetime import datetime, date
 
 from apps.lwsc.models.attachment_model import Attachment
 from apps.lwsc.models.customer_model import Customer, CustomerSimple
 from apps.lwsc.models.review_stages_model import ReviewStage
-from apps.lwsc.models.town_model import Town
+from apps.lwsc.models.district_model import District
 from apps.lwsc.models.walkroute_model import WalkRoute
 from apps.lwsc.models.status_types_model import StatusType
 from apps.lwsc.models.user_model import User
@@ -20,12 +20,15 @@ class MeterDB(Base):
 
     # id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-
+    
+    # code
+    code = Column(String, nullable=False)
+    
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # town
-    town_id = Column(Integer, ForeignKey("towns.id"), nullable=False)
+    # district
+    district_id = Column(Integer, ForeignKey("districts.id"), nullable=False)
     
     # customer
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
@@ -40,6 +43,12 @@ class MeterDB(Base):
     number = Column(String, nullable=False)
     name = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    
+    # reading
+    read_date = Column(DateTime(timezone=True), nullable=True)
+    current = Column(Float, nullable=True)
+    previous = Column(Float, nullable=True)
+    comments = Column(String, nullable=True)
 
     # address
     lat = Column(Float, nullable=True)
@@ -71,7 +80,7 @@ class MeterDB(Base):
 
     # relationships
     user = relationship("UserDB", back_populates="meters", lazy="selectin")
-    town = relationship("TownDB", back_populates="meters", lazy="selectin")
+    district = relationship("DistrictDB", back_populates="meters", lazy="selectin")
     customer = relationship("CustomerDB", back_populates="meters", lazy="selectin")
     meterreadings = relationship(
         "MeterReadingDB", back_populates="meter", lazy="selectin"
@@ -89,8 +98,8 @@ class MeterSimple(BaseModel):
     # user
     user_id: int
     
-    # town
-    town_id: int
+    # district
+    district_id: int
     
     # customer
     customer_id: int
@@ -106,6 +115,12 @@ class MeterSimple(BaseModel):
         description="Number must be between 2 and 50 characters",
     )
     name: Optional[str] = None
+    
+    # reading
+    read_date: Optional[date] = None
+    current: Optional[float] = None
+    previous: Optional[float] = None
+    comments: Optional[str] = None
 
     # address
     lat: Optional[float] = None
@@ -118,12 +133,20 @@ class MeterSimple(BaseModel):
 class Meter(BaseModel):
     # id
     id: Optional[int] = None
+    
+    # code
+    code: str = Field(
+        ...,
+        min_length=8,
+        max_length=8,
+        description="Account number must be between 8 characters",
+    )
 
     # user
     user_id: int
     
-    # town
-    town_id: int
+    # district
+    district_id: int
     
     # customer
     customer_id: int
@@ -143,6 +166,12 @@ class Meter(BaseModel):
     )
     name: Optional[str] = None
     description: Optional[str] = None
+    
+    # reading
+    read_date: Optional[date] = None
+    current: Optional[float] = None
+    previous: Optional[float] = None
+    comments: Optional[str] = None
 
     # address
     lat: Optional[float] = None
@@ -182,7 +211,7 @@ class Meter(BaseModel):
 
 class MeterWithDetail(Meter):
     user: User
-    town: Town
+    district: District
     customer: Customer
     route: WalkRoute
     attachment: Optional[Attachment] = None

@@ -7,7 +7,7 @@ from datetime import datetime
 
 from apps.lwsc.models.category_model import Category
 from apps.lwsc.models.review_stages_model import ReviewStage
-from apps.lwsc.models.town_model import Town
+from apps.lwsc.models.district_model import District
 from apps.lwsc.models.walkroute_model import WalkRoute
 from apps.lwsc.models.status_types_model import StatusType
 from apps.lwsc.models.user_model import User
@@ -21,7 +21,7 @@ class CustomerDB(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     
     # code
-    code = Column(String, nullable=True)
+    code = Column(String, nullable=False)
     
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -29,8 +29,8 @@ class CustomerDB(Base):
     # cat
     cat_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     
-    # town
-    town_id = Column(Integer, ForeignKey("towns.id"), nullable=False)
+    # district
+    district_id = Column(Integer, ForeignKey("districts.id"), nullable=False)
     
     # route
     route_id = Column(Integer, ForeignKey("routes.id"), nullable=False)
@@ -80,7 +80,7 @@ class CustomerDB(Base):
     status = relationship("StatusTypeDB", back_populates="customers", lazy="selectin")
     route = relationship("WalkRouteDB", back_populates="customer", lazy="selectin")
     category = relationship("CategoryDB", back_populates="customer", lazy="selectin")
-    town = relationship("TownDB", back_populates="customer", lazy="selectin")
+    district = relationship("DistrictDB", back_populates="customer", lazy="selectin")
     meters = relationship("MeterDB", back_populates="customer", lazy="selectin")
     meterreadings = relationship("MeterReadingDB", back_populates="customer", lazy="selectin") 
 # ---------- Pydantic Schemas ----------
@@ -88,8 +88,8 @@ class CustomerSimple(BaseModel):
     # id
     id: Optional[int] = None
 
-    # town
-    town_id: int
+    # district
+    district_id: int
     
     # personal details
     fname: str = Field(
@@ -120,8 +120,13 @@ class Customer(BaseModel):
     # id
     id: Optional[int] = None
     
-    # codd
-    code: Optional[str] = None
+    # code
+    code: str = Field(
+        ...,
+        min_length=8,
+        max_length=8,
+        description="Account number must be between 8 characters",
+    )
     
     # user
     user_id: int
@@ -129,8 +134,8 @@ class Customer(BaseModel):
     # cat
     cat_id: int
 
-    # town
-    town_id: int
+    # district
+    district_id: int
     
     # route
     route_id: int
@@ -199,7 +204,7 @@ class Customer(BaseModel):
 class CustomerWithDetail(Customer):
     user: User
     category: Category
-    town: Town
+    district: District
     route: WalkRoute
     stage : ReviewStage
     status: StatusType

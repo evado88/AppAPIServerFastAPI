@@ -5,7 +5,12 @@ from typing import List
 from helpers import assist
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.customer_model import CustomerDB
-from apps.lwsc.models.meter_model import Meter, MeterDB, MeterWithDetail, MeterWithSimpleDetail
+from apps.lwsc.models.meter_model import (
+    Meter,
+    MeterDB,
+    MeterWithDetail,
+    MeterWithSimpleDetail,
+)
 from apps.lwsc.models.user_model import UserDB
 
 router = APIRouter(prefix="/meters", tags=["Meters"])
@@ -20,9 +25,9 @@ async def create_type(meter: Meter, db: AsyncSession = Depends(get_lwsc_db)):
         raise HTTPException(
             status_code=400, detail=f"The user with id '{meter.user_id}' does not exist"
         )
-        
+
     db_user = MeterDB(
-       # user
+        # user
         user_id=meter.user_id,
         # town
         town_id=meter.town_id,
@@ -30,13 +35,18 @@ async def create_type(meter: Meter, db: AsyncSession = Depends(get_lwsc_db)):
         customer_id=meter.customer_id,
         # route
         route_id=meter.route_id,
-        # personal details
+        # details
         number=meter.number,
         name=meter.name,
         description=meter.description,
+        # reading
+        read_date=meter.read_date,
+        current=meter.current,
+        previous=meter.previous,
+        comments=meter.comments,
         # contact, address
-        lat = meter.lat,
-        lon = meter.lon,
+        lat=meter.lat,
+        lon=meter.lon,
         # approval
         status_id=meter.status_id,
         stage_id=meter.stage_id,
@@ -50,10 +60,9 @@ async def create_type(meter: Meter, db: AsyncSession = Depends(get_lwsc_db)):
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=400, detail=f"Unable to create meter: f{e}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unable to create meter: f{e}")
     return db_user
+
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
@@ -61,7 +70,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(CustomerDB))
     customers = result.scalars().all()
 
-    #add a meter for each customer
+    # add a meter for each customer
     index = 1
     for customer in customers:
         pad = str(index).zfill(3)
@@ -75,12 +84,12 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
             # route
             route_id=customer.route_id,
             # personal details
-            number=f'C{customer.id}M1-{pad}',
-            name=f'Meter{pad}',
-            description=f'Meter for customer {customer.id}',
+            number=f"C{customer.id}M1-{pad}",
+            name=f"Meter{pad}",
+            description=f"Meter for customer {customer.id}",
             # contact, address
-            lat = customer.lat,
-            lon = customer.lon,
+            lat=customer.lat,
+            lon=customer.lon,
             # approval
             status_id=assist.STATUS_APPROVED,
             stage_id=assist.APPROVAL_STAGE_APPROVED,
@@ -107,32 +116,34 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 
 @router.get("/id/{meter_id}", response_model=MeterWithDetail)
-async def get_knowledgebase_category(meter_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(
-        select(MeterDB)
-        .filter(MeterDB.id == meter_id)
-    )
+async def get_knowledgebase_category(
+    meter_id: int, db: AsyncSession = Depends(get_lwsc_db)
+):
+    result = await db.execute(select(MeterDB).filter(MeterDB.id == meter_id))
     category = result.scalars().first()
     if not category:
-        raise HTTPException(status_code=404, detail=f"Unable to find meter with id '{meter_id}'")
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find meter with id '{meter_id}'"
+        )
     return category
 
 
 @router.put("/update/{meter_id}", response_model=MeterWithDetail)
-async def update_category(meter_id: int, meter_update: Meter, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(
-        select(MeterDB)
-        .where(MeterDB.id == meter_id)
-    )
+async def update_category(
+    meter_id: int, meter_update: Meter, db: AsyncSession = Depends(get_lwsc_db)
+):
+    result = await db.execute(select(MeterDB).where(MeterDB.id == meter_id))
     config = result.scalar_one_or_none()
-    
+
     if not config:
-        raise HTTPException(status_code=404, detail=f"Unable to find meter with id '{meter_id}'")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find meter with id '{meter_id}'"
+        )
+
     # Update fields that are not None
     for key, value in meter_update.dict(exclude_unset=True).items():
         setattr(config, key, value)
-        
+
     try:
         await db.commit()
         await db.refresh(config)
@@ -140,6 +151,7 @@ async def update_category(meter_id: int, meter_update: Meter, db: AsyncSession =
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Unable to update meter {e}")
     return config
+
 
 @router.get("/list", response_model=List[MeterWithDetail])
 async def list_meters(db: AsyncSession = Depends(get_lwsc_db)):
@@ -149,14 +161,11 @@ async def list_meters(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/route/{route_id}", response_model=List[MeterWithDetail])
 async def list_route_meters(route_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(
-        select(MeterDB)
-        .filter(MeterDB.route_id == route_id)
-    )
+    result = await db.execute(select(MeterDB).filter(MeterDB.route_id == route_id))
     return result.scalars().all()
+
 
 @router.get("/items", response_model=List[MeterWithSimpleDetail])
 async def list_meters_simple(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(MeterDB))
     return result.scalars().all()
-

@@ -22,7 +22,7 @@ class ReviewStageDB(Base):
     
     #relationships
     users = relationship("UserDB", back_populates="stage")
-    towns = relationship("TownDB", back_populates="stage")
+    districts = relationship("DistrictDB", back_populates="stage")
     routes = relationship("WalkRouteDB", back_populates="stage")
     customers = relationship("CustomerDB", back_populates="stage")
     meters = relationship("MeterDB", back_populates="stage")

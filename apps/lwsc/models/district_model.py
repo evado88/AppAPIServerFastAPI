@@ -10,8 +10,8 @@ from apps.lwsc.models.status_types_model import StatusType
 from apps.lwsc.models.user_model import User
 
 # ---------- SQLAlchemy Models ----------
-class TownDB(Base):
-    __tablename__ = "towns"
+class DistrictDB(Base):
+    __tablename__ = "districts"
 
     #id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -19,7 +19,7 @@ class TownDB(Base):
     #user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    #town
+    #district
     name = Column(String,  nullable=False)
     code = Column(String,  nullable=False)
     description = Column(String, nullable=True)
@@ -49,15 +49,15 @@ class TownDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    user = relationship("UserDB", back_populates="towns", lazy='selectin')
-    meters = relationship("MeterDB", back_populates="town", lazy='selectin')
-    customer = relationship("CustomerDB", back_populates="town", lazy='selectin')
-    routes = relationship("WalkRouteDB", back_populates="town", lazy='selectin')
-    stage = relationship("ReviewStageDB", back_populates="towns", lazy="selectin")
-    status = relationship("StatusTypeDB", back_populates="towns", lazy="selectin")
+    user = relationship("UserDB", back_populates="districts", lazy='selectin')
+    meters = relationship("MeterDB", back_populates="district", lazy='selectin')
+    customer = relationship("CustomerDB", back_populates="district", lazy='selectin')
+    routes = relationship("WalkRouteDB", back_populates="district", lazy='selectin')
+    stage = relationship("ReviewStageDB", back_populates="districts", lazy="selectin")
+    status = relationship("StatusTypeDB", back_populates="districts", lazy="selectin")
     
 # ---------- Pydantic Schemas ----------
-class TownSimple(BaseModel):
+class DistrictSimple(BaseModel):
     #id
     id: Optional[int] = None
     #query
@@ -67,7 +67,7 @@ class TownSimple(BaseModel):
     class Config:
         orm_mode = True
 
-class Town(BaseModel):
+class District(BaseModel):
     #id
     id: Optional[int] = None
     
@@ -110,7 +110,7 @@ class Town(BaseModel):
     class Config:
         orm_mode = True
         
-class TownWithDetail(Town):
+class DistrictWithDetail(District):
     user: User
     stage : ReviewStage
     status: StatusType

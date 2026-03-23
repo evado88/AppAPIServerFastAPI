@@ -23,8 +23,8 @@ async def create_type(route: WalkRoute, db: AsyncSession = Depends(get_lwsc_db))
     db_user = WalkRouteDB(
         # user
         user_id=route.user_id,
-        # town
-        town_id=route.town_id,
+        # district
+        district_id=route.district_id,
         # details
         name=route.name,
         description=route.description,
@@ -55,11 +55,11 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
             db_status = WalkRouteDB(
                 # user
                 user_id=1,
-                # town
-                town_id=i,
+                # district
+                district_id=i,
                 # details
-                name=f'Town {i} - Route {k}',
-                description=f'The route {k} for town {i}',
+                name=f'District {i} - Route {k}',
+                description=f'The route {k} for district {i}',
                 # approval
                 status_id=assist.STATUS_APPROVED,
                 stage_id=assist.APPROVAL_STAGE_APPROVED,

@@ -20,6 +20,20 @@ from apps.osawe.routes import guarantor_routes
 from apps.osawe.routes import sensor_routes
 from apps.osawe.routes import audit_routes
 
+STATUS_DRAFT = 1
+STATUS_SUBMITTED = 2
+STATUS_APPROVED = 4
+STATUS_REJECTED = 5
+
+APPROVAL_STAGE_DRAFT = 1
+APPROVAL_STAGE_SUBMITTED = 2
+APPROVAL_STAGE_PRIMARY = 3
+APPROVAL_STAGE_SECONDARY = 4
+APPROVAL_STAGE_GUARANTOR = 5
+APPROVAL_STAGE_POP_UPLOAD = 6
+APPROVAL_STAGE_POP_APPROVAL = 7
+APPROVAL_STAGE_APPROVED = 8
+
 APP_ROUTE = "/osawe"
 
 def include_osawe_routes(app):

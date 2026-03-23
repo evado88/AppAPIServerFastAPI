@@ -10,12 +10,24 @@ from apps.lwsc.routes import attachment_routes
 from apps.lwsc.routes import category_routes
 from apps.lwsc.routes import review_stages_routes
 from apps.lwsc.routes import status_type_routes
-from apps.lwsc.routes import town_routes
+from apps.lwsc.routes import district_routes
 from apps.lwsc.routes import config_routes
 from apps.lwsc.routes import user_role_routes
+from apps.lwsc.routes import bill_rate_routes
 from apps.lwsc.routes.meter_status_routes import router as meter_status_routes
 
 APP_ROUTE = "/lwsc"
+
+STATUS_DRAFT = 1
+STATUS_SUBMITTED = 2
+STATUS_APPROVED = 4
+STATUS_REJECTED = 5
+
+APPROVAL_STAGE_DRAFT = 1
+APPROVAL_STAGE_SUBMITTED = 2
+APPROVAL_STAGE_PRIMARY = 3
+APPROVAL_STAGE_SECONDARY = 4
+APPROVAL_STAGE_APPROVED = 5
 
 def include_lwsc_routes(app):
     app.include_router(config_routes.router, prefix=APP_ROUTE)
@@ -28,7 +40,8 @@ def include_lwsc_routes(app):
     app.include_router(auth_routes.router, prefix=APP_ROUTE)
     app.include_router(walkroute_routes.router, prefix=APP_ROUTE)
 
-    app.include_router(town_routes.router, prefix=APP_ROUTE)
+    app.include_router(district_routes.router, prefix=APP_ROUTE)
+    app.include_router(bill_rate_routes.router, prefix=APP_ROUTE)
     app.include_router(category_routes.router, prefix=APP_ROUTE)
     app.include_router(customer_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_routes.router, prefix=APP_ROUTE)
