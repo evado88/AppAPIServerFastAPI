@@ -82,6 +82,25 @@ def get_current_date(date=True):
 
     return now
 
+def get_date_tz(nativedate):
+    # Set your timezon
+    tz = ZoneInfo(CURRENT_TIME_ZONE)
+
+    # Get current date with timezone
+    zonedatde = nativedate.replace(tzinfo=tz)
+
+    return zonedatde
+
+def get_custom_date_tz(year, month, day, hour, minute):
+    # Set your timezon
+    tz = ZoneInfo(CURRENT_TIME_ZONE)
+    
+    nativedate = datetime(year, month, day, hour, minute)
+
+    # Get current date with timezone
+    zonedatde = nativedate.replace(tzinfo=tz)
+
+    return zonedatde
 
 def get_current_period():
     # Set your timezon

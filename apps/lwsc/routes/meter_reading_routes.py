@@ -1,17 +1,24 @@
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
 
+from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
+from apps.lwsc.models.meter_model import MeterDB
 from apps.lwsc.models.meter_reading_model import (
     MeterReading,
     MeterReadingDB,
     MeterReadingWithDetail,
 )
 from apps.lwsc.models.user_model import UserDB
+from helpers import assist
+import random
 
 router = APIRouter(prefix="/meter-readings", tags=["MeterReadings"])
+
 
 async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
     # check user exists
@@ -38,6 +45,8 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         read_date=meterreading.read_date,
         current=meterreading.current,
         previous=meterreading.previous,
+        consumption_m3=meterreading.consumption_m3,
+        consumption_zmw=meterreading.consumption_zmw,
         comments=meterreading.comments,
         # addres
         lon=meterreading.lat,
@@ -58,10 +67,13 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         raise HTTPException(
             status_code=400, detail=f"Unable to create meterreading: f{e}"
         )
-        
+
     return db_user
 
-async def update_meterreading(meterreading_id: int, meterreading_update: MeterReading, db: AsyncSession):
+
+async def update_meterreading(
+    meterreading_id: int, meterreading_update: MeterReading, db: AsyncSession
+):
     result = await db.execute(
         select(MeterReadingDB).where(MeterReadingDB.id == meterreading_id)
     )
@@ -86,27 +98,110 @@ async def update_meterreading(meterreading_id: int, meterreading_update: MeterRe
             status_code=400, detail=f"Unable to update meterreading {e}"
         )
     return config
-        
-        
+
+
 @router.post("/upload", response_model=MeterReadingWithDetail)
-async def upload_meterreading(meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)):
+async def upload_meterreading(
+    meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)
+):
     # check if reading with same uuid exists
-    result = await db.execute(select(MeterReadingDB).where(MeterReadingDB.uuid == meterreading.uuid))
-    existing = result.scalars().first()     
+    result = await db.execute(
+        select(MeterReadingDB).where(MeterReadingDB.uuid == meterreading.uuid)
+    )
+    existing = result.scalars().first()
     if existing:
         # update existing record instead of creating new one
         return await update_meterreading(existing.id, meterreading, db)
     else:
         # create new record
         return await create_meterreading(meterreading, db)
-    
+
 
 @router.post("/create", response_model=MeterReadingWithDetail)
-async def create_new(meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)):
+async def create_new(
+    meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)
+):
     # check if reading with same uuid exists
     return await create_meterreading(meterreading, db)
 
-        
+
+@router.post("/initialize")
+async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
+    # get all meters
+    result = await db.execute(select(MeterDB))
+    meters = result.scalars().all()
+
+    # get current date
+    now = assist.get_current_date(False)
+
+    index = 1
+
+    # for each meter, add readings for all months
+    for meter in meters:
+
+        # add a reading from 2026
+        for k in range(1, 12):
+
+            # readings should now exeed current date
+            read_date = assist.get_custom_date_tz(2026, k, 15, 10, 0)
+
+            if read_date < now:
+
+                previousReading= round(random.uniform(2.0, 4.0), 2) + (index * 10)
+                currentReading = round(random.uniform(5.0, 9.0), 2) + (index * 10)
+                consumptionM3 = round(currentReading - previousReading, 2)
+                consumptionDays = 15
+                consumptionDaily = round(consumptionM3 / 15, 2)
+                consumptionZMW = consumptionM3 * 1000
+
+                db_status = MeterReadingDB(
+                    # uuid
+                    uuid=uuid4().hex,
+                    # user
+                    user_id=meter.user_id,
+                    # attachment
+                    attachment_id=None,
+                    # customer
+                    customer_id=meter.customer_id,
+                    # meter
+                    meter_id=meter.id,
+                    # details
+                    read_date=read_date,
+                    current=currentReading,
+                    previous= previousReading,
+                    consumption_m3=consumptionM3,
+                    consumption_days= consumptionDays,
+                    consumption_zmw=consumptionZMW,
+                    consumption_daily=consumptionDaily,
+                    comments="Generated",
+                    # addres
+                    lon=random.uniform(10.0, 11.0),
+                    lat=random.uniform(10.0, 11.0),
+                    # approval
+                    status_id=lwscapp.STATUS_APPROVED,
+                    stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
+                    approval_levels=2,
+                    # service
+                    created_by="system",
+                )
+                db.add(db_status)
+                index += 1
+
+    try:
+        await db.commit()
+        # await db.refresh(db_status)
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, detail=f"Unable to initialize meter readings: f{e}"
+        )
+    return {
+        "succeeded": True,
+        "message": f"{index} Meter readings have been successfully initialized",
+    }
+
+
 @router.put("/update/{meterreading_id}", response_model=MeterReadingWithDetail)
 async def update_existing(
     meterreading_id: int,
@@ -114,7 +209,7 @@ async def update_existing(
     db: AsyncSession = Depends(get_lwsc_db),
 ):
     return await update_meterreading(meterreading_id, meterreading_update, db)
-    
+
 
 @router.get("/id/{meterreading_id}", response_model=MeterReadingWithDetail)
 async def get_knowledgebase_category(
@@ -130,6 +225,7 @@ async def get_knowledgebase_category(
             detail=f"Unable to find meterreading with id '{meterreading_id}'",
         )
     return category
+
 
 @router.get("/list", response_model=List[MeterReadingWithDetail])
 async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):

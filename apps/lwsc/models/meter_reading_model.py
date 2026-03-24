@@ -19,10 +19,10 @@ class MeterReadingDB(Base):
 
     # id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    
+
     # uuid
     uuid = Column(String, unique=True, index=True, nullable=False)
-    
+
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
@@ -39,6 +39,10 @@ class MeterReadingDB(Base):
     read_date = Column(DateTime(timezone=True), nullable=False)
     current = Column(Float, nullable=True)
     previous = Column(Float, nullable=True)
+    consumption_m3 = Column(Float, nullable=True)
+    consumption_days = Column(Integer, nullable=True)
+    consumption_zmw = Column(Float, nullable=True)
+    consumption_daily = Column(Float, nullable=True)
     comments = Column(String, nullable=True)
 
     # address
@@ -90,14 +94,14 @@ class MeterReadingDB(Base):
 class MeterReading(BaseModel):
     # id
     id: Optional[int] = None
-    
+
     uuid: str = Field(
         ...,
         min_length=2,
         max_length=50,
         description="The UUID must be between 2 and 50 characters",
     )
-    
+
     # user
     user_id: int
 
@@ -121,6 +125,26 @@ class MeterReading(BaseModel):
         description="Reading must be equal to or greater than zero",
     )
     previous: Optional[float] = None
+    consumption_m3: float = Field(
+        ...,
+        ge=0,
+        description="The consumption (M3) must be equal to or greater than zero",
+    )
+    consumption_days: int = Field(
+        ...,
+        ge=1,
+        description="The consumption (days) must be equal to or greater than one",
+    )
+    consumption_zmw: float = Field(
+        ...,
+        ge=0,
+        description="The consumption(ZMW) must be equal to or greater than zero",
+    )
+    consumption_daily: float = Field(
+        ...,
+        ge=0,
+        description="The consumption (daily) must be equal to or greater than zero",
+    )
     comments: Optional[str] = None
 
     # address

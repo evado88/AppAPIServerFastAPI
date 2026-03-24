@@ -4,19 +4,22 @@ from sqlalchemy.future import select
 from typing import List, Any
 
 from apps.lwsc.lwscdb import get_lwsc_db
+from apps.lwsc.models.category_model import CategoryDB
 from apps.lwsc.models.customer_model import (
     Customer,
     CustomerDB,
     CustomerSimple,
     CustomerWithDetail,
 )
+from apps.lwsc.models.district_model import DistrictDB
 from apps.lwsc.models.meter_model import MeterDB
-from apps.lwsc.models.param_models import ParamCustomerImport
+from apps.lwsc.models.param_models import ParamCustomer, ParamCustomerImport
 from apps.lwsc.models.user_model import UserDB
 from apps.lwsc.models.walkroute_model import WalkRouteDB
 from helpers import assist
 import random
 from apps.lwsc import lwscapp
+from sqlalchemy.orm import noload
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -83,7 +86,7 @@ async def import_customers(
             status_code=400,
             detail=f"The user with id '{customerImport.user_id}' does not exist",
         )
-    
+
     # existig customers
     result = await db.execute(
         select(CustomerDB).where(CustomerDB.status_id == assist.STATUS_APPROVED)
@@ -97,17 +100,16 @@ async def import_customers(
         # update count
         index += 1
         account = customer["Account"]
-        
+
         for c in existingCustomers:
             if c.code == account:
                 raise HTTPException(
-                        status_code=400,
-                        detail=f"The customer '{account}' already exists in the system",
-            )
-                    
+                    status_code=400,
+                    detail=f"The customer '{account}' already exists in the system",
+                )
+
         # split name if it has space
         name = str(customer["Name"])
-  
 
         if " " in name:
             names = name.split(" ", 1)
@@ -151,7 +153,7 @@ async def import_customers(
         try:
             await db.commit()
             await db.refresh(db_customer)
-            
+
             db_meter = MeterDB(
                 # user
                 user_id=customerImport.user_id,
@@ -165,7 +167,7 @@ async def import_customers(
                 code=account,
                 number=account,
                 name=account,
-                description='',
+                description="",
                 # reading
                 read_date=None,
                 current=customer["Current"],
@@ -181,13 +183,15 @@ async def import_customers(
                 # service
                 created_by=user.email,
             )
-            
+
             db.add(db_meter)
             await db.commit()
-            
+
         except Exception as e:
             await db.rollback()
-            raise HTTPException(status_code=400, detail=f"Unable to import customers: f{e}")
+            raise HTTPException(
+                status_code=400, detail=f"Unable to import customers: f{e}"
+            )
     return {
         "succeeded": True,
         "message": f"Successfully imported {index} customer(s)",
@@ -252,9 +256,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 
 @router.get("/id/{customer_id}", response_model=CustomerWithDetail)
-async def get_knowledgebase_category(
-    customer_id: int, db: AsyncSession = Depends(get_lwsc_db)
-):
+async def get_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(CustomerDB).filter(CustomerDB.id == customer_id))
     category = result.scalars().first()
     if not category:
@@ -262,6 +264,39 @@ async def get_knowledgebase_category(
             status_code=404, detail=f"Unable to find customer with id '{customer_id}'"
         )
     return category
+
+
+@router.get("/edit/{customer_id}", response_model=ParamCustomer)
+async def get_edit_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)):
+    # get customer
+    result = await db.execute(select(CustomerDB).options(noload("*")).filter(CustomerDB.id == customer_id))
+    customerItem = result.scalars().first()
+    if not customerItem:
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find customer with id '{customer_id}'"
+        )
+
+    # district
+    result = await db.execute(select(DistrictDB).options(noload("*")))
+    districtList = result.scalars().all()
+
+    # wak routes
+    result = await db.execute(select(WalkRouteDB).options(noload("*")))
+    routeList = result.scalars().all()
+
+    # categories
+    result = await db.execute(select(CategoryDB).options(noload("*")))
+    categoryList = result.scalars().all()
+
+    # create param
+    param = ParamCustomer(
+        customer=customerItem,
+        districts=districtList,
+        routes=routeList,
+        categories=categoryList,
+    )
+
+    return param
 
 
 @router.put("/update/{customer_id}", response_model=CustomerWithDetail)
