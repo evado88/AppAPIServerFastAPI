@@ -232,7 +232,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
                 lon=28.8866439 + (index * 100),
                 # approval
                 status_id=assist.STATUS_APPROVED,
-                stage_id=assist.APPROVAL_STAGE_APPROVED,
+                stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
                 approval_levels=2,
                 # service
                 created_by="user-001@hotmail.com",
@@ -326,11 +326,11 @@ async def update_category(
 
 @router.get("/list", response_model=List[CustomerWithDetail])
 async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CustomerDB))
+    result = await db.execute(select(CustomerDB).order_by(CustomerDB.code))
     return result.scalars().all()
 
 
 @router.get("/items", response_model=List[CustomerSimple])
 async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CustomerDB))
+    result = await db.execute(select(CustomerDB).options(noload("*")))
     return result.scalars().all()

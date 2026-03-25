@@ -14,7 +14,8 @@ from apps.lwsc.routes import district_routes
 from apps.lwsc.routes import config_routes
 from apps.lwsc.routes import user_role_routes
 from apps.lwsc.routes import bill_rate_routes
-from apps.lwsc.routes.meter_status_routes import router as meter_status_routes
+from apps.lwsc.routes import meter_status_routes
+from apps.lwsc.routes import dashboard_routes
 
 APP_ROUTE = "/lwsc"
 
@@ -25,9 +26,10 @@ STATUS_REJECTED = 5
 
 APPROVAL_STAGE_DRAFT = 1
 APPROVAL_STAGE_SUBMITTED = 2
-APPROVAL_STAGE_PRIMARY = 3
-APPROVAL_STAGE_SECONDARY = 4
-APPROVAL_STAGE_APPROVED = 5
+APPROVAL_STAGE_UNDER_REVIEW = 3
+APPROVAL_STAGE_APPROVED = 4
+APPROVAL_STAGE_REJECTED = 5
+
 
 def include_lwsc_routes(app):
     app.include_router(config_routes.router, prefix=APP_ROUTE)
@@ -46,7 +48,8 @@ def include_lwsc_routes(app):
     app.include_router(customer_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_reading_routes.router, prefix=APP_ROUTE)
-    app.include_router(meter_status_routes, prefix=APP_ROUTE)
+    app.include_router(meter_status_routes.router, prefix=APP_ROUTE)
+    app.include_router(dashboard_routes.router, prefix=APP_ROUTE)
     
 async def init_lwsc_db(app):
     async with engine.begin() as conn:

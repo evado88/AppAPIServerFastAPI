@@ -9,6 +9,45 @@ from apps.lwsc.models.district_model import District
 from apps.lwsc.models.walkroute_model import WalkRoute
 
 
+class ParamDashboardStatistic(BaseModel):
+    name: str
+    value: float
+    color: str
+
+    class Config:
+        orm_mode = True
+
+class ParamChartItem(BaseModel):
+    type: str
+    id: Optional[int] = None
+    name: str
+    value: float
+
+    class Config:
+        orm_mode = True
+
+class ParamChartSeries(BaseModel):
+    items: Optional[List[ParamChartItem]] = []
+
+    class Config:
+        orm_mode = True
+
+class ParamChartData(BaseModel):
+    data: Optional[List[ParamChartSeries]] = []
+
+    class Config:
+        orm_mode = True
+
+class ParamDashboardYearSummary(BaseModel):
+    statistics: Optional[List[ParamDashboardStatistic]] = []
+    months: Optional[List[ParamChartItem]] = []
+    districts: Optional[List[ParamChartItem]] = []
+    categories: Optional[List[ParamChartItem]] = []
+    categoriesCount: Optional[List[ParamChartItem]] = []
+    
+    class Config:
+        orm_mode = True
+             
 class ParamCustomer(BaseModel):
     customer: Customer
     districts: Optional[List[District]] = []

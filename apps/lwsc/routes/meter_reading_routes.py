@@ -140,52 +140,53 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     for meter in meters:
 
         # add a reading from 2026
-        for k in range(1, 12):
+        for y in range(2025, 2027):
+            for k in range(1, 13):
 
-            # readings should now exeed current date
-            read_date = assist.get_custom_date_tz(2026, k, 15, 10, 0)
+                # readings should now exeed current date
+                read_date = assist.get_custom_date_tz(y, k, 15, 10, 0)
 
-            if read_date < now:
+                if read_date < now:
 
-                previousReading= round(random.uniform(2.0, 4.0), 2) + (index * 10)
-                currentReading = round(random.uniform(5.0, 9.0), 2) + (index * 10)
-                consumptionM3 = round(currentReading - previousReading, 2)
-                consumptionDays = 15
-                consumptionDaily = round(consumptionM3 / 15, 2)
-                consumptionZMW = consumptionM3 * 1000
+                    previousReading= round(random.uniform(2.0, 4.0), 2) + (index * 10)
+                    currentReading = round(random.uniform(5.0, 9.0), 2) + (index * 10)
+                    consumptionM3 = round(currentReading - previousReading, 2)
+                    consumptionDays = random.randint(15, 28)
+                    consumptionDaily = round(consumptionM3 / consumptionDays, 2)
+                    consumptionZMW = consumptionM3 * 2
 
-                db_status = MeterReadingDB(
-                    # uuid
-                    uuid=uuid4().hex,
-                    # user
-                    user_id=meter.user_id,
-                    # attachment
-                    attachment_id=None,
-                    # customer
-                    customer_id=meter.customer_id,
-                    # meter
-                    meter_id=meter.id,
-                    # details
-                    read_date=read_date,
-                    current=currentReading,
-                    previous= previousReading,
-                    consumption_m3=consumptionM3,
-                    consumption_days= consumptionDays,
-                    consumption_zmw=consumptionZMW,
-                    consumption_daily=consumptionDaily,
-                    comments="Generated",
-                    # addres
-                    lon=random.uniform(10.0, 11.0),
-                    lat=random.uniform(10.0, 11.0),
-                    # approval
-                    status_id=lwscapp.STATUS_APPROVED,
-                    stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
-                    approval_levels=2,
-                    # service
-                    created_by="system",
-                )
-                db.add(db_status)
-                index += 1
+                    db_status = MeterReadingDB(
+                        # uuid
+                        uuid=uuid4().hex,
+                        # user
+                        user_id=meter.user_id,
+                        # attachment
+                        attachment_id=None,
+                        # customer
+                        customer_id=meter.customer_id,
+                        # meter
+                        meter_id=meter.id,
+                        # details
+                        read_date=read_date,
+                        current=currentReading,
+                        previous= previousReading,
+                        consumption_m3=consumptionM3,
+                        consumption_days= consumptionDays,
+                        consumption_zmw=consumptionZMW,
+                        consumption_daily=consumptionDaily,
+                        comments="Generated",
+                        # addres
+                        lon=random.uniform(10.0, 11.0),
+                        lat=random.uniform(10.0, 11.0),
+                        # approval
+                        status_id=lwscapp.STATUS_APPROVED,
+                        stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
+                        approval_levels=2,
+                        # service
+                        created_by="system",
+                    )
+                    db.add(db_status)
+                    index += 1
 
     try:
         await db.commit()
