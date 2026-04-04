@@ -1,5 +1,8 @@
+from typing import List
+
 from apps.lwsc.lwscdb import engine, Base
 
+from apps.lwsc.models.bill_rate_model import BillRate
 from apps.lwsc.routes import auth_routes
 from apps.lwsc.routes import user_routes
 from apps.lwsc.routes import walkroute_routes
@@ -29,6 +32,23 @@ APPROVAL_STAGE_SUBMITTED = 2
 APPROVAL_STAGE_UNDER_REVIEW = 3
 APPROVAL_STAGE_APPROVED = 4
 APPROVAL_STAGE_REJECTED = 5
+
+
+def get_consumption_rate(consumption: float, rates: List[BillRate]):
+    '''
+    Gets the actual consumption based on billing bands
+    '''
+    
+    total = 0.0
+    
+    # check if bill is within band
+    for billrate in rates:
+        if consumption > billrate.to_vol:
+            total += billrate.rate
+        else:
+            break
+    
+    return total
 
 
 def include_lwsc_routes(app):

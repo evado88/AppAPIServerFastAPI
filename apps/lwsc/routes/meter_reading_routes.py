@@ -7,6 +7,7 @@ from typing import List
 
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
+from apps.lwsc.models.bill_rate_model import BillRateDB
 from apps.lwsc.models.meter_model import MeterDB
 from apps.lwsc.models.meter_reading_model import (
     MeterReading,
@@ -139,6 +140,12 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     # for each meter, add readings for all months
     for meter in meters:
 
+        # get bill rates
+        result = await db.execute(
+            select(BillRateDB).filter(BillRateDB.cat_id == meter.customer.cat_id)
+        )
+        rates = result.scalars().all()
+
         # add a reading from 2026
         for y in range(2025, 2027):
             for k in range(1, 13):
@@ -148,12 +155,12 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
                 if read_date < now:
 
-                    previousReading= round(random.uniform(2.0, 4.0), 2) + (index * 10)
-                    currentReading = round(random.uniform(5.0, 9.0), 2) + (index * 10)
+                    previousReading = round(random.uniform(2.0, 9.0), 2) + (index * 10)
+                    currentReading = round(random.uniform(18.0, 30.0), 2) + (index * 10)
                     consumptionM3 = round(currentReading - previousReading, 2)
                     consumptionDays = random.randint(15, 28)
                     consumptionDaily = round(consumptionM3 / consumptionDays, 2)
-                    consumptionZMW = consumptionM3 * 2
+                    consumptionZMW = lwscapp.get_consumption_rate(consumptionM3, rates)
 
                     db_status = MeterReadingDB(
                         # uuid
@@ -169,9 +176,9 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
                         # details
                         read_date=read_date,
                         current=currentReading,
-                        previous= previousReading,
+                        previous=previousReading,
                         consumption_m3=consumptionM3,
-                        consumption_days= consumptionDays,
+                        consumption_days=consumptionDays,
                         consumption_zmw=consumptionZMW,
                         consumption_daily=consumptionDaily,
                         comments="Generated",
