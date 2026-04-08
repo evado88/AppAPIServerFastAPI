@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-
+from sqlalchemy.orm import selectinload
 from apps.lwsc.lwscdb import get_lwsc_db
 from helpers import assist
 from helpers import validation
@@ -122,7 +122,11 @@ async def get_user_email(user_email: str, db: AsyncSession = Depends(get_lwsc_db
 
 @router.get("/list", response_model=List[UserWithDetail])
 async def list_users(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(UserDB))
+    result = await db.execute(select(UserDB).options(
+            selectinload(UserDB.stage),
+            selectinload(UserDB.status),
+            selectinload(UserDB.role),
+        ).order_by(UserDB.email))
     return result.scalars().all()
 
 @router.post("/initialize")

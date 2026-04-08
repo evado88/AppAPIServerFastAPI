@@ -71,24 +71,24 @@ class TransactionDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    user = relationship("UserDB", back_populates="transactions", lazy="selectin")
+    user = relationship("UserDB", back_populates="transactions", lazy="raise")
     type = relationship(
-        "TransactionTypeDB", back_populates="transactions", lazy="selectin"
+        "TransactionTypeDB", back_populates="transactions", lazy="raise"
     )
     group = relationship(
-        "TransactionGroupDB", back_populates="transactions", lazy="selectin"
+        "TransactionGroupDB", back_populates="transactions", lazy="raise"
     )
     status = relationship(
-        "StatusTypeDB", back_populates="transactions", lazy="selectin"
+        "StatusTypeDB", back_populates="transactions", lazy="raise"
     )
     stage = relationship(
-        "ReviewStageDB", back_populates="transactions", lazy="selectin"
+        "ReviewStageDB", back_populates="transactions", lazy="raise"
     )
     attachment = relationship(
-        "AttachmentDB", back_populates="transactions", lazy="selectin"
+        "AttachmentDB", back_populates="transactions", lazy="raise"
     )
-    customer = relationship("CustomerDB", back_populates="transactions", lazy='selectin')
-    meter = relationship("MeterDB", back_populates="transactions")
+    customer = relationship("CustomerDB", back_populates="transactions", lazy="raise")
+    meter = relationship("MeterDB", back_populates="transactions", lazy="raise")
 
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):

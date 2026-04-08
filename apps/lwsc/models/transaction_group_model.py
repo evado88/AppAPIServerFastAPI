@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import datetime
 from apps.lwsc.lwscdb import Base
-from apps.lwsc.models.transaction_type_model import TransactionType
+from apps.lwsc.models.transaction_type_model import TransactionType, TransactionTypeItem
 from apps.lwsc.models.user_model import User
 
 # ---------- SQLAlchemy Models ----------
@@ -31,10 +31,10 @@ class TransactionGroupDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    transactions = relationship("TransactionDB", back_populates="group")
-    user = relationship("UserDB", back_populates="groups", lazy="selectin")
+    transactions = relationship("TransactionDB", back_populates="group", lazy="raise")
+    user = relationship("UserDB", back_populates="groups", lazy="raise")
     type = relationship(
-        "TransactionTypeDB", back_populates="groups", lazy="selectin"
+        "TransactionTypeDB", back_populates="groups", lazy="raise"
     )
 
 # ---------- Pydantic Schemas ----------
@@ -88,12 +88,11 @@ class TransactionGroupItem(BaseModel):
         orm_mode = True
 
 class TransactionGroupWithDetail(TransactionGroup):
-    type: TransactionType
-    user: User
+    type: TransactionTypeItem
     
 class ParamTransactionGroupEdit(BaseModel):
     group: Optional[TransactionGroup] = None
-    types: List[TransactionType] = []
+    types: List[TransactionTypeItem] = []
 
     class Config:
         orm_mode = True

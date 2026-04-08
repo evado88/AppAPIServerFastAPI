@@ -22,8 +22,9 @@ class TransactionTypeDB(Base):
     updated_by = Column(String, nullable=True)
 
     #relationships
-    transactions = relationship("TransactionDB", back_populates="type")
-    groups = relationship("TransactionGroupDB", back_populates="type")
+    transactions = relationship("TransactionDB", back_populates="type", lazy="raise")
+    groups = relationship("TransactionGroupDB", back_populates="type", lazy="raise")
+    
 # ---------- Pydantic Schemas ----------
 class TransactionTypeItem(BaseModel):
     #id

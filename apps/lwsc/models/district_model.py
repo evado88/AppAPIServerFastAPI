@@ -5,9 +5,9 @@ from typing import Optional
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
 
-from apps.lwsc.models.review_stages_model import ReviewStage
-from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.user_model import User
+from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
+from apps.lwsc.models.status_types_model import StatusType, StatusTypeItem
+from apps.lwsc.models.user_model import User, UserSimple
 
 # ---------- SQLAlchemy Models ----------
 class DistrictDB(Base):
@@ -49,12 +49,12 @@ class DistrictDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    user = relationship("UserDB", back_populates="districts", lazy='selectin')
-    meters = relationship("MeterDB", back_populates="district", lazy='selectin')
-    customer = relationship("CustomerDB", back_populates="district", lazy='selectin')
-    routes = relationship("WalkRouteDB", back_populates="district", lazy='selectin')
-    stage = relationship("ReviewStageDB", back_populates="districts", lazy="selectin")
-    status = relationship("StatusTypeDB", back_populates="districts", lazy="selectin")
+    user = relationship("UserDB", back_populates="districts", lazy="raise")
+    meters = relationship("MeterDB", back_populates="district", lazy="raise")
+    customer = relationship("CustomerDB", back_populates="district", lazy="raise")
+    routes = relationship("WalkRouteDB", back_populates="district", lazy="raise")
+    stage = relationship("ReviewStageDB", back_populates="districts", lazy="raise")
+    status = relationship("StatusTypeDB", back_populates="districts", lazy="raise")
     
 # ---------- Pydantic Schemas ----------
 class DistrictSimple(BaseModel):
@@ -109,8 +109,22 @@ class District(BaseModel):
     
     class Config:
         orm_mode = True
+
+class DistrictItem(BaseModel):
+    #id
+    id: Optional[int] = None
+    
+    #user
+    user_id: int
+    
+    #query
+    name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
+    code: str = Field(..., min_length=3, max_length=3, description="Code must be 3 characters")
+    
+    class Config:
+        orm_mode = True
         
 class DistrictWithDetail(District):
-    user: User
-    stage : ReviewStage
-    status: StatusType
+    user: UserSimple
+    stage : ReviewStageItem
+    status: StatusTypeItem

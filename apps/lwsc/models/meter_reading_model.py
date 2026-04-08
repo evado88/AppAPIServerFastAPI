@@ -6,11 +6,11 @@ from apps.lwsc.lwscdb import Base
 from datetime import datetime, date
 
 from apps.lwsc.models.attachment_model import Attachment
-from apps.lwsc.models.customer_model import Customer
-from apps.lwsc.models.meter_model import Meter
-from apps.lwsc.models.review_stages_model import ReviewStage
-from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.user_model import User
+from apps.lwsc.models.customer_model import Customer, CustomerItem
+from apps.lwsc.models.meter_model import Meter, MeterItem
+from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
+from apps.lwsc.models.status_types_model import StatusType, StatusTypeItem
+from apps.lwsc.models.user_model import User, UserSimple
 
 
 # ---------- SQLAlchemy Models ----------
@@ -74,19 +74,19 @@ class MeterReadingDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    user = relationship("UserDB", back_populates="meterreadings", lazy="selectin")
+    user = relationship("UserDB", back_populates="meterreadings", lazy="raise")
     stage = relationship(
-        "ReviewStageDB", back_populates="meterreadings", lazy="selectin"
+        "ReviewStageDB", back_populates="meterreadings", lazy="raise"
     )
     status = relationship(
-        "StatusTypeDB", back_populates="meterreadings", lazy="selectin"
+        "StatusTypeDB", back_populates="meterreadings", lazy="raise"
     )
     customer = relationship(
-        "CustomerDB", back_populates="meterreadings", lazy="selectin"
+        "CustomerDB", back_populates="meterreadings", lazy="raise"
     )
-    meter = relationship("MeterDB", back_populates="meterreadings", lazy="selectin")
+    meter = relationship("MeterDB", back_populates="meterreadings", lazy="raise")
     attachment = relationship(
-        "AttachmentDB", back_populates="meterreading", lazy="selectin"
+        "AttachmentDB", back_populates="meterreading", lazy="raise"
     )
 
 
@@ -184,9 +184,9 @@ class MeterReading(BaseModel):
 
 
 class MeterReadingWithDetail(MeterReading):
-    user: User
-    customer: Customer
-    meter: Meter
+    user: UserSimple
+    customer: CustomerItem
+    meter: MeterItem
     attachment: Optional[Attachment] = None
-    stage: ReviewStage
-    status: StatusType
+    stage: ReviewStageItem
+    status: StatusTypeItem

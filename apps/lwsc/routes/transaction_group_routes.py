@@ -12,12 +12,15 @@ from apps.lwsc.models.transaction_group_model import (
 from apps.lwsc.models.transaction_type_model import TransactionTypeDB
 from apps.lwsc.models.user_model import UserDB
 from apps.lwsc.lwscdb import get_lwsc_db
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/transaction-groups", tags=["TransactionGroups"])
 
 
 @router.post("/create", response_model=TransactionGroupWithDetail)
-async def create_group(group: TransactionGroup, db: AsyncSession = Depends(get_lwsc_db)):
+async def create_group(
+    group: TransactionGroup, db: AsyncSession = Depends(get_lwsc_db)
+):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == group.user_id))
     user = result.scalars().first()
@@ -50,12 +53,10 @@ async def create_group(group: TransactionGroup, db: AsyncSession = Depends(get_l
 
 
 @router.get("/id/{group_id}", response_model=ParamTransactionGroupEdit)
-async def get_group(
-    group_id: int, db: AsyncSession = Depends(get_lwsc_db)
-):
+async def get_group(group_id: int, db: AsyncSession = Depends(get_lwsc_db)):
     # get group if its not zero
     groupItem = None
-    
+
     if group_id != 0:
         result = await db.execute(
             select(TransactionGroupDB).filter(TransactionGroupDB.id == group_id)
@@ -168,5 +169,9 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/list", response_model=List[TransactionGroupWithDetail])
 async def list_groups(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(TransactionGroupDB))
+    result = await db.execute(
+        select(TransactionGroupDB).options(
+            selectinload(TransactionGroupDB.type),
+        ).order_by(TransactionGroupDB.type_id, TransactionGroupDB.id)
+    )
     return result.scalars().all()

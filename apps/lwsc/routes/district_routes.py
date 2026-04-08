@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-
+from sqlalchemy.orm import selectinload
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.district_model import District, DistrictDB, DistrictSimple, DistrictWithDetail
 from apps.lwsc.models.user_model import UserDB
@@ -73,10 +73,12 @@ async def update_district(
 
 @router.get("/list", response_model=List[DistrictWithDetail])
 async def list__districts(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(DistrictDB))
-    queries = result.scalars().all()
-    return queries
-
+    result = await db.execute(select(DistrictDB).options(
+            selectinload(DistrictDB.stage),
+            selectinload(DistrictDB.status),
+            selectinload(DistrictDB.user),
+        ).order_by(DistrictDB.name))
+    return result.scalars().all()
 
 @router.get("/items", response_model=List[DistrictSimple])
 async def list__districts(db: AsyncSession = Depends(get_lwsc_db)):

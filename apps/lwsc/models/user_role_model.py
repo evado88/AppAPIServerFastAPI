@@ -21,7 +21,7 @@ class UserRoleDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    users = relationship("UserDB", back_populates="role")
+    users = relationship("UserDB", back_populates="role", lazy="raise")
     
 # ---------- Pydantic Schemas ----------
 class UserRole(BaseModel):
@@ -38,3 +38,10 @@ class UserRole(BaseModel):
     class Config:
         orm_mode = True
 
+class UserRoleItem(BaseModel):
+    #id
+    id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")
+    role_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
+
+    class Config:
+        orm_mode = True

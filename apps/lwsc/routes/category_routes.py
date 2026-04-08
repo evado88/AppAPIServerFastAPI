@@ -4,10 +4,12 @@ from sqlalchemy.future import select
 from sqlalchemy import delete
 from typing import List
 
+from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.bill_rate_model import BillRateDB
 from apps.lwsc.models.category_model import Category, CategoryDB, CategoryWithDetail
 from apps.lwsc.models.user_model import UserDB
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/categories", tags=["Categorys"])
 
@@ -142,10 +144,12 @@ async def update_category(
 
 @router.get("/list", response_model=List[CategoryWithDetail])
 async def list__categories(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CategoryDB))
-    queries = result.scalars().all()
-    return queries
-
+    result = await db.execute(select(CategoryDB).options(
+            selectinload(CategoryDB.user),
+            selectinload(CategoryDB.stage),
+            selectinload(CategoryDB.status),
+        ).order_by(CategoryDB.cat_name))
+    return result.scalars().all()
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
@@ -186,19 +190,9 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     ]
 
     typeList = [
-        "Low Density",
+        "Domestic",
         "Commercial",
         "GRZ",
-        "OOP",
-        "Prisons",
-        "Township",
-        "Police Camp",
-        "Medium",
-        "Messengers",
-        "Roads",
-        "Suburbs",
-        "Teachers",
-        "ZESCO",
     ]
     typeId = 1
 
@@ -207,7 +201,11 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
             # personal details
             user_id=1,
             cat_name=value,
-            rate_list=rate_commencial if value == "Commercial" else rate_domestic,
+            rate_list=rate_domestic if value == "Domestic" else rate_commencial,
+            # approval
+            status_id=lwscapp.STATUS_APPROVED,
+            stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
+            approval_levels=2,
         )
         db.add(db_category)
         typeId += 1

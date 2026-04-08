@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
 from apps.lwsc.lwscdb import get_lwsc_db
@@ -23,7 +23,7 @@ from helpers import assist
 import pandas as pd
 import numpy as np
 from datetime import date, datetime
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 from sqlalchemy.orm import noload
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
@@ -79,14 +79,16 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
 @router.get("/list", response_model=List[TransactionWithDetail])
 async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(
-        select(TransactionDB)
-        # .options(
-        #    joinedload(TransactionDB.post),
-        #    joinedload(TransactionDB.status),
-        #    joinedload(TransactionDB.type),
-        #    joinedload(TransactionDB.source),
-        #
-        # )
+        select(TransactionDB).options(
+            selectinload(TransactionDB.user),
+            selectinload(TransactionDB.type),
+            selectinload(TransactionDB.group),
+            selectinload(TransactionDB.status),
+            selectinload(TransactionDB.stage),
+            selectinload(TransactionDB.attachment),
+            selectinload(TransactionDB.customer),
+            selectinload(TransactionDB.meter),
+        ).order_by(desc(TransactionDB.id))
     )
     transactions = result.scalars().all()
     return transactions

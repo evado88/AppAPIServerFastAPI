@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Any
-
+from sqlalchemy.orm import selectinload
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.category_model import CategoryDB
 from apps.lwsc.models.customer_model import (
     Customer,
     CustomerDB,
-    CustomerSimple,
+    CustomerItem,
     CustomerWithDetail,
 )
 from apps.lwsc.models.district_model import DistrictDB
@@ -326,11 +326,18 @@ async def update_category(
 
 @router.get("/list", response_model=List[CustomerWithDetail])
 async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CustomerDB).order_by(CustomerDB.code))
+    result = await db.execute(select(CustomerDB).options(
+            selectinload(CustomerDB.user),
+            selectinload(CustomerDB.category),
+            selectinload(CustomerDB.district),
+            selectinload(CustomerDB.route),
+            selectinload(CustomerDB.stage),
+            selectinload(CustomerDB.status),
+        ).order_by(CustomerDB.code))
     return result.scalars().all()
 
 
-@router.get("/items", response_model=List[CustomerSimple])
+@router.get("/items", response_model=List[CustomerItem])
 async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(CustomerDB).options(noload("*")))
     return result.scalars().all()

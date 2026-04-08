@@ -6,12 +6,12 @@ from apps.lwsc.lwscdb import Base
 from datetime import datetime, date
 
 from apps.lwsc.models.attachment_model import Attachment
-from apps.lwsc.models.customer_model import Customer, CustomerSimple
-from apps.lwsc.models.review_stages_model import ReviewStage
-from apps.lwsc.models.district_model import District
-from apps.lwsc.models.walkroute_model import WalkRoute
-from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.user_model import User
+from apps.lwsc.models.customer_model import Customer, CustomerItem
+from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
+from apps.lwsc.models.district_model import District, DistrictItem
+from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteItem
+from apps.lwsc.models.status_types_model import StatusType, StatusTypeItem
+from apps.lwsc.models.user_model import User, UserSimple
 
 
 # ---------- SQLAlchemy Models ----------
@@ -79,17 +79,17 @@ class MeterDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    user = relationship("UserDB", back_populates="meters", lazy="selectin")
-    district = relationship("DistrictDB", back_populates="meters", lazy="selectin")
-    customer = relationship("CustomerDB", back_populates="meters", lazy="selectin")
+    user = relationship("UserDB", back_populates="meters", lazy="raise")
+    district = relationship("DistrictDB", back_populates="meters", lazy="raise")
+    customer = relationship("CustomerDB", back_populates="meters", lazy="raise")
     meterreadings = relationship(
-        "MeterReadingDB", back_populates="meter", lazy="selectin"
+        "MeterReadingDB", back_populates="meter", lazy="raise"
     )
-    stage = relationship("ReviewStageDB", back_populates="meters", lazy="selectin")
-    status = relationship("StatusTypeDB", back_populates="meters", lazy="selectin")
-    attachment = relationship("AttachmentDB", back_populates="meter", lazy="selectin")
-    route = relationship("WalkRouteDB", back_populates="meters", lazy="selectin")
-    transactions = relationship("TransactionDB", back_populates="meter")
+    stage = relationship("ReviewStageDB", back_populates="meters", lazy="raise")
+    status = relationship("StatusTypeDB", back_populates="meters", lazy="raise")
+    attachment = relationship("AttachmentDB", back_populates="meter", lazy="raise")
+    route = relationship("WalkRouteDB", back_populates="meters", lazy="raise")
+    transactions = relationship("TransactionDB", back_populates="meter", lazy="raise")
 # ---------- Pydantic Schemas ----------
 class MeterSimple(BaseModel):
     # id
@@ -236,13 +236,13 @@ class Meter(BaseModel):
 
 
 class MeterWithDetail(Meter):
-    user: User
-    district: District
-    customer: Customer
-    route: WalkRoute
+    user: UserSimple
+    district: DistrictItem
+    customer: CustomerItem
+    route: WalkRouteItem
     attachment: Optional[Attachment] = None
-    stage: ReviewStage
-    status: StatusType
+    stage: ReviewStageItem
+    status: StatusTypeItem
 
 class MeterWithSimpleDetail(MeterSimple):
-    customer: CustomerSimple
+    customer: CustomerItem

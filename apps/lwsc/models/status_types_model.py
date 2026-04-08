@@ -21,13 +21,15 @@ class StatusTypeDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    users = relationship("UserDB", back_populates="status")
-    districts = relationship("DistrictDB", back_populates="status")
-    routes = relationship("WalkRouteDB", back_populates="status")
-    customers = relationship("CustomerDB", back_populates="status")
-    meters = relationship("MeterDB", back_populates="status")
-    meterreadings = relationship("MeterReadingDB", back_populates="status")
-    transactions = relationship("TransactionDB", back_populates="status")
+    users = relationship("UserDB", back_populates="status", lazy="raise")
+    districts = relationship("DistrictDB", back_populates="status", lazy="raise")
+    routes = relationship("WalkRouteDB", back_populates="status", lazy="raise")
+    customers = relationship("CustomerDB", back_populates="status", lazy="raise")
+    meters = relationship("MeterDB", back_populates="status", lazy="raise")
+    meterreadings = relationship("MeterReadingDB", back_populates="status", lazy="raise")
+    transactions = relationship("TransactionDB", back_populates="status", lazy="raise")
+    category = relationship("CategoryDB", back_populates="status", lazy="raise")
+    
 # ---------- Pydantic Schemas ----------
 class StatusType(BaseModel):
     #id
@@ -43,3 +45,10 @@ class StatusType(BaseModel):
     class Config:
         orm_mode = True
 
+class StatusTypeItem(BaseModel):
+    #id
+    id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")
+    status_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
+
+    class Config:
+        orm_mode = True

@@ -5,10 +5,10 @@ from typing import Optional
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
 
-from apps.lwsc.models.review_stages_model import ReviewStage
-from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.district_model import District, DistrictSimple
-from apps.lwsc.models.user_model import User
+from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
+from apps.lwsc.models.status_types_model import StatusType, StatusTypeItem
+from apps.lwsc.models.district_model import District, DistrictItem, DistrictSimple
+from apps.lwsc.models.user_model import User, UserSimple
 
 
 # ---------- SQLAlchemy Models ----------
@@ -52,30 +52,14 @@ class WalkRouteDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    user = relationship("UserDB", back_populates="routes", lazy="selectin")
-    district = relationship("DistrictDB", back_populates="routes", lazy="selectin")
-    stage = relationship("ReviewStageDB", back_populates="routes", lazy="selectin")
-    status = relationship("StatusTypeDB", back_populates="routes", lazy="selectin")
-    customer = relationship("CustomerDB", back_populates="route", lazy="selectin")
-    meters = relationship("MeterDB", back_populates="route", lazy="selectin")
+    user = relationship("UserDB", back_populates="routes", lazy="raise")
+    district = relationship("DistrictDB", back_populates="routes", lazy="raise")
+    stage = relationship("ReviewStageDB", back_populates="routes", lazy="raise")
+    status = relationship("StatusTypeDB", back_populates="routes", lazy="raise")
+    customer = relationship("CustomerDB", back_populates="route", lazy="raise")
+    meters = relationship("MeterDB", back_populates="route", lazy="raise")
+    
 # ---------- Pydantic Schemas ----------
-class WalkRouteSimple(BaseModel):
-    # id
-    id: Optional[int] = None
-    
-    # district
-    district_id: int
-    
-    name: str = Field(
-        ...,
-        min_length=2,
-        max_length=50,
-        description="Name must be between 2 and 50 characters",
-    )
-    
-    class Config:
-        orm_mode = True
-    
 class WalkRoute(BaseModel):
     # id
     id: Optional[int] = None
@@ -124,12 +108,30 @@ class WalkRoute(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class WalkRouteItem(BaseModel):
+    # id
+    id: Optional[int] = None
+    
+    # district
+    district_id: int
+    
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Name must be between 2 and 50 characters",
+    )
+    
+    class Config:
+        orm_mode = True
+    
 
 class WalkRouteWithDetail(WalkRoute):
-    user: User
-    district: District
-    stage : ReviewStage
-    status: StatusType
+    user: UserSimple
+    district: DistrictItem
+    stage : ReviewStageItem
+    status: StatusTypeItem
     
-class WalkRouteWithSimpleDetail(WalkRouteSimple):
+class WalkRouteWithSimpleDetail(WalkRouteItem):
     district: DistrictSimple

@@ -4,8 +4,9 @@ from sqlalchemy.future import select
 from typing import List
 from helpers import assist
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteDB, WalkRouteSimple, WalkRouteWithDetail, WalkRouteWithSimpleDetail
+from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteDB, WalkRouteItem, WalkRouteWithDetail, WalkRouteWithSimpleDetail
 from apps.lwsc.models.user_model import UserDB
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/walk-routes", tags=["WalkRoutes"])
 
@@ -118,7 +119,12 @@ async def update_category(route_id: int, route_update: WalkRoute, db: AsyncSessi
 
 @router.get("/list", response_model=List[WalkRouteWithDetail])
 async def list_routes(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(WalkRouteDB))
+    result = await db.execute(select(WalkRouteDB).options(
+            selectinload(WalkRouteDB.user),
+            selectinload(WalkRouteDB.district),
+            selectinload(WalkRouteDB.stage),
+            selectinload(WalkRouteDB.status),
+        ).order_by(WalkRouteDB.district_id, WalkRouteDB.name))
     return result.scalars().all()
 
 @router.get("/items", response_model=List[WalkRouteWithSimpleDetail])

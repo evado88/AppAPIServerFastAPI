@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-
+from sqlalchemy.orm import selectinload
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.bill_rate_model import BillRateDB
@@ -17,6 +17,7 @@ from apps.lwsc.models.meter_reading_model import (
 from apps.lwsc.models.user_model import UserDB
 from helpers import assist
 import random
+from sqlalchemy import or_, desc
 
 router = APIRouter(prefix="/meter-readings", tags=["MeterReadings"])
 
@@ -237,5 +238,12 @@ async def get_knowledgebase_category(
 
 @router.get("/list", response_model=List[MeterReadingWithDetail])
 async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterReadingDB))
+    result = await db.execute(select(MeterReadingDB).options(
+            selectinload(MeterReadingDB.user),
+            selectinload(MeterReadingDB.customer),
+            selectinload(MeterReadingDB.meter),
+            selectinload(MeterReadingDB.attachment),
+            selectinload(MeterReadingDB.stage),
+            selectinload(MeterReadingDB.status),
+        ).order_by(desc(MeterReadingDB.read_date)))
     return result.scalars().all()

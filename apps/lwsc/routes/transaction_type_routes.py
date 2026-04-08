@@ -65,7 +65,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     }
 
 
-@router.get("/", response_model=List[TransactionType])
+@router.get("/list", response_model=List[TransactionType])
 async def list_types(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(TransactionTypeDB))
+    result = await db.execute(select(TransactionTypeDB).order_by(TransactionTypeDB.id))
     return result.scalars().all()

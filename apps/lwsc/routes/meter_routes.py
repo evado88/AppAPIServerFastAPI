@@ -12,6 +12,7 @@ from apps.lwsc.models.meter_model import (
     MeterWithSimpleDetail,
 )
 from apps.lwsc.models.user_model import UserDB
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/meters", tags=["Meters"])
 
@@ -155,7 +156,15 @@ async def update_category(
 
 @router.get("/list", response_model=List[MeterWithDetail])
 async def list_meters(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterDB))
+    result = await db.execute(select(MeterDB).options(
+            selectinload(MeterDB.user),
+            selectinload(MeterDB.district),
+            selectinload(MeterDB.customer),
+            selectinload(MeterDB.route),
+            selectinload(MeterDB.attachment),
+            selectinload(MeterDB.stage),
+            selectinload(MeterDB.status),
+        ).order_by(MeterDB.number))
     return result.scalars().all()
 
 
