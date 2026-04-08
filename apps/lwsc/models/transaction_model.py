@@ -1,15 +1,17 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import List, Optional
 from datetime import date, datetime
 from apps.lwsc.lwscdb import Base
 from apps.lwsc.models.attachment_model import Attachment
+from apps.lwsc.models.customer_model import Customer
+from apps.lwsc.models.meter_model import Meter, MeterItem
 from apps.lwsc.models.review_stages_model import ReviewStage
 from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.transaction_type_model import TransactionType
+from apps.lwsc.models.transaction_group_model import TransactionGroup, TransactionGroupItem
+from apps.lwsc.models.transaction_type_model import TransactionType, TransactionTypeItem
 from apps.lwsc.models.user_model import User
-from apps.osawe.models.transaction_group_model import TransactionGroup
 
 # ---------- SQLAlchemy Models ----------
 class TransactionDB(Base):
@@ -83,9 +85,10 @@ class TransactionDB(Base):
         "ReviewStageDB", back_populates="transactions", lazy="selectin"
     )
     attachment = relationship(
-        "AttachmentDB", back_populates="transaction", lazy="selectin"
+        "AttachmentDB", back_populates="transactions", lazy="selectin"
     )
-
+    customer = relationship("CustomerDB", back_populates="transactions", lazy='selectin')
+    meter = relationship("MeterDB", back_populates="transactions")
 
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
@@ -121,10 +124,14 @@ class Transaction(BaseModel):
     reference: Optional[str] = None
 
     # approval
-    status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
-    stage_id = Column(Integer, ForeignKey("list_review_stages.id"), nullable=False)
+    status_id: int = Field(
+        ..., ge=1, description="Status must be greater than or equal to 1"
+    )
+    stage_id: int = Field(..., ge=1, le=8, description="Stage must be between 1 and 8")
 
-    approval_levels = Column(Integer, nullable=False)
+    approval_levels: int = Field(
+        ..., ge=1, le=3, description="Approval levels must be between 1 and 3"
+    )
 
     review1_at: Optional[datetime] = None
     review1_by: Optional[str] = None
@@ -147,8 +154,6 @@ class Transaction(BaseModel):
     class Config:
         orm_mode = True
 
-
-        
         
 class TransactionWithDetail(Transaction):
     user: User
@@ -157,5 +162,17 @@ class TransactionWithDetail(Transaction):
     status: StatusType
     stage: ReviewStage
     attachment: Optional[Attachment] = None
+    customer: Customer
+    meter: Meter
+    
+
+class ParamTransactionEdit(BaseModel):
+    transaction: Optional[Transaction] = None
+    types: List[TransactionTypeItem] = []
+    groups: List[TransactionGroupItem] = []
+    meters: List[MeterItem] = []
+        
+    class Config:
+        orm_mode = True
 
 

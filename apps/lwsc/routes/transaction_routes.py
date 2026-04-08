@@ -7,19 +7,24 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
+from apps.lwsc.lwscdb import get_lwsc_db
+from apps.lwsc.models.meter_model import MeterDB
+from apps.lwsc.models.transaction_group_model import TransactionGroupDB
 from apps.lwsc.models.transaction_model import (
+    ParamTransactionEdit,
     Transaction,
     TransactionDB,
     TransactionWithDetail,
 )
+from apps.lwsc.models.transaction_type_model import TransactionTypeDB
 from apps.lwsc.models.user_model import UserDB
-from apps.osawe.osawedb import get_lwsc_db
 from helpers import assist
 
 import pandas as pd
 import numpy as np
 from datetime import date, datetime
 from sqlalchemy import or_
+from sqlalchemy.orm import noload
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -54,7 +59,6 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
         reference=tran.reference,
         # approval
         status_id=tran.status_id,
-        state_id=tran.state_id,
         stage_id=tran.stage_id,
         approval_levels=tran.approval_levels,
         # service
@@ -88,33 +92,39 @@ async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
     return transactions
 
 
-@router.get(
-    "/user/{userId}/type/{typeId}/status/{statusId}",
-    response_model=List[TransactionWithDetail],
-)
-async def list_user_status_transactions(
-    userId: int, typeId: int, statusId: int, db: AsyncSession = Depends(get_lwsc_db)
-):
-    result = await db.execute(
-        select(TransactionDB).filter(
-            TransactionDB.status_id == statusId,
-            TransactionDB.user_id == userId,
-            TransactionDB.type_id == typeId,
-        )
-    )
-    transactions = result.scalars().all()
-    return transactions
-
-
-@router.get("/id/{tran_id}", response_model=TransactionWithDetail)
+@router.get("/id/{tran_id}", response_model=ParamTransactionEdit)
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(TransactionDB).filter(TransactionDB.id == tran_id))
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(
-            status_code=404, detail=f"Unable to find transaction with id '{tran_id}'"
+
+    # get transaction
+    transactionItem = None
+    if tran_id != 0:
+        result = await db.execute(
+            select(TransactionDB).filter(TransactionDB.id == tran_id)
         )
-    return transaction
+        transactionItem = result.scalars().first()
+        if not transactionItem:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unable to find transaction with id '{tran_id}'",
+            )
+
+    # get type list
+    result = await db.execute(select(TransactionTypeDB).options(noload("*")))
+    typeList = result.scalars().all()
+
+    # get group list
+    result = await db.execute(select(TransactionGroupDB).options(noload("*")))
+    groupList = result.scalars().all()
+
+    # get meter list
+    result = await db.execute(select(MeterDB).options(noload("*")))
+    meterList = result.scalars().all()
+
+    paramEdit = ParamTransactionEdit(
+        transaction=transactionItem, types=typeList, groups=groupList, meters=meterList
+    )
+
+    return paramEdit
 
 
 @router.put("/update/{id}", response_model=TransactionWithDetail)

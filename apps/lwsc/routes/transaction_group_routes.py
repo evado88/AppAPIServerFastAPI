@@ -4,17 +4,20 @@ from sqlalchemy.future import select
 from typing import List
 
 from apps.lwsc.models.transaction_group_model import (
+    ParamTransactionGroupEdit,
     TransactionGroup,
     TransactionGroupDB,
+    TransactionGroupWithDetail,
 )
+from apps.lwsc.models.transaction_type_model import TransactionTypeDB
 from apps.lwsc.models.user_model import UserDB
 from apps.lwsc.lwscdb import get_lwsc_db
 
 router = APIRouter(prefix="/transaction-groups", tags=["TransactionGroups"])
 
 
-@router.post("/create", response_model=TransactionGroup)
-async def create_type(group: TransactionGroup, db: AsyncSession = Depends(get_lwsc_db)):
+@router.post("/create", response_model=TransactionGroupWithDetail)
+async def create_group(group: TransactionGroup, db: AsyncSession = Depends(get_lwsc_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == group.user_id))
     user = result.scalars().first()
@@ -46,23 +49,35 @@ async def create_type(group: TransactionGroup, db: AsyncSession = Depends(get_lw
     return db_user
 
 
-@router.get("/id/{group_id}", response_model=TransactionGroup)
-async def get_knowledgebase_category(
+@router.get("/id/{group_id}", response_model=ParamTransactionGroupEdit)
+async def get_group(
     group_id: int, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(
-        select(TransactionGroupDB).filter(TransactionGroupDB.id == group_id)
-    )
-    category = result.scalars().first()
-    if not category:
-        raise HTTPException(
-            status_code=404, detail=f"Unable to find group with id '{group_id}'"
+    # get group if its not zero
+    groupItem = None
+    
+    if group_id != 0:
+        result = await db.execute(
+            select(TransactionGroupDB).filter(TransactionGroupDB.id == group_id)
         )
-    return category
+        groupItem = result.scalars().first()
+
+        if not groupItem:
+            raise HTTPException(
+                status_code=404, detail=f"Unable to find group with id '{group_id}'"
+            )
+
+    # get type list
+    result = await db.execute(select(TransactionTypeDB))
+    typeList = result.scalars().all()
+
+    editParam = ParamTransactionGroupEdit(group=groupItem, types=typeList)
+
+    return editParam
 
 
-@router.put("/update/{group_id}", response_model=TransactionGroup)
-async def update_category(
+@router.put("/update/{group_id}", response_model=TransactionGroupWithDetail)
+async def update_group(
     group_id: int,
     group_update: TransactionGroup,
     db: AsyncSession = Depends(get_lwsc_db),
@@ -93,26 +108,26 @@ async def update_category(
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     typeList = [
-        {"name": "Monthly Water Consumption", "type": 1},
-        {"name": "Fixed Service Charge", "type": 1},
-        {"name": "Sewerage Charge", "type": 1},
-        {"name": "Waste Management Fee", "type": 1},
-        {"name": "Meter Rental Fee", "type": 1},
-        {"name": "Late Payment Penalty", "type": 1},
-        {"name": "Reconnection Fee", "type": 1},
-        {"name": "Disconnection Fee", "type": 1},
-        {"name": "Estimated billing", "type": 1},
-        {"name": "New Connection Fee", "type": 1},
-        {"name": "Meter Installation Fee", "type": 1},
-        {"name": "Deposit", "type": 1},
-        {"name": "Cash Payment", "type": 2},
-        {"name": "Mobile Money (e.g. MTN / Airtel / Zamtel)", "type": 2},
-        {"name": "Bank Transfer", "type": 2},
-        {"name": "POS/card payment", "type": 2},
-        {"name": "Standing Order / Auto-Debit", "type": 2},
-        {"name": "Bulk Payment Allocation", "type": 2},
-        {"name": "Overpayment", "type": 2},
-        {"name": "Prepaid Top-up", "type": 2},
+        {"name": "Monthly Water Consumption", "type": 2},
+        {"name": "Fixed Service Charge", "type": 2},
+        {"name": "Sewerage Charge", "type": 2},
+        {"name": "Waste Management Fee", "type": 2},
+        {"name": "Meter Rental Fee", "type": 2},
+        {"name": "Late Payment Penalty", "type": 2},
+        {"name": "Reconnection Fee", "type": 2},
+        {"name": "Disconnection Fee", "type": 2},
+        {"name": "Estimated billing", "type": 2},
+        {"name": "New Connection Fee", "type": 2},
+        {"name": "Meter Installation Fee", "type": 2},
+        {"name": "Deposit", "type": 2},
+        {"name": "Cash Payment", "type": 1},
+        {"name": "Mobile Money (e.g. MTN / Airtel / Zamtel)", "type": 1},
+        {"name": "Bank Transfer", "type": 1},
+        {"name": "POS/card payment", "type": 1},
+        {"name": "Standing Order / Auto-Debit", "type": 1},
+        {"name": "Bulk Payment Allocation", "type": 1},
+        {"name": "Overpayment", "type": 1},
+        {"name": "Prepaid Top-up", "type": 1},
         {"name": "Bill Correction (overcharged consumption)", "type": 3},
         {"name": "Leak Adjustment (customer had a verified leak)", "type": 3},
         {"name": "Complaint Resolution Credit", "type": 3},
@@ -131,7 +146,8 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
         db_status = TransactionGroupDB(
             # personal details
             user_id=1,
-            group_name=value,
+            group_name=value["name"],
+            type_id=value["type"],
         )
         db.add(db_status)
         groupId += 1
@@ -150,7 +166,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     }
 
 
-@router.get("/list", response_model=List[TransactionGroup])
+@router.get("/list", response_model=List[TransactionGroupWithDetail])
 async def list_groups(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(TransactionGroupDB))
     return result.scalars().all()

@@ -74,6 +74,10 @@ class UserDB(Base):
     routes = relationship("WalkRouteDB", back_populates="user")
     meterreadings = relationship("MeterReadingDB", back_populates="user")
     billrate = relationship("BillRateDB", back_populates="user", lazy='selectin')
+    groups = relationship(
+        "TransactionGroupDB", back_populates="user", lazy="selectin"
+    )
+    transactions = relationship("TransactionDB", back_populates="user")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     # id

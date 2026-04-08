@@ -27,7 +27,7 @@ class ReviewStageDB(Base):
     customers = relationship("CustomerDB", back_populates="stage")
     meters = relationship("MeterDB", back_populates="stage")
     meterreadings = relationship("MeterReadingDB", back_populates="stage")
-    
+    transactions = relationship("TransactionDB", back_populates="stage")
 # ---------- Pydantic Schemas ----------
 class ReviewStage(BaseModel):
     #id

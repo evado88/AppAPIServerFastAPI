@@ -7,8 +7,6 @@ from sqlalchemy.future import select
 from typing import List
 
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.customer_model import CustomerDB
-from apps.osawe.models.member_model import MemberDB
 from helpers import assist
 from apps.lwsc.models.attachment_model import Attachment, AttachmentDB, AttachmentInput
 import csv

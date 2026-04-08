@@ -2,8 +2,9 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
-from apps.osawe.osawedb import Base
 from datetime import datetime
+
+from apps.lwsc.lwscdb import Base
 
 # ---------- SQLAlchemy Models ----------
 class TransactionTypeDB(Base):
@@ -22,7 +23,16 @@ class TransactionTypeDB(Base):
 
     #relationships
     transactions = relationship("TransactionDB", back_populates="type")
+    groups = relationship("TransactionGroupDB", back_populates="type")
 # ---------- Pydantic Schemas ----------
+class TransactionTypeItem(BaseModel):
+    #id
+    id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")
+    type_name: str = Field(..., min_length=2, max_length=50, description="Name must be between 2 and 50 characters")
+    
+    class Config:
+        orm_mode = True
+        
 class TransactionType(BaseModel):
     #id
     id: int = Field(..., ge=1, description="ID must be greater than or equal to 1")

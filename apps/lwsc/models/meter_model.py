@@ -89,7 +89,7 @@ class MeterDB(Base):
     status = relationship("StatusTypeDB", back_populates="meters", lazy="selectin")
     attachment = relationship("AttachmentDB", back_populates="meter", lazy="selectin")
     route = relationship("WalkRouteDB", back_populates="meters", lazy="selectin")
-
+    transactions = relationship("TransactionDB", back_populates="meter")
 # ---------- Pydantic Schemas ----------
 class MeterSimple(BaseModel):
     # id
@@ -129,6 +129,32 @@ class MeterSimple(BaseModel):
     class Config:
         orm_mode = True
 
+class MeterItem(BaseModel):
+    # id
+    id: Optional[int] = None
+
+    # user
+    user_id: int
+    
+    # district
+    district_id: int
+    
+    # customer
+    customer_id: int
+
+    # route
+    route_id: int
+
+    # details
+    number: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Number must be between 2 and 50 characters",
+    )
+
+    class Config:
+        orm_mode = True
 
 class Meter(BaseModel):
     # id

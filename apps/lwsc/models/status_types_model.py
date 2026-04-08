@@ -27,6 +27,7 @@ class StatusTypeDB(Base):
     customers = relationship("CustomerDB", back_populates="status")
     meters = relationship("MeterDB", back_populates="status")
     meterreadings = relationship("MeterReadingDB", back_populates="status")
+    transactions = relationship("TransactionDB", back_populates="status")
 # ---------- Pydantic Schemas ----------
 class StatusType(BaseModel):
     #id

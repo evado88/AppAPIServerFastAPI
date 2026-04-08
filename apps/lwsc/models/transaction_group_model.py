@@ -1,9 +1,11 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from apps.lwsc.lwscdb import Base
+from apps.lwsc.models.transaction_type_model import TransactionType
+from apps.lwsc.models.user_model import User
 
 # ---------- SQLAlchemy Models ----------
 class TransactionGroupDB(Base):
@@ -31,7 +33,9 @@ class TransactionGroupDB(Base):
     # relationships
     transactions = relationship("TransactionDB", back_populates="group")
     user = relationship("UserDB", back_populates="groups", lazy="selectin")
-
+    type = relationship(
+        "TransactionTypeDB", back_populates="groups", lazy="selectin"
+    )
 
 # ---------- Pydantic Schemas ----------
 class TransactionGroup(BaseModel):
@@ -60,3 +64,37 @@ class TransactionGroup(BaseModel):
 
     class Config:
         orm_mode = True
+        
+
+class TransactionGroupItem(BaseModel):
+    # id
+    id: Optional[int] = None
+    
+    # user
+    user_id: int
+    
+    # type
+    type_id: int
+    
+    # group
+    group_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Name must be between 2 and 50 characters",
+    )
+    
+    class Config:
+        orm_mode = True
+
+class TransactionGroupWithDetail(TransactionGroup):
+    type: TransactionType
+    user: User
+    
+class ParamTransactionGroupEdit(BaseModel):
+    group: Optional[TransactionGroup] = None
+    types: List[TransactionType] = []
+
+    class Config:
+        orm_mode = True
+

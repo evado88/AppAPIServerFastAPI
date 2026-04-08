@@ -5,7 +5,7 @@ from typing import List
 
 
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.osawe.models.transaction_types_model import TransactionType, TransactionTypeDB
+from apps.lwsc.models.transaction_type_model import TransactionType, TransactionTypeDB
 
 router = APIRouter(prefix="/transaction-types", tags=["TransactionTypes"])
 
@@ -35,10 +35,10 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     transactionList = [
         "Payment", # customer paid
         "Bill", # customer is owing
-        "Adjustment (Negative)", # customer paid
-        "Adjustment (Positive)", # customer is owing
-        "Reversal (Credit)", # cancel incorrect payment
-        "Reversal (Debit)", # cancel incorrect payment
+        "Adjustment (Credit)", # customer paid
+        "Adjustment (Debit)", # customer is owing
+        "Reversal (Credit)", # cancel incorrect payment, customer paid
+        "Reversal (Debit)", # cancel incorrect payment, customer is owing
     ]
     transactionId = 1
 
