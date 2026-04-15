@@ -1,12 +1,13 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float, Boolean
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import Any, List, Optional
 from apps.ccl.ccldb import Base
 from datetime import datetime
 
-from apps.ccl.models.user_model import User
-
+from apps.ccl.models.lab_model import Lab, LabItem
+from apps.ccl.models.user_model import User, UserSimple
+from sqlalchemy.dialects.postgresql import JSONB
 
 # ---------- SQLAlchemy Models ----------
 class ReagentDB(Base):
@@ -19,6 +20,7 @@ class ReagentDB(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # details
+    is_control =  Column(Boolean, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     
@@ -30,6 +32,10 @@ class ReagentDB(Base):
     quantity_per_gru = Column(Float, nullable=False)
     tests_per_gru = Column(Float, nullable=False)
     
+    # lists
+    lab_list = Column(JSONB, nullable=False)
+
+    
     # service columns
     created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=True)
     created_by = Column(String, nullable=True, default="System")
@@ -37,8 +43,8 @@ class ReagentDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
-    user = relationship("UserDB", back_populates="reagents", lazy="selectin")
-    #test_reagent = relationship("TestReagentDB", back_populates="reagent", lazy="selectin")
+    user = relationship("UserDB", back_populates="reagents", lazy="raise")
+    
 # ---------- Pydantic Schemas ----------
 class Reagent(BaseModel):
     # id
@@ -48,6 +54,10 @@ class Reagent(BaseModel):
     user_id: int
     
     # details
+    is_control: bool = Field(
+        ...,
+        description="Is control must be specified",
+    )
     name: str = Field(
         ...,
         min_length=2,
@@ -62,7 +72,10 @@ class Reagent(BaseModel):
     generic_reagent_unit: str = Field(..., description="The generic reagent unit (e.g., ml)")
     quantity_per_gru: float = Field(..., ge=0, description="The quantity of reagent per generic reagent unit")
     tests_per_gru: float = Field(..., ge=0, description="The number of tests per generic reagent unit")
-  
+    
+    # lists
+    lab_list: list[dict[str, Any]]= [Field(..., description="The lab list must be provided")]
+
     # service columns
     created_at: Optional[datetime] = None
     created_by: Optional[str]
@@ -73,4 +86,8 @@ class Reagent(BaseModel):
         orm_mode = True
 
 class ReagentWithDetail(Reagent):
-    user: User
+    user: UserSimple
+    
+class ReagentParam(BaseModel):
+    reagent: Optional[Reagent]=None
+    labs: List[LabItem] = []

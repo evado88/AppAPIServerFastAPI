@@ -72,9 +72,10 @@ app.add_middleware(
 # osawe
 ## osaweapp.include_osawe_routes(app)
 # lwsc
-lwscapp.include_lwsc_routes(app)
+# lwscapp.include_lwsc_routes(app)
 # ccl
-# cclapp.include_ccl_routes(app)
+
+cclapp.include_ccl_routes(app)
 
 # create tables at startup
 

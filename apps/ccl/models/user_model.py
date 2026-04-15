@@ -148,8 +148,60 @@ class User(BaseModel):
         orm_mode = True
 
 # ---------- Pydantic Schemas ----------
+
+
 # user that hides unnecessary fields
 class UserSimple(BaseModel):
+    # id
+    id: Optional[int] = None
+    
+    user_id: Optional[int] = None
+    
+    code: Optional[str] = None
+    type: Optional[int] = None
+    
+    # personal details
+    fname: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="First name must be between 2 and 50 characters",
+    )
+    lname: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Last name must be between 2 and 50 characters",
+    )
+    position: Optional[str] = None
+    
+    #contact, address 
+    email: EmailStr
+    mobile_code: str = Field(
+        ...,
+        min_length=2,
+        max_length=5,
+        description="Mobile code must be between 3 and 15 characters",
+    )
+    mobile: str = Field(
+        ...,
+        min_length=3,
+        max_length=15,
+        description="Mobile must be between 3 and 15 characters",
+    )
+    address_physical: Optional[str] = None
+    address_postal: Optional[str] = None
+    
+    # account
+    role: int = Field(
+        ..., ge=1, le=3, description="Role must be greater than or equal to 1"
+    )
+    
+    class Config:
+        orm_mode = True
+
+# user for listings
+class UserItem(BaseModel):
     # id
     id: Optional[int] = None
 
@@ -179,7 +231,7 @@ class UserSimple(BaseModel):
     class Config:
         orm_mode = True
 
-class UserWithDetail(User):
+class UserWithDetail(UserSimple):
     pass
 
 

@@ -2,16 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-
+from sqlalchemy.orm import selectinload
 from apps.ccl.ccldb import get_ccl_db
-from apps.ccl.models.instrument_model import Instrument, InstrumentDB, InstrumentWithDetail
+from apps.ccl.models.instrument_model import (
+    Instrument,
+    InstrumentDB,
+    InstrumentItem,
+    InstrumentParam,
+    InstrumentWithDetail,
+)
+from apps.ccl.models.lab_model import LabDB
 from apps.ccl.models.user_model import UserDB
 
 router = APIRouter(prefix="/instruments", tags=["Instruments"])
 
 
 @router.post("/create", response_model=InstrumentWithDetail)
-async def create(instrument: Instrument, db: AsyncSession = Depends(get_ccl_db)):
+async def create_item(instrument: Instrument, db: AsyncSession = Depends(get_ccl_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == instrument.user_id))
     user = result.scalars().first()
@@ -24,15 +31,28 @@ async def create(instrument: Instrument, db: AsyncSession = Depends(get_ccl_db))
     db_user = InstrumentDB(
         # user
         user_id=instrument.user_id,
+        
         # details
         name=instrument.name,
+        serial_no=instrument.serial_no,
         description=instrument.description,
-        #costs
+        
+        # costs
         cost=instrument.cost,
         amortization=instrument.amortization,
         annual_cost=instrument.annual_cost,
         maintenance_cost=instrument.maintenance_cost,
-        total_cost = instrument.total_cost,
+        total_cost=instrument.total_cost,
+        
+        # calibration
+        calibration_cycle =instrument.calibration_cycle,
+        calibration_kit_cost = instrument.calibration_kit_cost,
+        calibration_service_cost = instrument.calibration_service_cost,
+        calibration_annual_cost = instrument.calibration_annual_cost, 
+          
+        # lists
+        lab_list=instrument.lab_list,
+        
         # service
         created_by=user.email,
     )
@@ -48,18 +68,42 @@ async def create(instrument: Instrument, db: AsyncSession = Depends(get_ccl_db))
     return db_user
 
 
-@router.get("/id/{instrument_id}", response_model=InstrumentWithDetail)
+@router.get("/id/{instrument_id}", response_model=InstrumentParam)
 async def get_item(instrument_id: int, db: AsyncSession = Depends(get_ccl_db)):
-    result = await db.execute(
-        select(InstrumentDB).filter(InstrumentDB.id == instrument_id)
-    )
-    category = result.scalars().first()
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unable to find instrument with id '{instrument_id}'",
+    
+    # only get if not zero
+    instrumentItem = None
+    if instrument_id != 0:
+        result = await db.execute(
+            select(InstrumentDB)
+            .options(
+                selectinload(InstrumentDB.user),
+            )
+            .filter(InstrumentDB.id == instrument_id)
         )
-    return category
+
+        instrumentItem = result.scalars().first()
+        if not instrumentItem:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unable to find instrument with id '{instrument_id}'",
+            )
+            
+    # get labs
+    result = await db.execute(
+        select(LabDB)
+        .options(
+            selectinload(LabDB.user),
+        )
+        .order_by(LabDB.name)
+    )
+    labList = result.scalars().all()
+    
+    # return param
+    param = InstrumentParam(instrument=instrumentItem, labs=labList)
+    
+    return param
+
 
 
 @router.put("/update/{instrument_id}", response_model=InstrumentWithDetail)
@@ -69,8 +113,13 @@ async def update_item(
     db: AsyncSession = Depends(get_ccl_db),
 ):
     result = await db.execute(
-        select(InstrumentDB).where(InstrumentDB.id == instrument_id)
+        select(InstrumentDB)
+        .options(
+            selectinload(InstrumentDB.user),
+        )
+        .filter(InstrumentDB.id == instrument_id)
     )
+    
     config = result.scalar_one_or_none()
 
     if not config:
@@ -93,6 +142,25 @@ async def update_item(
 
 
 @router.get("/list", response_model=List[InstrumentWithDetail])
-async def list_items(db: AsyncSession = Depends(get_ccl_db)):
-    result = await db.execute(select(InstrumentDB))
+async def list(db: AsyncSession = Depends(get_ccl_db)):
+    result = await db.execute(
+        select(InstrumentDB)
+        .options(
+            selectinload(InstrumentDB.user),
+        )
+        .order_by(InstrumentDB.name)
+    )
     return result.scalars().all()
+
+
+@router.get("/items", response_model=List[InstrumentItem])
+async def list_items(db: AsyncSession = Depends(get_ccl_db)):
+    result = await db.execute(
+        select(InstrumentDB)
+        .options(
+            selectinload(InstrumentDB.user),
+        )
+        .order_by(InstrumentDB.name)
+    )
+    return result.scalars().all()
+

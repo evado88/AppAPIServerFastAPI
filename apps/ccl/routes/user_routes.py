@@ -5,7 +5,7 @@ from typing import List
 
 from apps.ccl.ccldb import get_ccl_db
 from helpers import assist
-from apps.ccl.models.user_model import User, UserDB, UserSimple, UserWithDetail
+from apps.ccl.models.user_model import User, UserDB, UserItem, UserSimple, UserWithDetail
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -118,5 +118,10 @@ async def get_user_email(user_email: str, db: AsyncSession = Depends(get_ccl_db)
 
 @router.get("/list", response_model=List[UserWithDetail])
 async def list_users(db: AsyncSession = Depends(get_ccl_db)):
+    result = await db.execute(select(UserDB))
+    return result.scalars().all()
+
+@router.get("/items", response_model=List[UserItem])
+async def list_items(db: AsyncSession = Depends(get_ccl_db)):
     result = await db.execute(select(UserDB))
     return result.scalars().all()
