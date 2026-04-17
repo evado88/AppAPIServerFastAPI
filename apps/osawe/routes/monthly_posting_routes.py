@@ -45,7 +45,7 @@ async def post_posting(posting: MonthlyPosting, db: AsyncSession = Depends(get_o
     periodId = assist.get_date_period(posting.date)
 
     result = await db.execute(
-        select(MonthlyPostingDB).filter(
+        select(MonthlyPostingDB).where(
             MonthlyPostingDB.period_id == periodId,
             MonthlyPostingDB.member_id == member.id,
         )
@@ -160,7 +160,7 @@ async def review_posting(
     periodId = assist.get_current_period()
 
     result = await db.execute(
-        select(PostingPeriodDB).filter(PostingPeriodDB.id == periodId)
+        select(PostingPeriodDB).where(PostingPeriodDB.id == periodId)
     )
 
     config = result.scalars().first()
@@ -430,7 +430,7 @@ async def list_user_postings(userId: int, db: AsyncSession = Depends(get_osawe_d
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(MonthlyPostingDB.user_id == userId)
+        .where(MonthlyPostingDB.user_id == userId)
     )
     postings = result.scalars().all()
     return postings
@@ -443,7 +443,7 @@ async def list_user_mid_postings(userId: int, db: AsyncSession = Depends(get_osa
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(MonthlyPostingDB.user_id == userId, MonthlyPostingDB.mid_status == 2)
+        .where(MonthlyPostingDB.user_id == userId, MonthlyPostingDB.mid_status == 2)
     )
     postings = result.scalars().all()
     return postings
@@ -458,7 +458,7 @@ async def list_user_postings(email: str, db: AsyncSession = Depends(get_osawe_db
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(
+        .where(
             MonthlyPostingDB.guarantor_required == assist.RESPONSE_YES,
             MonthlyPostingDB.guarantor_user_email == email,
         )
@@ -474,7 +474,7 @@ async def list_status_postings(status_id: int, db: AsyncSession = Depends(get_os
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(MonthlyPostingDB.status_id == status_id)
+        .where(MonthlyPostingDB.status_id == status_id)
     )
     postings = result.scalars().all()
     return postings
@@ -487,7 +487,7 @@ async def list_period_postings(period_id: str, db: AsyncSession = Depends(get_os
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(MonthlyPostingDB.period_id == period_id)
+        .where(MonthlyPostingDB.period_id == period_id)
     )
     postings = result.scalars().all()
     return postings
@@ -505,7 +505,7 @@ async def list_status_period_postings(
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(
+        .where(
             MonthlyPostingDB.period_id == period_id,
             MonthlyPostingDB.status_id == status_id,
         )
@@ -521,7 +521,7 @@ async def get_posting(posting_id: int, db: AsyncSession = Depends(get_osawe_db))
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(MonthlyPostingDB.id == posting_id)
+        .where(MonthlyPostingDB.id == posting_id)
     )
     posting = result.scalars().first()
     if not posting:
@@ -563,7 +563,7 @@ async def update_posting(
 async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
 
     # check user exists
-    result = await db.execute(select(UserDB).filter(UserDB.id == user_id))
+    result = await db.execute(select(UserDB).where(UserDB.id == user_id))
     user = result.scalars().first()
     if not user:
         raise HTTPException(
@@ -578,7 +578,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
     periodId = assist.get_current_period()
 
     result = await db.execute(
-        select(MonthlyPostingDB).filter(
+        select(MonthlyPostingDB).where(
             MonthlyPostingDB.period_id == periodId,
             MonthlyPostingDB.user_id == user_id,
         )
@@ -587,7 +587,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
     monthPosting = result.scalars().first()
 
     # get member
-    result = await db.execute(select(MemberDB).filter(MemberDB.user_id == user_id))
+    result = await db.execute(select(MemberDB).where(MemberDB.user_id == user_id))
 
     member = result.scalars().first()
     if not member:
@@ -598,7 +598,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
 
     # get config
     result = await db.execute(
-        select(PostingPeriodDB).filter(PostingPeriodDB.id == periodId)
+        select(PostingPeriodDB).where(PostingPeriodDB.id == periodId)
     )
 
     config = result.scalars().first()
@@ -616,7 +616,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
     """
 
     # get savings
-    stmt = select(func.sum(TransactionDB.amount)).filter(
+    stmt = select(func.sum(TransactionDB.amount)).where(
         TransactionDB.user_id == user_id,
         TransactionDB.type_id == assist.TRANSACTION_SAVINGS,
         TransactionDB.status_id == assist.STATUS_APPROVED,
@@ -630,7 +630,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
 
     # get loan that is open in current period
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             TransactionDB.user_id == user_id,
             TransactionDB.type_id == assist.TRANSACTION_LOAN,
             TransactionDB.status_id == assist.STATUS_APPROVED,
@@ -647,7 +647,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
     # check if there is a loan
     if loan:
         # there is loan, check payments made against loan
-        stmt = select(func.sum(TransactionDB.amount)).filter(
+        stmt = select(func.sum(TransactionDB.amount)).where(
             TransactionDB.user_id == user_id,
             TransactionDB.type_id == assist.TRANSACTION_LOAN_PAYMENT,
             TransactionDB.status_id == assist.STATUS_APPROVED,
@@ -659,7 +659,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
         totalLoanPaymentsAmount = result.scalar() or 0.0
 
         # there is loan, check payments made against loan
-        stmt = select(func.count(TransactionDB.amount)).filter(
+        stmt = select(func.count(TransactionDB.amount)).where(
             TransactionDB.user_id == user_id,
             TransactionDB.type_id == assist.TRANSACTION_LOAN_PAYMENT,
             TransactionDB.status_id == assist.STATUS_APPROVED,
@@ -672,7 +672,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
 
     # penalties
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             TransactionDB.user_id == user_id,
             TransactionDB.type_id == assist.TRANSACTION_PENALTY_CHARGED,
             TransactionDB.status_id == assist.STATUS_APPROVED,
@@ -687,7 +687,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
 
     # pay methods
     result = await db.execute(
-        select(PaymentMethodDB).filter(
+        select(PaymentMethodDB).where(
             PaymentMethodDB.user_id == user_id,
             PaymentMethodDB.status_id == assist.STATUS_APPROVED,
         )
@@ -696,7 +696,7 @@ async def get_posting_param(user_id: int, db: AsyncSession = Depends(get_osawe_d
 
     # guarantors
     result = await db.execute(
-        select(GuarantorDB).filter(
+        select(GuarantorDB).where(
             GuarantorDB.user_id == user_id,
             GuarantorDB.status_id == assist.STATUS_APPROVED,
         )

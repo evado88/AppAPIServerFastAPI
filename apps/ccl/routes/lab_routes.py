@@ -48,7 +48,7 @@ async def get_item(lab_id: int, db: AsyncSession = Depends(get_ccl_db)):
         .options(
             selectinload(LabDB.user),
         )
-        .filter(LabDB.id == lab_id)
+        .where(LabDB.id == lab_id)
         .order_by(LabDB.name)
     )
 
@@ -69,7 +69,7 @@ async def update_item(
         .options(
             selectinload(LabDB.user),
         )
-        .filter(LabDB.id == lab_id)
+        .where(LabDB.id == lab_id)
         .order_by(LabDB.name)
     )
 

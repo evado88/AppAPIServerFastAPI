@@ -57,7 +57,6 @@ class WalkRouteDB(Base):
     stage = relationship("ReviewStageDB", back_populates="routes", lazy="raise")
     status = relationship("StatusTypeDB", back_populates="routes", lazy="raise")
     customer = relationship("CustomerDB", back_populates="route", lazy="raise")
-    meters = relationship("MeterDB", back_populates="route", lazy="raise")
     
 # ---------- Pydantic Schemas ----------
 class WalkRoute(BaseModel):
@@ -72,7 +71,6 @@ class WalkRoute(BaseModel):
 
     name: str = Field(
         ...,
-        min_length=2,
         max_length=50,
         description="Name must be between 2 and 50 characters",
     )
@@ -118,7 +116,6 @@ class WalkRouteItem(BaseModel):
     
     name: str = Field(
         ...,
-        min_length=2,
         max_length=50,
         description="Name must be between 2 and 50 characters",
     )

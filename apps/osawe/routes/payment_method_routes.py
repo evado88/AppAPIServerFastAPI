@@ -111,7 +111,7 @@ async def list_paymentmethods(db: AsyncSession = Depends(get_osawe_db)):
 @router.get("/user/{user_id}/list", response_model=List[PaymentMethodWithDetail])
 async def list_my_paymentmethods(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(PaymentMethodDB).filter(PaymentMethodDB.user_id == user_id)
+        select(PaymentMethodDB).where(PaymentMethodDB.user_id == user_id)
     )
     paymentmethods = result.scalars().all()
     return paymentmethods
@@ -124,7 +124,7 @@ async def list_my_approved_paymentmethods(
     user_id: int, db: AsyncSession = Depends(get_osawe_db)
 ):
     result = await db.execute(
-        select(PaymentMethodDB).filter(
+        select(PaymentMethodDB).where(
             PaymentMethodDB.user_id == user_id,
             PaymentMethodDB.status_id == assist.STATUS_APPROVED,
         )
@@ -136,7 +136,7 @@ async def list_my_approved_paymentmethods(
 @router.get("/id/{paymentmethod_id}", response_model=PaymentMethodWithDetail)
 async def get_paymentmethod(paymentmethod_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(PaymentMethodDB).filter(PaymentMethodDB.id == paymentmethod_id)
+        select(PaymentMethodDB).where(PaymentMethodDB.id == paymentmethod_id)
     )
     paymentmethod = result.scalars().first()
     if not paymentmethod:

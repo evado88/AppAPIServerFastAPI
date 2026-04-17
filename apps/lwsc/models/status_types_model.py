@@ -25,7 +25,6 @@ class StatusTypeDB(Base):
     districts = relationship("DistrictDB", back_populates="status", lazy="raise")
     routes = relationship("WalkRouteDB", back_populates="status", lazy="raise")
     customers = relationship("CustomerDB", back_populates="status", lazy="raise")
-    meters = relationship("MeterDB", back_populates="status", lazy="raise")
     meterreadings = relationship("MeterReadingDB", back_populates="status", lazy="raise")
     transactions = relationship("TransactionDB", back_populates="status", lazy="raise")
     category = relationship("CategoryDB", back_populates="status", lazy="raise")

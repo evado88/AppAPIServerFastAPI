@@ -12,7 +12,6 @@ from apps.lwsc.models.customer_model import (
     CustomerWithDetail,
 )
 from apps.lwsc.models.district_model import DistrictDB
-from apps.lwsc.models.meter_model import MeterDB
 from apps.lwsc.models.param_models import ParamCustomer, ParamCustomerImport
 from apps.lwsc.models.user_model import UserDB
 from apps.lwsc.models.walkroute_model import WalkRouteDB
@@ -44,10 +43,8 @@ async def create_type(customer: Customer, db: AsyncSession = Depends(get_lwsc_db
         town_id=customer.town_id,
         # route
         route_id=customer.route_id,
-        # personal details
-        fname=customer.fname,
-        lname=customer.lname,
-        title=customer.title,
+        # details
+        name=customer.name,
         # contact, address
         email=customer.email,
         mobile=customer.mobile,
@@ -95,87 +92,130 @@ async def import_customers(
     existingCustomers = result.scalars().all()
 
     index = 0
+    added = 0
+    updated = 0
+
+    startProcess = assist.get_current_date(False)
+
     for customer in customerImport.items:
 
         # update count
         index += 1
+
+        # get account number
         account = customer["Account"]
 
+        # get route name
+        routename = customer["StreetName"]
+
+        # keep track if customers who exist
+        customerExists = False
+        customerRecord = None
+
         for c in existingCustomers:
-            if c.code == account:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"The customer '{account}' already exists in the system",
-                )
+            if c.account == account:
+                customerExists = True
+                customerRecord = c
+                break
 
-        # split name if it has space
-        name = str(customer["Name"])
-
-        if " " in name:
-            names = name.split(" ", 1)
-
-            firstname = names[0]
-            lastname = names[1]
-        else:
-            firstname = name
-            lastname = ""
-
-        db_customer = CustomerDB(
-            # user
-            user_id=customerImport.user_id,
-            # cat
-            cat_id=customerImport.cat_id,
-            # town
-            district_id=customerImport.district_id,
-            # route
-            route_id=customerImport.route_id,
-            # personal details
-            code=account,
-            fname=firstname,
-            lname=lastname,
-            title="",
-            # contact, address
-            email=f"{account}@lpwsc.co.zm",
-            mobile="097",
-            tel="",
-            address_physical=customer["StreetName"],
-            address_postal="",
-            lat=customer["Latitude"],
-            lon=customer["Longitude"],
-            # approval
-            status_id=lwscapp.STATUS_APPROVED,
-            stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
-            approval_levels=1,
-            # service
-            created_by=user.email,
+        # add route
+        # check route
+        result = await db.execute(
+            select(WalkRouteDB)
+            .options(
+                selectinload(WalkRouteDB.user),
+                selectinload(WalkRouteDB.district),
+                selectinload(WalkRouteDB.stage),
+                selectinload(WalkRouteDB.status),
+            )
+            .where(
+                WalkRouteDB.name == routename,
+                WalkRouteDB.district_id == customerImport.district_id,
+            )
         )
-        db.add(db_customer)
-        try:
-            await db.commit()
-            await db.refresh(db_customer)
 
-            db_meter = MeterDB(
+        route = result.scalars().first()
+        routeId = None
+
+        if route:
+            # route exists
+            routeId = route.id
+        else:
+            # route doesnt exist
+            db_route = WalkRouteDB(
                 # user
                 user_id=customerImport.user_id,
+                # district
+                district_id=customerImport.district_id,
+                # details
+                name=routename,
+                # approval
+                status_id=lwscapp.STATUS_APPROVED,
+                stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
+                approval_levels=2,
+            )
+            db.add(db_route)
+            try:
+                await db.commit()
+                await db.refresh(db_route)
+                # get the id
+                routeId = db_route.id
+            except Exception as e:
+                await db.rollback()
+                raise HTTPException(
+                    status_code=400, detail=f"Unable to create route: f{e}"
+                )
+
+        if customerExists:
+            # update customer available fields
+
+            customerRecord.name = customer["Name"]
+            customerRecord.number = customer["Meter"]
+            customerRecord.address_physical = customer["StreetName"]
+            customerRecord.lat = customer["Latitude"]
+            customerRecord.lon = customer["Longitude"]
+            customerRecord.route_id = routeId
+            customerRecord.current = customer["Current"]
+            customerRecord.previous = customer["Previous"]
+
+            # commit
+            try:
+                await db.commit()
+                await db.refresh(customerRecord)
+
+                updated += 1
+            except Exception as e:
+                await db.rollback()
+                raise HTTPException(
+                    status_code=400, detail=f"Unable to update customer {e}"
+                )
+        else:
+            # add customer
+            db_customer = CustomerDB(
+                # user
+                user_id=customerImport.user_id,
+                # cat
+                cat_id=customerImport.cat_id,
                 # town
                 district_id=customerImport.district_id,
-                # customer
-                customer_id=db_customer.id,
                 # route
-                route_id=customerImport.route_id,
+                route_id=routeId,
                 # details
-                code=account,
-                number=account,
-                name=account,
-                description="",
-                # reading
-                read_date=None,
-                current=customer["Current"],
-                previous=customer["Previous"],
-                comments=None,
+                account=account,
+                name=customer["Name"],
+                number=customer["Meter"],
+                remarks=customer["Remarks"],
                 # contact, address
+                email=f"{account}@lpwsc.co.zm",
+                mobile="097",
+                tel="",
+                address_physical=customer["StreetName"],
+                address_postal="",
                 lat=customer["Latitude"],
                 lon=customer["Longitude"],
+                # reading
+                current=customer["Current"],
+                previous=customer["Previous"],
                 # approval
                 status_id=lwscapp.STATUS_APPROVED,
                 stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
@@ -183,81 +223,41 @@ async def import_customers(
                 # service
                 created_by=user.email,
             )
+            db.add(db_customer)
+            added += 1
 
-            db.add(db_meter)
-            await db.commit()
-
-        except Exception as e:
-            await db.rollback()
-            raise HTTPException(
-                status_code=400, detail=f"Unable to import customers: f{e}"
-            )
-    return {
-        "succeeded": True,
-        "message": f"Successfully imported {index} customer(s)",
-    }
-
-
-@router.post("/initialize")
-async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
-    # get all routes
-    result = await db.execute(select(WalkRouteDB))
-    routes = result.scalars().all()
-
-    # add 3 customers for each
-    index = 1
-    for route in routes:
-        for k in range(1, 4):
-            pad = str(index).zfill(3)
-            db_status = CustomerDB(
-                # user
-                user_id=route.user_id,
-                # cat
-                cat_id=random.randint(1, 13),
-                # town
-                town_id=route.town_id,
-                # route
-                route_id=route.id,
-                # personal details
-                fname=f"T{route.town_id} R{route.id} Customer {k}",
-                lname=f"T{route.town_id} R{route.id} Name {k}",
-                title="Mr.",
-                # contact, address
-                email=f"t{route.town_id}.r{route.id}.customer{k}@yahoo.com",
-                mobile=f"260955123{pad}",
-                tel=f"260955123{pad}",
-                address_physical=f"Plot 397{pad}. Off Samfya Road",
-                address_postal=f"P.O Box 790{pad}",
-                lat=-11.1818469 - (index * 100),
-                lon=28.8866439 + (index * 100),
-                # approval
-                status_id=assist.STATUS_APPROVED,
-                stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
-                approval_levels=2,
-                # service
-                created_by="user-001@hotmail.com",
-            )
-            db.add(db_status)
-            index += 1
-
+    # commit changes
     try:
+        # comit changes
         await db.commit()
-        # await db.refresh(db_status)
-
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=400, detail=f"Unable to initialize customers: f{e}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unable to import customers: f{e}")
+
+    endProcess = assist.get_current_date(False)
+
+    print(f"Import Duration. Start={startProcess}, End={endProcess}")
+
     return {
         "succeeded": True,
-        "message": "Customers have been successfully initialized",
+        "message": f"Successfully imported {index} customer(s). Updated {updated} and added {added} customer(s)",
     }
 
 
 @router.get("/id/{customer_id}", response_model=CustomerWithDetail)
 async def get_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CustomerDB).filter(CustomerDB.id == customer_id))
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
+            selectinload(CustomerDB.user),
+            selectinload(CustomerDB.category),
+            selectinload(CustomerDB.district),
+            selectinload(CustomerDB.route),
+            selectinload(CustomerDB.stage),
+            selectinload(CustomerDB.status),
+        )
+        .where(CustomerDB.id == customer_id)
+    )
     category = result.scalars().first()
     if not category:
         raise HTTPException(
@@ -269,7 +269,9 @@ async def get_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)
 @router.get("/edit/{customer_id}", response_model=ParamCustomer)
 async def get_edit_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)):
     # get customer
-    result = await db.execute(select(CustomerDB).options(noload("*")).filter(CustomerDB.id == customer_id))
+    result = await db.execute(
+        select(CustomerDB).options(noload("*")).where(CustomerDB.id == customer_id)
+    )
     customerItem = result.scalars().first()
     if not customerItem:
         raise HTTPException(
@@ -303,7 +305,18 @@ async def get_edit_customer(customer_id: int, db: AsyncSession = Depends(get_lws
 async def update_category(
     customer_id: int, customer_update: Customer, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(select(CustomerDB).where(CustomerDB.id == customer_id))
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
+            selectinload(CustomerDB.user),
+            selectinload(CustomerDB.category),
+            selectinload(CustomerDB.district),
+            selectinload(CustomerDB.route),
+            selectinload(CustomerDB.stage),
+            selectinload(CustomerDB.status),
+        )
+        .where(CustomerDB.id == customer_id)
+    )
     config = result.scalar_one_or_none()
 
     if not config:
@@ -326,14 +339,18 @@ async def update_category(
 
 @router.get("/list", response_model=List[CustomerWithDetail])
 async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CustomerDB).options(
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
             selectinload(CustomerDB.user),
             selectinload(CustomerDB.category),
             selectinload(CustomerDB.district),
             selectinload(CustomerDB.route),
             selectinload(CustomerDB.stage),
             selectinload(CustomerDB.status),
-        ).order_by(CustomerDB.code))
+        )
+        .order_by(CustomerDB.account)
+    )
     return result.scalars().all()
 
 

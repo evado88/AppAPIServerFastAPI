@@ -98,7 +98,7 @@ async def get_user_id(user_id: int, db: AsyncSession = Depends(get_lwsc_db)):
         #    joinedload(UserDB.source),
         #
         # )
-        .filter(UserDB.id == user_id)
+        .where(UserDB.id == user_id)
     )
     user = result.scalars().first()
     if not user:
@@ -110,7 +110,7 @@ async def get_user_id(user_id: int, db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/email/{user_email}", response_model=List[UserSimple])
 async def get_user_email(user_email: str, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(UserDB).filter(UserDB.email == user_email))
+    result = await db.execute(select(UserDB).where(UserDB.email == user_email))
     users = []
 
     user = result.scalars().first()

@@ -200,7 +200,7 @@ async def get_posting(period_id: str, db: AsyncSession = Depends(get_osawe_db)):
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(PostingPeriodDB.id == period_id)
+        .where(PostingPeriodDB.id == period_id)
     )
     period = result.scalars().first()
     if not period:
@@ -252,7 +252,7 @@ async def get_posting(period_id: str, db: AsyncSession = Depends(get_osawe_db)):
             MonthlyPostingDB.stage_id,
             func.coalesce(func.count(MonthlyPostingDB.period_id), 0).label("total"),
         )
-        .filter(
+        .where(
             MonthlyPostingDB.period_id == period_id,
         )
         .group_by(
@@ -425,7 +425,7 @@ async def review_posting(
 
     # get config
     result = await db.execute(
-        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+        select(SACCOConfigurationDB).where(SACCOConfigurationDB.id == 1)
     )
 
     config = result.scalars().first()
@@ -649,13 +649,13 @@ async def list_current_periods(
 
     if status_id == 0:
         result = await db.execute(
-            select(PostingPeriodDB).filter(
+            select(PostingPeriodDB).where(
                 PostingPeriodDB.year == filterYear, PostingPeriodDB.month <= filterMonth
             )
         )
     else:
         result = await db.execute(
-            select(PostingPeriodDB).filter(
+            select(PostingPeriodDB).where(
                 PostingPeriodDB.year == filterYear,
                 PostingPeriodDB.month <= filterMonth,
                 PostingPeriodDB.status_id == status_id,
@@ -714,7 +714,7 @@ async def list_current_periods(
             MonthlyPostingDB.stage_id,
             func.coalesce(func.count(MonthlyPostingDB.period_id), 0).label("total"),
         )
-        .filter(
+        .where(
             MonthlyPostingDB.period_id <= period_id,
         )
         .group_by(
@@ -745,7 +745,7 @@ async def list_current_periods(period_id: str, db: AsyncSession = Depends(get_os
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(
+        .where(
             MonthlyPostingDB.period_id == period_id,
             MonthlyPostingDB.status_id == assist.STATUS_APPROVED,
             MonthlyPostingDB.receive_total > 0,

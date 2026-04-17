@@ -50,7 +50,6 @@ class DistrictDB(Base):
     
     #relationships
     user = relationship("UserDB", back_populates="districts", lazy="raise")
-    meters = relationship("MeterDB", back_populates="district", lazy="raise")
     customer = relationship("CustomerDB", back_populates="district", lazy="raise")
     routes = relationship("WalkRouteDB", back_populates="district", lazy="raise")
     stage = relationship("ReviewStageDB", back_populates="districts", lazy="raise")

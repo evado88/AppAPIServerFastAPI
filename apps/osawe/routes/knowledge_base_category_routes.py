@@ -114,7 +114,7 @@ async def get_knowledgebase_category(cat_id: int, db: AsyncSession = Depends(get
         #    joinedload(KnowledgeBaseCategoryDB.source),
         #
         #)
-        .filter(KnowledgeBaseCategoryDB.id == cat_id)
+        .where(KnowledgeBaseCategoryDB.id == cat_id)
     )
     category = result.scalars().first()
     if not category:

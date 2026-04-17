@@ -5,13 +5,12 @@ from typing import List, Optional
 from datetime import date, datetime
 from apps.lwsc.lwscdb import Base
 from apps.lwsc.models.attachment_model import Attachment
-from apps.lwsc.models.customer_model import Customer
-from apps.lwsc.models.meter_model import Meter, MeterItem
+from apps.lwsc.models.customer_model import Customer, CustomerItem
 from apps.lwsc.models.review_stages_model import ReviewStage
 from apps.lwsc.models.status_types_model import StatusType
 from apps.lwsc.models.transaction_group_model import TransactionGroup, TransactionGroupItem
 from apps.lwsc.models.transaction_type_model import TransactionType, TransactionTypeItem
-from apps.lwsc.models.user_model import User
+from apps.lwsc.models.user_model import User, UserSimple
 
 # ---------- SQLAlchemy Models ----------
 class TransactionDB(Base):
@@ -32,9 +31,6 @@ class TransactionDB(Base):
 
     # customer
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
-
-    # meter
-    meter_id = Column(Integer, ForeignKey("meters.id"), nullable=True)
 
     # attachment
     attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
@@ -88,7 +84,6 @@ class TransactionDB(Base):
         "AttachmentDB", back_populates="transactions", lazy="raise"
     )
     customer = relationship("CustomerDB", back_populates="transactions", lazy="raise")
-    meter = relationship("MeterDB", back_populates="transactions", lazy="raise")
 
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
@@ -110,9 +105,6 @@ class Transaction(BaseModel):
     # customer
     customer_id: int
     
-    # meter
-    meter_id: int
-
     # attachment
     attachment_id: Optional[int] = None
 
@@ -156,21 +148,20 @@ class Transaction(BaseModel):
 
         
 class TransactionWithDetail(Transaction):
-    user: User
+    user: UserSimple
     type: TransactionType
     group: TransactionGroup
     status: StatusType
     stage: ReviewStage
     attachment: Optional[Attachment] = None
     customer: Customer
-    meter: Meter
     
 
 class ParamTransactionEdit(BaseModel):
     transaction: Optional[Transaction] = None
+    customers: List[CustomerItem] = []
     types: List[TransactionTypeItem] = []
     groups: List[TransactionGroupItem] = []
-    meters: List[MeterItem] = []
         
     class Config:
         orm_mode = True

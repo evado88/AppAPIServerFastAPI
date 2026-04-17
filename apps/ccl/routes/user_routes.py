@@ -91,7 +91,7 @@ async def get_user_id(user_id: int, db: AsyncSession = Depends(get_ccl_db)):
         #    joinedload(TransactionDB.source),
         #
         # )
-        .filter(UserDB.id == user_id)
+        .where(UserDB.id == user_id)
     )
     transaction = result.scalars().first()
     if not transaction:
@@ -105,7 +105,7 @@ async def get_user_id(user_id: int, db: AsyncSession = Depends(get_ccl_db)):
 async def get_user_email(user_email: str, db: AsyncSession = Depends(get_ccl_db)):
     result = await db.execute(
         select(UserDB)
-        .filter(UserDB.email == user_email)
+        .where(UserDB.email == user_email)
     )
     users = []
 

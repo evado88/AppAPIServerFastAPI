@@ -89,7 +89,7 @@ async def list_guarantors(db: AsyncSession = Depends(get_osawe_db)):
 @router.get("/user/{user_id}/list", response_model=List[GuarantorWithDetail])
 async def list_my_guarantors(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(GuarantorDB).filter(
+        select(GuarantorDB).where(
             GuarantorDB.user_id == user_id,
         )
     )
@@ -99,7 +99,7 @@ async def list_my_guarantors(user_id: int, db: AsyncSession = Depends(get_osawe_
 @router.get("/user/{user_id}/approved/list", response_model=List[GuarantorWithDetail])
 async def list_my_approved_guarantors(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(GuarantorDB).filter(
+        select(GuarantorDB).where(
             GuarantorDB.user_id == user_id,
             GuarantorDB.status_id == assist.STATUS_APPROVED
         )
@@ -110,7 +110,7 @@ async def list_my_approved_guarantors(user_id: int, db: AsyncSession = Depends(g
 @router.get("/email/{email}/list", response_model=List[GuarantorWithDetail])
 async def list_email_guarantors(email: str, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(GuarantorDB).filter(GuarantorDB.guar_email == email)
+        select(GuarantorDB).where(GuarantorDB.guar_email == email)
     )
     guarantors = result.scalars().all()
     return guarantors
@@ -119,7 +119,7 @@ async def list_email_guarantors(email: str, db: AsyncSession = Depends(get_osawe
 @router.get("/id/{guarantor_id}", response_model=GuarantorWithDetail)
 async def get_guarantor(guarantor_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(GuarantorDB).filter(GuarantorDB.id == guarantor_id)
+        select(GuarantorDB).where(GuarantorDB.id == guarantor_id)
     )
     guarantor = result.scalars().first()
     if not guarantor:

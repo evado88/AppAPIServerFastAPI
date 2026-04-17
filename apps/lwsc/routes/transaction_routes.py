@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.meter_model import MeterDB
+from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.transaction_group_model import TransactionGroupDB
 from apps.lwsc.models.transaction_model import (
     ParamTransactionEdit,
@@ -48,8 +48,6 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
         user_id=tran.user_id,
         # customer
         customer_id=tran.customer_id,
-        # meter
-        meter_id=tran.meter_id,
         # attachement
         attachment_id=tran.attachment_id,
         # transaction
@@ -79,7 +77,8 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
 @router.get("/list", response_model=List[TransactionWithDetail])
 async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(
-        select(TransactionDB).options(
+        select(TransactionDB)
+        .options(
             selectinload(TransactionDB.user),
             selectinload(TransactionDB.type),
             selectinload(TransactionDB.group),
@@ -87,8 +86,8 @@ async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
             selectinload(TransactionDB.stage),
             selectinload(TransactionDB.attachment),
             selectinload(TransactionDB.customer),
-            selectinload(TransactionDB.meter),
-        ).order_by(desc(TransactionDB.id))
+        )
+        .order_by(desc(TransactionDB.id))
     )
     transactions = result.scalars().all()
     return transactions
@@ -101,7 +100,17 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_lwsc_db))
     transactionItem = None
     if tran_id != 0:
         result = await db.execute(
-            select(TransactionDB).filter(TransactionDB.id == tran_id)
+            select(TransactionDB)
+            .options(
+                selectinload(TransactionDB.user),
+                selectinload(TransactionDB.type),
+                selectinload(TransactionDB.group),
+                selectinload(TransactionDB.status),
+                selectinload(TransactionDB.stage),
+                selectinload(TransactionDB.attachment),
+                selectinload(TransactionDB.customer),
+            )
+            .where(TransactionDB.id == tran_id)
         )
         transactionItem = result.scalars().first()
         if not transactionItem:
@@ -109,6 +118,10 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_lwsc_db))
                 status_code=404,
                 detail=f"Unable to find transaction with id '{tran_id}'",
             )
+
+    # customer list
+    result = await db.execute(select(CustomerDB).options(noload("*")))
+    customerList = result.scalars().all()
 
     # get type list
     result = await db.execute(select(TransactionTypeDB).options(noload("*")))
@@ -118,22 +131,33 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_lwsc_db))
     result = await db.execute(select(TransactionGroupDB).options(noload("*")))
     groupList = result.scalars().all()
 
-    # get meter list
-    result = await db.execute(select(MeterDB).options(noload("*")))
-    meterList = result.scalars().all()
-
     paramEdit = ParamTransactionEdit(
-        transaction=transactionItem, types=typeList, groups=groupList, meters=meterList
+        transaction=transactionItem,
+        customers=customerList,
+        types=typeList,
+        groups=groupList,
     )
 
     return paramEdit
 
 
-@router.put("/update/{id}", response_model=TransactionWithDetail)
+@router.put("/update/{id}", response_model=ParamTransactionEdit)
 async def update_transaction(
     id: int, transaction_update: Transaction, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(select(TransactionDB).where(TransactionDB.id == id))
+    result = await db.execute(
+        select(TransactionDB)
+        .options(
+            selectinload(TransactionDB.user),
+            selectinload(TransactionDB.type),
+            selectinload(TransactionDB.group),
+            selectinload(TransactionDB.status),
+            selectinload(TransactionDB.stage),
+            selectinload(TransactionDB.attachment),
+            selectinload(TransactionDB.customer),
+        )
+        .where(TransactionDB.id == id)
+    )
     transaction = result.scalar_one_or_none()
 
     if not transaction:
@@ -152,4 +176,25 @@ async def update_transaction(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Unable to update transaction {e}")
-    return transaction
+    
+    
+    # customer list
+    result = await db.execute(select(CustomerDB).options(noload("*")))
+    customerList = result.scalars().all()
+
+    # get type list
+    result = await db.execute(select(TransactionTypeDB).options(noload("*")))
+    typeList = result.scalars().all()
+
+    # get group list
+    result = await db.execute(select(TransactionGroupDB).options(noload("*")))
+    groupList = result.scalars().all()
+
+    paramEdit = ParamTransactionEdit(
+        transaction=transaction,
+        customers=customerList,
+        types=typeList,
+        groups=groupList,
+    )
+
+    return paramEdit

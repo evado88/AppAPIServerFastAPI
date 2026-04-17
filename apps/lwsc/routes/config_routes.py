@@ -94,7 +94,7 @@ async def get_configuration(config_id: int, db: AsyncSession = Depends(get_lwsc_
         .options(
             joinedload(AppConfigurationDB.user),
         )
-        .filter(AppConfigurationDB.id == config_id)
+        .where(AppConfigurationDB.id == config_id)
     )
     posting = result.scalars().first()
     if not posting:

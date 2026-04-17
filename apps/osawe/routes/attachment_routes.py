@@ -22,7 +22,7 @@ router = APIRouter(prefix="/attachments", tags=["Attachment"])
 async def validateAttendance(file: UploadFile, db=AsyncSession):
 
     result = await db.execute(
-        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+        select(SACCOConfigurationDB).where(SACCOConfigurationDB.id == 1)
     )
 
     config = result.scalars().first()
@@ -209,7 +209,7 @@ async def list_attachments(db: AsyncSession = Depends(get_osawe_db)):
 
 @router.get("/{id}", response_model=Attachment)
 async def get_attachment(id: int, db: AsyncSession = Depends(get_osawe_db)):
-    result = await db.execute(select(AttachmentDB).filter(AttachmentDB.id == id))
+    result = await db.execute(select(AttachmentDB).where(AttachmentDB.id == id))
     attachment = result.scalars().first()
     if not attachment:
         raise HTTPException(

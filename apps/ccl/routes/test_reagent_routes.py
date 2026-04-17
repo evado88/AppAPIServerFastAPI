@@ -45,7 +45,7 @@ async def create(testreagent: TestReagent, db: AsyncSession = Depends(get_ccl_db
 @router.get("/id/{testreagent_id}", response_model=TestReagentWithDetail)
 async def get_item(testreagent_id: int, db: AsyncSession = Depends(get_ccl_db)):
     result = await db.execute(
-        select(TestReagentDB).filter(TestReagentDB.id == testreagent_id)
+        select(TestReagentDB).where(TestReagentDB.id == testreagent_id)
     )
     category = result.scalars().first()
     if not category:

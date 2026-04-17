@@ -7,7 +7,6 @@ from apps.lwsc.routes import auth_routes
 from apps.lwsc.routes import user_routes
 from apps.lwsc.routes import walkroute_routes
 from apps.lwsc.routes import customer_routes
-from apps.lwsc.routes import meter_routes
 from apps.lwsc.routes import meter_reading_routes
 from apps.lwsc.routes import attachment_routes
 from apps.lwsc.routes import category_routes
@@ -70,7 +69,6 @@ def include_lwsc_routes(app):
     app.include_router(bill_rate_routes.router, prefix=APP_ROUTE)
     app.include_router(category_routes.router, prefix=APP_ROUTE)
     app.include_router(customer_routes.router, prefix=APP_ROUTE)
-    app.include_router(meter_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_reading_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_status_routes.router, prefix=APP_ROUTE)
     app.include_router(dashboard_routes.router, prefix=APP_ROUTE)

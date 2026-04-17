@@ -123,7 +123,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/id/{district_id}", response_model=DistrictWithDetail)
 async def get__district(district_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(DistrictDB).filter(DistrictDB.id == district_id))
+    result = await db.execute(select(DistrictDB).where(DistrictDB.id == district_id))
     district = result.scalars().first()
     if not district:
         raise HTTPException(

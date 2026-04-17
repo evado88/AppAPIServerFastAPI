@@ -78,7 +78,7 @@ async def get_memberquery(memberquery_id: int, db: AsyncSession = Depends(get_os
         #    joinedload(MemberQueryDB.source),
         #
         # )
-        .filter(MemberQueryDB.id == memberquery_id)
+        .where(MemberQueryDB.id == memberquery_id)
     )
     query = result.scalars().first()
     if not query:
@@ -127,7 +127,7 @@ async def list_user_memberquery(user_id: int, db: AsyncSession = Depends(get_osa
         #    joinedload(MemberQueryDB.source),
         #
         # )
-        .filter(MemberQueryDB.user_id == user_id)
+        .where(MemberQueryDB.user_id == user_id)
     )
     queries = result.scalars().all()
     return queries

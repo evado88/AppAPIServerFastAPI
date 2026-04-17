@@ -76,7 +76,6 @@ class ParamCustomerImport(BaseModel):
     user_id: int
     cat_id: int
     district_id: int
-    route_id: int
     items: Optional[list[dict[str, Any]]] = []
 
     class Config:

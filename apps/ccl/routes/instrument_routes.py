@@ -79,7 +79,7 @@ async def get_item(instrument_id: int, db: AsyncSession = Depends(get_ccl_db)):
             .options(
                 selectinload(InstrumentDB.user),
             )
-            .filter(InstrumentDB.id == instrument_id)
+            .where(InstrumentDB.id == instrument_id)
         )
 
         instrumentItem = result.scalars().first()
@@ -117,7 +117,7 @@ async def update_item(
         .options(
             selectinload(InstrumentDB.user),
         )
-        .filter(InstrumentDB.id == instrument_id)
+        .where(InstrumentDB.id == instrument_id)
     )
     
     config = result.scalar_one_or_none()

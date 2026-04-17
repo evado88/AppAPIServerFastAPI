@@ -65,7 +65,7 @@ async def get_item(reagent_id: int, db: AsyncSession = Depends(get_ccl_db)):
             .options(
                 selectinload(ReagentDB.user),
             )
-            .filter(ReagentDB.id == reagent_id)
+            .where(ReagentDB.id == reagent_id)
         )
         reagentItem = result.scalars().first()
         
@@ -103,7 +103,7 @@ async def update_item(
         .options(
             selectinload(ReagentDB.user),
         )
-        .filter(ReagentDB.id == reagent_id)
+        .where(ReagentDB.id == reagent_id)
     )
     reagent = result.scalar_one_or_none()
 
@@ -134,7 +134,7 @@ async def list_items(is_control: int, db: AsyncSession = Depends(get_ccl_db)):
         .options(
             selectinload(ReagentDB.user),
         )
-        .filter(ReagentDB.is_control == control)
+        .where(ReagentDB.is_control == control)
         .order_by(ReagentDB.name)
     )
     return result.scalars().all()

@@ -7,7 +7,6 @@ from datetime import datetime, date
 
 from apps.lwsc.models.attachment_model import Attachment
 from apps.lwsc.models.customer_model import Customer, CustomerItem
-from apps.lwsc.models.meter_model import Meter, MeterItem
 from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
 from apps.lwsc.models.status_types_model import StatusType, StatusTypeItem
 from apps.lwsc.models.user_model import User, UserSimple
@@ -28,9 +27,6 @@ class MeterReadingDB(Base):
 
     # customer
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
-
-    # meter
-    meter_id = Column(Integer, ForeignKey("meters.id"), nullable=False)
 
     # attachments
     attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
@@ -84,7 +80,6 @@ class MeterReadingDB(Base):
     customer = relationship(
         "CustomerDB", back_populates="meterreadings", lazy="raise"
     )
-    meter = relationship("MeterDB", back_populates="meterreadings", lazy="raise")
     attachment = relationship(
         "AttachmentDB", back_populates="meterreading", lazy="raise"
     )
@@ -107,9 +102,6 @@ class MeterReading(BaseModel):
 
     # customer
     customer_id: int
-
-    # meter
-    meter_id: int
 
     # attachments
     attachment_id: Optional[int] = None
@@ -186,7 +178,6 @@ class MeterReading(BaseModel):
 class MeterReadingWithDetail(MeterReading):
     user: UserSimple
     customer: CustomerItem
-    meter: MeterItem
     attachment: Optional[Attachment] = None
     stage: ReviewStageItem
     status: StatusTypeItem

@@ -83,7 +83,7 @@ async def create(test: Test, db: AsyncSession = Depends(get_ccl_db)):
 
 @router.get("/id/{test_id}", response_model=TestWithDetail)
 async def get_item(test_id: int, db: AsyncSession = Depends(get_ccl_db)):
-    result = await db.execute(select(TestDB).filter(TestDB.id == test_id))
+    result = await db.execute(select(TestDB).where(TestDB.id == test_id))
     category = result.scalars().first()
     if not category:
         raise HTTPException(
@@ -103,7 +103,7 @@ async def get_test_detail(test_id: int, db: AsyncSession = Depends(get_ccl_db)):
     result = await db.execute(select(LabDB))
     labs = result.scalars().all()
 
-    result = await db.execute(select(TestDB).filter(TestDB.id == test_id))
+    result = await db.execute(select(TestDB).where(TestDB.id == test_id))
     test = result.scalars().first()
     if not test:
         raise HTTPException(

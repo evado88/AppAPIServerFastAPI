@@ -87,7 +87,7 @@ async def update_item(
 
 @router.get("/id/{user_id}", response_model=UserWithDetail)
 async def get_user_id(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
-    result = await db.execute(select(UserDB).filter(UserDB.id == user_id))
+    result = await db.execute(select(UserDB).where(UserDB.id == user_id))
     transaction = result.scalars().first()
     if not transaction:
         raise HTTPException(
@@ -98,7 +98,7 @@ async def get_user_id(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
 
 @router.get("/email/{user_email}", response_model=List[UserSimple])
 async def get_user_email(user_email: str, db: AsyncSession = Depends(get_osawe_db)):
-    result = await db.execute(select(UserDB).filter(UserDB.email == user_email))
+    result = await db.execute(select(UserDB).where(UserDB.email == user_email))
     users = []
 
     user = result.scalars().first()

@@ -120,7 +120,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 async def get_knowledgebase_category(
     meter_id: int, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(select(MeterDB).filter(MeterDB.id == meter_id))
+    result = await db.execute(select(MeterDB).where(MeterDB.id == meter_id))
     category = result.scalars().first()
     if not category:
         raise HTTPException(
@@ -170,7 +170,7 @@ async def list_meters(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/route/{route_id}", response_model=List[MeterWithDetail])
 async def list_route_meters(route_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterDB).filter(MeterDB.route_id == route_id))
+    result = await db.execute(select(MeterDB).where(MeterDB.route_id == route_id))
     return result.scalars().all()
 
 

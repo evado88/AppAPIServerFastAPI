@@ -132,7 +132,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/id/{status_id}", response_model=MeterStatusWithDetail)
 async def get_meter_status(status_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterStatusDB).filter(MeterStatusDB.id == status_id))
+    result = await db.execute(select(MeterStatusDB).where(MeterStatusDB.id == status_id))
     meterstatus = result.scalars().first()
     if not meterstatus:
         raise HTTPException(

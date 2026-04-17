@@ -159,7 +159,7 @@ async def send_account_approved(param: ItemReviewParam, db: AsyncSession = Depen
 async def send_posting_reminder_messages(db: AsyncSession = Depends(get_osawe_db)):
     # get config
     result = await db.execute(
-        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+        select(SACCOConfigurationDB).where(SACCOConfigurationDB.id == 1)
     )
 
     config = result.scalars().first()
@@ -341,7 +341,7 @@ async def send_email_endpoint(
     
       # get config
     result = await db.execute(
-        select(SACCOConfigurationDB).filter(SACCOConfigurationDB.id == 1)
+        select(SACCOConfigurationDB).where(SACCOConfigurationDB.id == 1)
     )
 
     config = result.scalars().first()

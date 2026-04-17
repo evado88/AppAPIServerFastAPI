@@ -88,7 +88,7 @@ async def list_status_meetings(statusId: int, db: AsyncSession = Depends(get_osa
     result = await db.execute(
         select(
             MeetingDB
-        ) .filter(
+        ) .where(
             MeetingDB.status_id == assist.STATUS_APPROVED,
         )
     )
@@ -132,7 +132,7 @@ async def get_meeting(meeting_id: int, db: AsyncSession = Depends(get_osawe_db))
         #    joinedload(MeetingDB.source),
         #
         # )
-        .filter(MeetingDB.id == meeting_id)
+        .where(MeetingDB.id == meeting_id)
     )
     meeting = result.scalars().first()
     if not meeting:
@@ -323,7 +323,7 @@ async def review_posting(
 
         # get attachment
         result = await db.execute(
-            select(AttachmentDB).filter(AttachmentDB.id == meeting.attachment_id)
+            select(AttachmentDB).where(AttachmentDB.id == meeting.attachment_id)
         )
         attachment = result.scalars().first()
         if not attachment:

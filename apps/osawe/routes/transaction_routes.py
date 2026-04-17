@@ -108,7 +108,7 @@ async def list_user_status_transactions(
 ):
     result = await db.execute(
         select(TransactionDB)
-        .filter(
+        .where(
             TransactionDB.status_id == statusId,
             TransactionDB.user_id == userId,
             TransactionDB.type_id == typeId,
@@ -128,7 +128,7 @@ async def list_status_transactions(typeId: int, statusId: int, year: int, db: As
     
     result = await db.execute(
         select(TransactionDB)
-        .filter(
+        .where(
             TransactionDB.status_id == statusId,
             TransactionDB.type_id == typeId,
             TransactionDB.date >= start_of_year,
@@ -147,7 +147,7 @@ async def list_expense_earnings_status_transactions(
 ):
     result = await db.execute(
         select(TransactionDB)
-        .filter(
+        .where(
             TransactionDB.status_id == statusId,
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
@@ -165,7 +165,7 @@ async def list_expense_earnings_status_transactions(
 )
 async def list_expense_earnings(db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             or_(
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EARNING,
                 TransactionDB.type_id == assist.TRANSACTION_GROUP_EXPENSE,
@@ -182,7 +182,7 @@ async def list_expense_earnings(db: AsyncSession = Depends(get_osawe_db)):
 )
 async def list_mid_month_posting(type: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             TransactionDB.type_id == type,
             TransactionDB.period_id == assist.TRANSACTION_PERIOD_MID,
         )
@@ -199,7 +199,7 @@ async def list_mid_month_posting_status(
     type: int, status: int, db: AsyncSession = Depends(get_osawe_db)
 ):
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             TransactionDB.type_id == type,
             TransactionDB.period_id == assist.TRANSACTION_PERIOD_MID,
             TransactionDB.status_id == status,
@@ -213,7 +213,7 @@ async def list_mid_month_posting_status(
 async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
         select(TransactionDB)
-        .filter(TransactionDB.id == tran_id)
+        .where(TransactionDB.id == tran_id)
     )
     transaction = result.scalars().first()
     if not transaction:
@@ -278,7 +278,7 @@ async def get_member_summary(
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
         .outerjoin(TransactionDB, TransactionTypeDB.id == TransactionDB.type_id)
-        .filter(
+        .where(
             TransactionDB.user_id == userId,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -316,7 +316,7 @@ async def get_all_member_summary(year: int, db: AsyncSession = Depends(get_osawe
             TransactionTypeDB.type_name,
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
-        .filter(
+        .where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -476,7 +476,7 @@ async def review_posting(
 async def get_all_member_ytd(year: int, db: AsyncSession = Depends(get_osawe_db)):
     print("starting summary", assist.get_current_date(False))
     # get all users
-    result = await db.execute(select(UserDB).filter(UserDB.role == assist.USER_MEMBER))
+    result = await db.execute(select(UserDB).where(UserDB.role == assist.USER_MEMBER))
     users = result.scalars().all()
 
     # get all transaction types
@@ -510,7 +510,7 @@ async def get_all_member_ytd(year: int, db: AsyncSession = Depends(get_osawe_db)
             TransactionDB.type_id,
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
-        .filter(
+        .where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -586,7 +586,7 @@ async def get_all_member_interest_sharing(year: int, db: AsyncSession = Depends(
             func.extract("month", TransactionDB.date).label("month"),
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
-        .filter(
+        .where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -610,7 +610,7 @@ async def get_all_member_interest_sharing(year: int, db: AsyncSession = Depends(
             func.extract("month", TransactionDB.date).label("month"),
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
-        .filter(
+        .where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -833,7 +833,7 @@ async def get_all_member_payout_sharing(year: int, db: AsyncSession = Depends(ge
         # .options(
         #    joinedload(MonthlyPostingDB.status),
         # )
-        .filter(PostingPeriodDB.id == period_id)
+        .where(PostingPeriodDB.id == period_id)
     )
     period = result.scalars().first()
     if not period:
@@ -889,7 +889,7 @@ async def get_all_member_payout_sharing(year: int, db: AsyncSession = Depends(ge
             func.extract("month", TransactionDB.date).label("month"),
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
-        .filter(
+        .where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -913,7 +913,7 @@ async def get_all_member_payout_sharing(year: int, db: AsyncSession = Depends(ge
             func.extract("month", TransactionDB.date).label("month"),
             func.coalesce(func.sum(TransactionDB.amount), 0).label("amount"),
         )
-        .filter(
+        .where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,
@@ -1133,7 +1133,7 @@ async def get_all_member_transaction_summary(year: int, db: AsyncSession = Depen
     start_of_next_year = date(year + 1, 1, 1)
     
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.type_id != assist.TRANSACTION_GROUP_EARNING,
             TransactionDB.type_id != assist.TRANSACTION_GROUP_EXPENSE,
@@ -1173,7 +1173,7 @@ async def get_all_expense_earnings_summary(year: int, db: AsyncSession = Depends
     start_of_next_year = date(year + 1, 1, 1)
     
     result = await db.execute(
-        select(TransactionDB).filter(
+        select(TransactionDB).where(
             TransactionDB.status_id == assist.STATUS_APPROVED,
             TransactionDB.date >= start_of_year,
             TransactionDB.date < start_of_next_year,

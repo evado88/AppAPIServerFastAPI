@@ -29,7 +29,6 @@ class AttachmentDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    meter = relationship("MeterDB", back_populates="attachment")
     meterreading = relationship("MeterReadingDB", back_populates="attachment")
     transactions = relationship("TransactionDB", back_populates="attachment")
 # ---------- Pydantic Schemas ----------

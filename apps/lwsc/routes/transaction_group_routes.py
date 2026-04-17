@@ -59,7 +59,7 @@ async def get_group(group_id: int, db: AsyncSession = Depends(get_lwsc_db)):
 
     if group_id != 0:
         result = await db.execute(
-            select(TransactionGroupDB).filter(TransactionGroupDB.id == group_id)
+            select(TransactionGroupDB).where(TransactionGroupDB.id == group_id)
         )
         groupItem = result.scalars().first()
 

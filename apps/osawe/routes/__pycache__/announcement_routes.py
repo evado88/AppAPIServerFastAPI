@@ -112,7 +112,7 @@ async def get_announcement(announcement_id: int, db: AsyncSession = Depends(get_
         #    joinedload(AnnouncementDB.source),
         #
         #)
-        .filter(AnnouncementDB.id == announcement_id)
+        .where(AnnouncementDB.id == announcement_id)
     )
     announcement = result.scalars().first()
     if not announcement:

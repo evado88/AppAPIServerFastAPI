@@ -125,7 +125,7 @@ async def update_user_member(
 async def get_member(member_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
         select(MemberDB)
-        .filter(MemberDB.id == member_id)
+        .where(MemberDB.id == member_id)
     )
     transaction = result.scalars().first()
     if not transaction:
@@ -137,7 +137,7 @@ async def get_member(member_id: int, db: AsyncSession = Depends(get_osawe_db)):
 
 @router.get("/user/{user_id}", response_model=MemberWithDetail)
 async def get_member(user_id: int, db: AsyncSession = Depends(get_osawe_db)):
-    result = await db.execute(select(MemberDB).filter(MemberDB.user_id == user_id))
+    result = await db.execute(select(MemberDB).where(MemberDB.user_id == user_id))
     member = result.scalars().first()
     if not member:
         raise HTTPException(
@@ -154,7 +154,7 @@ async def list_members(db: AsyncSession = Depends(get_osawe_db)):
 
 @router.get("/status/{status_id}", response_model=List[MemberWithDetail])
 async def list_members(status_id: int, db: AsyncSession = Depends(get_osawe_db)):
-    result = await db.execute(select(MemberDB).filter(MemberDB.status_id == status_id))
+    result = await db.execute(select(MemberDB).where(MemberDB.status_id == status_id))
     return result.scalars().all()
 
 
@@ -283,7 +283,7 @@ async def review_posting(
         # get attachment
         if not member.id_attachment == None:
             result = await db.execute(
-                select(AttachmentDB).filter(AttachmentDB.id == member.id_attachment)
+                select(AttachmentDB).where(AttachmentDB.id == member.id_attachment)
             )
             attachment = result.scalars().first()
             if not attachment:

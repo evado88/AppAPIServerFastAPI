@@ -75,7 +75,7 @@ async def update_department(
 async def get_department(id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
         select(DepartmentDB)
-        .filter(DepartmentDB.id == id)
+        .where(DepartmentDB.id == id)
     )
     department = result.scalars().first()
     if not department:

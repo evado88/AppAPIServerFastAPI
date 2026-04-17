@@ -63,7 +63,7 @@ async def get_attendance(attendance_id: int, db: AsyncSession = Depends(get_osaw
         #    joinedload(AttendanceDB.source),
         #
         #)
-        .filter(AttendanceDB.id == attendance_id)
+        .where(AttendanceDB.id == attendance_id)
     )
     attendance = result.scalars().first()
     if not attendance:

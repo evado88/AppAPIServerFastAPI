@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.bill_rate_model import BillRateDB
-from apps.lwsc.models.meter_model import MeterDB
+from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.meter_reading_model import (
     MeterReading,
     MeterReadingDB,
@@ -41,8 +41,6 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         attachment_id=meterreading.attachment_id,
         # customer
         customer_id=meterreading.customer_id,
-        # meter
-        meter_id=meterreading.meter_id,
         # details
         read_date=meterreading.read_date,
         current=meterreading.current,
@@ -130,8 +128,8 @@ async def create_new(
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     # get all meters
-    result = await db.execute(select(MeterDB))
-    meters = result.scalars().all()
+    result = await db.execute(select(CustomerDB))
+    customers = result.scalars().all()
 
     # get current date
     now = assist.get_current_date(False)
@@ -139,11 +137,11 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     index = 1
 
     # for each meter, add readings for all months
-    for meter in meters:
+    for customer in customers:
 
         # get bill rates
         result = await db.execute(
-            select(BillRateDB).filter(BillRateDB.cat_id == meter.customer.cat_id)
+            select(BillRateDB).where(BillRateDB.cat_id == customer.cat_id)
         )
         rates = result.scalars().all()
 
@@ -167,13 +165,11 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
                         # uuid
                         uuid=uuid4().hex,
                         # user
-                        user_id=meter.user_id,
+                        user_id=customer.user_id,
                         # attachment
                         attachment_id=None,
                         # customer
-                        customer_id=meter.customer_id,
-                        # meter
-                        meter_id=meter.id,
+                        customer_id=customer.id,
                         # details
                         read_date=read_date,
                         current=currentReading,
@@ -225,7 +221,7 @@ async def get_knowledgebase_category(
     meterreading_id: int, db: AsyncSession = Depends(get_lwsc_db)
 ):
     result = await db.execute(
-        select(MeterReadingDB).filter(MeterReadingDB.id == meterreading_id)
+        select(MeterReadingDB).where(MeterReadingDB.id == meterreading_id)
     )
     category = result.scalars().first()
     if not category:
@@ -241,7 +237,6 @@ async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(MeterReadingDB).options(
             selectinload(MeterReadingDB.user),
             selectinload(MeterReadingDB.customer),
-            selectinload(MeterReadingDB.meter),
             selectinload(MeterReadingDB.attachment),
             selectinload(MeterReadingDB.stage),
             selectinload(MeterReadingDB.status),

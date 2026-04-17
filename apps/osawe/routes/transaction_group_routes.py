@@ -44,7 +44,7 @@ async def create_type(group: TransactionGroup, db: AsyncSession = Depends(get_os
 async def get_knowledgebase_category(group_id: int, db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
         select(TransactionGroupDB)
-        .filter(TransactionGroupDB.id == group_id)
+        .where(TransactionGroupDB.id == group_id)
     )
     category = result.scalars().first()
     if not category:

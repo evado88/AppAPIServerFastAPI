@@ -67,7 +67,7 @@ async def get_notification(notification_id: int, db: AsyncSession = Depends(get_
         #    joinedload(NotificationDB.source),
         #
         #)
-        .filter(NotificationDB.id == notification_id)
+        .where(NotificationDB.id == notification_id)
     )
     transaction = result.scalars().first()
     if not transaction:

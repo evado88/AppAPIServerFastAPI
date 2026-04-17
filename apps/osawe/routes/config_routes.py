@@ -120,7 +120,7 @@ async def get_configuration(config_id: int, db: AsyncSession = Depends(get_osawe
         .options(
             joinedload(SACCOConfigurationDB.user),
         )
-        .filter(SACCOConfigurationDB.id == config_id)
+        .where(SACCOConfigurationDB.id == config_id)
     )
     posting = result.scalars().first()
     if not posting:

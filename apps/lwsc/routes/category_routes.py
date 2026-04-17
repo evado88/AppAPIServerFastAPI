@@ -229,7 +229,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/id/{cat_id}", response_model=CategoryWithDetail)
 async def get__category(cat_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CategoryDB).filter(CategoryDB.id == cat_id))
+    result = await db.execute(select(CategoryDB).where(CategoryDB.id == cat_id))
     category = result.scalars().first()
     if not category:
         raise HTTPException(

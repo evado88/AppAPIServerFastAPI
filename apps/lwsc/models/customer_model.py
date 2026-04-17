@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
 from apps.lwsc.lwscdb import Base
-from datetime import datetime
+from datetime import date, datetime
 
 from apps.lwsc.models.category_model import Category, CategoryItem
 from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
@@ -20,8 +20,8 @@ class CustomerDB(Base):
     # id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     
-    # code
-    code = Column(String, nullable=False)
+    # account
+    account = Column(String, nullable=False)
     
     # user
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -35,10 +35,13 @@ class CustomerDB(Base):
     # route
     route_id = Column(Integer, ForeignKey("routes.id"), nullable=False)
     
-   # personal details
-    fname = Column(String, nullable=False)
-    lname = Column(String, nullable=False)
-    title = Column(String, nullable=True)
+    # attachments
+    attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
+
+   # details
+    name = Column(String, nullable=False)
+    number = Column(String, nullable=False)
+    remarks = Column(String, nullable=True)
     
     #contact, address 
     email = Column(String, unique=True, index=True, nullable=False)
@@ -49,6 +52,12 @@ class CustomerDB(Base):
     
     lat = Column(Float, nullable=True)
     lon = Column(Float, nullable=True)
+    
+    # reading
+    read_date = Column(DateTime(timezone=True), nullable=True)
+    current = Column(Float, nullable=True)
+    previous = Column(Float, nullable=True)
+    comments = Column(String, nullable=True)
     
      # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)
@@ -81,19 +90,19 @@ class CustomerDB(Base):
     route = relationship("WalkRouteDB", back_populates="customer", lazy="raise")
     category = relationship("CategoryDB", back_populates="customer", lazy="raise")
     district = relationship("DistrictDB", back_populates="customer", lazy="raise")
-    meters = relationship("MeterDB", back_populates="customer", lazy="raise")
     meterreadings = relationship("MeterReadingDB", back_populates="customer", lazy="raise") 
     transactions = relationship("TransactionDB", back_populates="customer", lazy="raise")
+    
 # ---------- Pydantic Schemas ----------
 class Customer(BaseModel):
     # id
     id: Optional[int] = None
     
-    # code
-    code: str = Field(
+    # account
+    account: str = Field(
         ...,
         min_length=8,
-        max_length=8,
+        max_length=16,
         description="Account number must be between 8 characters",
     )
     
@@ -108,22 +117,25 @@ class Customer(BaseModel):
     
     # route
     route_id: int
-
-    # personal details
-    fname: str = Field(
-        ...,
-        min_length=2,
-        max_length=50,
-        description="First name must be between 2 and 50 characters",
-    )
-    lname: str = Field(
-        ...,
-        min_length=2,
-        max_length=50,
-        description="Last name must be between 2 and 50 characters",
-    )
-    title: Optional[str] = None
     
+    # attachments
+    attachment_id: Optional[int] = None
+
+    # details
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Name must be between 2 and 50 characters",
+    )
+    number: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Number must be between 2 and 50 characters",
+    )
+    remarks: Optional[str] = None
+       
     #contact, address 
     email:  Optional[EmailStr] = None
     mobile: str = Field(
@@ -138,6 +150,13 @@ class Customer(BaseModel):
     
     lat: Optional[float] = None
     lon: Optional[float] = None
+    
+    # reading
+    read_date: Optional[date] = None
+    current: Optional[float] = None
+    previous: Optional[float] = None
+    comments: Optional[str] = None
+
     
     # approval
     status_id: int = Field(
@@ -172,31 +191,42 @@ class Customer(BaseModel):
 class CustomerItem(BaseModel):
     # id
     id: Optional[int] = None
+    
+    # account
+    account: str = Field(
+        ...,
+        min_length=8,
+        max_length=16,
+        description="Account number must be between 8 characters",
+    )
+    
+    # user
+    user_id: int
+    
+    # cat
+    cat_id: int
 
     # district
     district_id: int
     
-    # personal details
-    fname: str = Field(
+    # route
+    route_id: int
+    
+    
+    # details
+    name: str = Field(
         ...,
         min_length=2,
         max_length=50,
-        description="First name must be between 2 and 50 characters",
+        description="Name must be between 2 and 50 characters",
     )
-    lname: str = Field(
+    number: str = Field(
         ...,
         min_length=2,
         max_length=50,
-        description="Last name must be between 2 and 50 characters",
+        description="Number must be between 2 and 50 characters",
     )
-    #contact, address 
-    mobile: str = Field(
-        ...,
-        min_length=3,
-        max_length=15,
-        description="Mobile must be between 3 and 15 characters",
-    )
-    address_physical: Optional[str] = None
+
     
     class Config:
         orm_mode = True

@@ -66,7 +66,7 @@ async def list_audits(db: AsyncSession = Depends(get_osawe_db)):
 @router.get("/sessions/list", response_model=List[AuditSimpleWithDetail])
 async def list_audit_sessions(db: AsyncSession = Depends(get_osawe_db)):
     result = await db.execute(
-        select(AuditDB).filter(
+        select(AuditDB).where(
         AuditDB.feature =="Session",
         AuditDB.action =="Start",
     ).order_by(desc(AuditDB.created_at)).limit(390)
@@ -76,7 +76,7 @@ async def list_audit_sessions(db: AsyncSession = Depends(get_osawe_db)):
 
 @router.get("/id/{audit_id}", response_model=AuditWithDetail)
 async def get_audit(audit_id: int, db: AsyncSession = Depends(get_osawe_db)):
-    result = await db.execute(select(AuditDB).filter(AuditDB.id == audit_id))
+    result = await db.execute(select(AuditDB).where(AuditDB.id == audit_id))
     audit = result.scalars().first()
     if not audit:
         raise HTTPException(

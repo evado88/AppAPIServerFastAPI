@@ -9,7 +9,6 @@ from apps.lwsc.models.bill_rate_model import (
     BillRateDB,
     BillRateWithDetail,
 )
-from apps.lwsc.models.meter_model import MeterDB
 from apps.lwsc.models.user_model import UserDB
 from apps.lwsc.models.walkroute_model import WalkRouteDB
 from helpers import assist
@@ -59,7 +58,7 @@ async def create_type(billrate: BillRate, db: AsyncSession = Depends(get_lwsc_db
 async def get_knowledgebase_category(
     billrate_id: int, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(select(BillRateDB).filter(BillRateDB.id == billrate_id))
+    result = await db.execute(select(BillRateDB).where(BillRateDB.id == billrate_id))
     category = result.scalars().first()
     if not category:
         raise HTTPException(

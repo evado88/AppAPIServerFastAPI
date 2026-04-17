@@ -70,7 +70,6 @@ class UserDB(Base):
     categories = relationship("CategoryDB", back_populates="user", lazy="raise")
     meter_statuses = relationship("MeterStatusDB", back_populates="user", lazy="raise")
     districts = relationship("DistrictDB", back_populates="user", lazy="raise")
-    meters = relationship("MeterDB", back_populates="user", lazy="raise")
     routes = relationship("WalkRouteDB", back_populates="user", lazy="raise")
     meterreadings = relationship("MeterReadingDB", back_populates="user", lazy="raise")
     billrate = relationship("BillRateDB", back_populates="user", lazy="raise")

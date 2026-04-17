@@ -51,6 +51,10 @@ async def processCustomers(file: UploadFile, db=AsyncSession):
         ]
 
         for row in data:
+            
+            if not any(value and value.strip() for value in row.values()):
+                continue
+            
             customer = {}
 
             for key in keys:
@@ -106,6 +110,10 @@ async def processBillRates(file: UploadFile, db=AsyncSession):
         ]
 
         for row in data:
+            
+            if not any(value and value.strip() for value in row.values()):
+                continue
+            
             billRate = {}
 
             for key in keys:
@@ -210,7 +218,7 @@ async def list_attachments(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/{id}", response_model=Attachment)
 async def get_attachment(id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(AttachmentDB).filter(AttachmentDB.id == id))
+    result = await db.execute(select(AttachmentDB).where(AttachmentDB.id == id))
     attachment = result.scalars().first()
     if not attachment:
         raise HTTPException(

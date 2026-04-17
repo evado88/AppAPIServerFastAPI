@@ -4,7 +4,13 @@ from sqlalchemy.future import select
 from typing import List
 from helpers import assist
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteDB, WalkRouteItem, WalkRouteWithDetail, WalkRouteWithSimpleDetail
+from apps.lwsc.models.walkroute_model import (
+    WalkRoute,
+    WalkRouteDB,
+    WalkRouteItem,
+    WalkRouteWithDetail,
+    WalkRouteWithSimpleDetail,
+)
 from apps.lwsc.models.user_model import UserDB
 from sqlalchemy.orm import selectinload
 
@@ -20,7 +26,7 @@ async def create_type(route: WalkRoute, db: AsyncSession = Depends(get_lwsc_db))
         raise HTTPException(
             status_code=400, detail=f"The user with id '{route.user_id}' does not exist"
         )
-        
+
     db_user = WalkRouteDB(
         # user
         user_id=route.user_id,
@@ -42,14 +48,13 @@ async def create_type(route: WalkRoute, db: AsyncSession = Depends(get_lwsc_db))
         await db.refresh(db_user)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=400, detail=f"Unable to create route: f{e}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unable to create route: f{e}")
     return db_user
+
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
- 
+
     for i in range(1, 4):
 
         for k in range(1, 3):
@@ -59,14 +64,14 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
                 # district
                 district_id=i,
                 # details
-                name=f'District {i} - Route {k}',
-                description=f'The route {k} for district {i}',
+                name=f"District {i} - Route {k}",
+                description=f"The route {k} for district {i}",
                 # approval
                 status_id=assist.STATUS_APPROVED,
                 stage_id=assist.APPROVAL_STAGE_APPROVED,
                 approval_levels=2,
                 # service
-                created_by='user-001@hotmail.com',
+                created_by="user-001@hotmail.com",
             )
             db.add(db_status)
 
@@ -76,39 +81,62 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Unable to initialize walk routes: f{e}")
+        raise HTTPException(
+            status_code=400, detail=f"Unable to initialize walk routes: f{e}"
+        )
     return {
         "succeeded": True,
         "message": "Walk routes have been successfully initialized",
     }
 
+
 @router.get("/id/{route_id}", response_model=WalkRouteWithDetail)
-async def get_knowledgebase_category(route_id: int, db: AsyncSession = Depends(get_lwsc_db)):
+async def get_knowledgebase_category(
+    route_id: int, db: AsyncSession = Depends(get_lwsc_db)
+):
     result = await db.execute(
         select(WalkRouteDB)
-        .filter(WalkRouteDB.id == route_id)
+        .options(
+            selectinload(WalkRouteDB.user),
+            selectinload(WalkRouteDB.district),
+            selectinload(WalkRouteDB.stage),
+            selectinload(WalkRouteDB.status),
+        )
+        .where(WalkRouteDB.id == route_id)
     )
     category = result.scalars().first()
     if not category:
-        raise HTTPException(status_code=404, detail=f"Unable to find route with id '{route_id}'")
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find route with id '{route_id}'"
+        )
     return category
 
 
 @router.put("/update/{route_id}", response_model=WalkRouteWithDetail)
-async def update_category(route_id: int, route_update: WalkRoute, db: AsyncSession = Depends(get_lwsc_db)):
+async def update_category(
+    route_id: int, route_update: WalkRoute, db: AsyncSession = Depends(get_lwsc_db)
+):
     result = await db.execute(
         select(WalkRouteDB)
+        .options(
+            selectinload(WalkRouteDB.user),
+            selectinload(WalkRouteDB.district),
+            selectinload(WalkRouteDB.stage),
+            selectinload(WalkRouteDB.status),
+        )
         .where(WalkRouteDB.id == route_id)
     )
     config = result.scalar_one_or_none()
-    
+
     if not config:
-        raise HTTPException(status_code=404, detail=f"Unable to find route with id '{route_id}'")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find route with id '{route_id}'"
+        )
+
     # Update fields that are not None
     for key, value in route_update.dict(exclude_unset=True).items():
         setattr(config, key, value)
-        
+
     try:
         await db.commit()
         await db.refresh(config)
@@ -117,15 +145,21 @@ async def update_category(route_id: int, route_update: WalkRoute, db: AsyncSessi
         raise HTTPException(status_code=400, detail=f"Unable to update route {e}")
     return config
 
+
 @router.get("/list", response_model=List[WalkRouteWithDetail])
 async def list_routes(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(WalkRouteDB).options(
+    result = await db.execute(
+        select(WalkRouteDB)
+        .options(
             selectinload(WalkRouteDB.user),
             selectinload(WalkRouteDB.district),
             selectinload(WalkRouteDB.stage),
             selectinload(WalkRouteDB.status),
-        ).order_by(WalkRouteDB.district_id, WalkRouteDB.name))
+        )
+        .order_by(WalkRouteDB.district_id, WalkRouteDB.name)
+    )
     return result.scalars().all()
+
 
 @router.get("/items", response_model=List[WalkRouteWithSimpleDetail])
 async def list_routes(db: AsyncSession = Depends(get_lwsc_db)):

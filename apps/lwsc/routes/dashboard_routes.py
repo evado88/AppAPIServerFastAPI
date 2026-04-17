@@ -12,7 +12,6 @@ from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.category_model import CategoryDB
 from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.district_model import DistrictDB
-from apps.lwsc.models.meter_model import MeterDB
 from apps.lwsc.models.meter_reading_model import (
     MeterReading,
     MeterReadingDB,
@@ -109,7 +108,7 @@ async def get_ytd_dashboard(year: int, db: AsyncSession = Depends(get_lwsc_db)):
                 "consumptionDays"
             ),
         )
-        .filter(
+        .where(
             MeterReadingDB.status_id == lwscapp.APPROVAL_STAGE_APPROVED,
             MeterReadingDB.read_date >= start_of_year,
             MeterReadingDB.read_date < start_of_next_year,
@@ -161,7 +160,7 @@ async def get_ytd_dashboard(year: int, db: AsyncSession = Depends(get_lwsc_db)):
             ),
         )
         .join(CustomerDB, MeterReadingDB.customer_id == CustomerDB.id)
-        .filter(
+        .where(
             MeterReadingDB.status_id == lwscapp.APPROVAL_STAGE_APPROVED,
             MeterReadingDB.read_date >= start_of_year,
             MeterReadingDB.read_date < start_of_next_year,
@@ -213,7 +212,7 @@ async def get_ytd_dashboard(year: int, db: AsyncSession = Depends(get_lwsc_db)):
             ),
         )
         .join(CustomerDB, MeterReadingDB.customer_id == CustomerDB.id)
-        .filter(
+        .where(
             MeterReadingDB.status_id == lwscapp.APPROVAL_STAGE_APPROVED,
             MeterReadingDB.read_date >= start_of_year,
             MeterReadingDB.read_date < start_of_next_year,
@@ -283,16 +282,6 @@ async def get_ytd_dashboard(year: int, db: AsyncSession = Depends(get_lwsc_db)):
     # add
     statisticData.append(
         ParamDashboardStatistic(name="Customers", value=customer_count, color="red")
-    )
-
-    # get meters
-    stmt = select(func.count(MeterDB.id)).where(
-        MeterDB.status_id == lwscapp.APPROVAL_STAGE_APPROVED
-    )
-    meter_count = await db.scalar(stmt)
-    # add
-    statisticData.append(
-        ParamDashboardStatistic(name="Meters", value=meter_count, color="blue")
     )
 
     # get meter readings

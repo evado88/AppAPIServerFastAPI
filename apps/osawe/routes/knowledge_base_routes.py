@@ -127,7 +127,7 @@ async def get_kbarticle_id(kbarticle_id: int, db: AsyncSession = Depends(get_osa
         #    joinedload(KnowledgeBaseDB.source),
         #
         # )
-        .filter(KnowledgeBaseDB.id == kbarticle_id)
+        .where(KnowledgeBaseDB.id == kbarticle_id)
     )
     kbarticle = result.scalars().first()
     if not kbarticle:
