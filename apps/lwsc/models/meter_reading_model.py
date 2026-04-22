@@ -41,6 +41,11 @@ class MeterReadingDB(Base):
     consumption_daily = Column(Float, nullable=True)
     comments = Column(String, nullable=True)
 
+    # status
+    access_status = Column(String, nullable=False)
+    reading_status = Column(String, nullable=False)
+    condition_status = Column(String, nullable=False)
+
     # address
     lat = Column(Float, nullable=True)
     lon = Column(Float, nullable=True)
@@ -71,15 +76,9 @@ class MeterReadingDB(Base):
 
     # relationships
     user = relationship("UserDB", back_populates="meterreadings", lazy="raise")
-    stage = relationship(
-        "ReviewStageDB", back_populates="meterreadings", lazy="raise"
-    )
-    status = relationship(
-        "StatusTypeDB", back_populates="meterreadings", lazy="raise"
-    )
-    customer = relationship(
-        "CustomerDB", back_populates="meterreadings", lazy="raise"
-    )
+    stage = relationship("ReviewStageDB", back_populates="meterreadings", lazy="raise")
+    status = relationship("StatusTypeDB", back_populates="meterreadings", lazy="raise")
+    customer = relationship("CustomerDB", back_populates="meterreadings", lazy="raise")
     attachment = relationship(
         "AttachmentDB", back_populates="meterreading", lazy="raise"
     )
@@ -138,6 +137,20 @@ class MeterReading(BaseModel):
         description="The consumption (daily) must be equal to or greater than zero",
     )
     comments: Optional[str] = None
+
+    # status
+    access_status: str = Field(
+        ...,
+        description="The access status is required",
+    )
+    reading_status: str = Field(
+        ...,
+        description="The reading status is required",
+    )
+    condition_status: str = Field(
+        ...,
+        description="The condition status is required",
+    )
 
     # address
     lat: Optional[float] = None

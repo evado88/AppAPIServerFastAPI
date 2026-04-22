@@ -5,7 +5,7 @@ from typing import Optional
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
 
-from apps.lwsc.models.user_model import User
+from apps.lwsc.models.user_model import User, UserSimple
 
 # ---------- SQLAlchemy Models ----------
 class MeterStatusDB(Base):
@@ -29,7 +29,7 @@ class MeterStatusDB(Base):
     updated_by = Column(String, nullable=True)
     
     #relationships
-    user = relationship("UserDB", back_populates="meter_statuses", lazy='selectin')
+    user = relationship("UserDB", back_populates="meter_statuses", lazy='raise')
 # ---------- Pydantic Schemas ----------
 class MeterStatus(BaseModel):
     #id
@@ -66,4 +66,4 @@ class MeterStatusSimple(BaseModel):
         orm_mode = True
         
 class MeterStatusWithDetail(MeterStatus):
-    user: User
+    user: UserSimple

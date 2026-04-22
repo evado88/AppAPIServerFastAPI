@@ -9,6 +9,8 @@ from apps.lwsc.models.customer_model import (
     Customer,
     CustomerDB,
     CustomerItem,
+    CustomerSimple,
+    CustomerSimpleWithDetail,
     CustomerWithDetail,
 )
 from apps.lwsc.models.district_model import DistrictDB
@@ -357,4 +359,18 @@ async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
 @router.get("/items", response_model=List[CustomerItem])
 async def list_customers(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(CustomerDB).options(noload("*")))
+    return result.scalars().all()
+
+
+@router.get("/route/{routeId}", response_model=List[CustomerSimpleWithDetail])
+async def list_customers(routeId: int, db: AsyncSession = Depends(get_lwsc_db)):
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
+            selectinload(CustomerDB.category),
+            selectinload(CustomerDB.district),
+            selectinload(CustomerDB.route),
+        )
+        .where(CustomerDB.route_id == routeId)
+    )
     return result.scalars().all()

@@ -59,7 +59,11 @@ async def get_group(group_id: int, db: AsyncSession = Depends(get_lwsc_db)):
 
     if group_id != 0:
         result = await db.execute(
-            select(TransactionGroupDB).where(TransactionGroupDB.id == group_id)
+            select(TransactionGroupDB)
+            .options(
+                selectinload(TransactionGroupDB.type),
+            )
+            .where(TransactionGroupDB.id == group_id)
         )
         groupItem = result.scalars().first()
 
@@ -84,7 +88,11 @@ async def update_group(
     db: AsyncSession = Depends(get_lwsc_db),
 ):
     result = await db.execute(
-        select(TransactionGroupDB).where(TransactionGroupDB.id == group_id)
+        select(TransactionGroupDB)
+        .options(
+            selectinload(TransactionGroupDB.type),
+        )
+        .where(TransactionGroupDB.id == group_id)
     )
     config = result.scalar_one_or_none()
 
@@ -170,8 +178,10 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 @router.get("/list", response_model=List[TransactionGroupWithDetail])
 async def list_groups(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(
-        select(TransactionGroupDB).options(
+        select(TransactionGroupDB)
+        .options(
             selectinload(TransactionGroupDB.type),
-        ).order_by(TransactionGroupDB.type_id, TransactionGroupDB.id)
+        )
+        .order_by(TransactionGroupDB.type_id, TransactionGroupDB.id)
     )
     return result.scalars().all()

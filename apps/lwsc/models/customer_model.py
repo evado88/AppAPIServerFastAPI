@@ -188,6 +188,63 @@ class Customer(BaseModel):
 
     class Config:
         orm_mode = True
+        
+
+
+class CustomerSimple(BaseModel):
+    # id
+    id: Optional[int] = None
+    
+    # account
+    account: str = Field(
+        ...,
+        min_length=8,
+        max_length=16,
+        description="Account number must be between 8 characters",
+    )
+    
+    # user
+    user_id: int
+    
+    # cat
+    cat_id: int
+
+    # district
+    district_id: int
+    
+    # route
+    route_id: int
+    
+    
+    # details
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Name must be between 2 and 50 characters",
+    )
+    number: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Number must be between 2 and 50 characters",
+    )
+    
+    #contact, address 
+    email:  Optional[EmailStr] = None
+    mobile: str = Field(
+        ...,
+        min_length=3,
+        max_length=15,
+        description="Mobile must be between 3 and 15 characters",
+    )
+    address_physical: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    
+    class Config:
+        orm_mode = True
+        
 class CustomerItem(BaseModel):
     # id
     id: Optional[int] = None
@@ -238,3 +295,9 @@ class CustomerWithDetail(Customer):
     route: WalkRouteItem
     stage : ReviewStageItem
     status: StatusTypeItem
+    
+    
+class CustomerSimpleWithDetail(CustomerSimple):
+    category: CategoryItem
+    district: DistrictItem
+    route: WalkRouteItem

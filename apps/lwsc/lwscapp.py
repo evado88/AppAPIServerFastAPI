@@ -36,6 +36,8 @@ APPROVAL_STAGE_UNDER_REVIEW = 3
 APPROVAL_STAGE_APPROVED = 4
 APPROVAL_STAGE_REJECTED = 5
 
+ROLE_ADMINISTRATOR = 1
+ROLE_METERREADER = 2
 
 def get_consumption_rate(consumption: float, rates: List[BillRate]):
     '''

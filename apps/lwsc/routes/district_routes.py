@@ -4,7 +4,12 @@ from sqlalchemy.future import select
 from typing import List
 from sqlalchemy.orm import selectinload
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.district_model import District, DistrictDB, DistrictSimple, DistrictWithDetail
+from apps.lwsc.models.district_model import (
+    District,
+    DistrictDB,
+    DistrictSimple,
+    DistrictWithDetail,
+)
 from apps.lwsc.models.user_model import UserDB
 from apps.lwsc import lwscapp
 
@@ -50,7 +55,15 @@ async def post_district(district: District, db: AsyncSession = Depends(get_lwsc_
 async def update_district(
     district_id: int, district_update: District, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(select(DistrictDB).where(DistrictDB.id == district_id))
+    result = await db.execute(
+        select(DistrictDB)
+        .options(
+            selectinload(DistrictDB.stage),
+            selectinload(DistrictDB.status),
+            selectinload(DistrictDB.user),
+        )
+        .where(DistrictDB.id == district_id)
+    )
     config = result.scalar_one_or_none()
 
     if not config:
@@ -73,12 +86,17 @@ async def update_district(
 
 @router.get("/list", response_model=List[DistrictWithDetail])
 async def list__districts(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(DistrictDB).options(
+    result = await db.execute(
+        select(DistrictDB)
+        .options(
             selectinload(DistrictDB.stage),
             selectinload(DistrictDB.status),
             selectinload(DistrictDB.user),
-        ).order_by(DistrictDB.name))
+        )
+        .order_by(DistrictDB.name)
+    )
     return result.scalars().all()
+
 
 @router.get("/items", response_model=List[DistrictSimple])
 async def list__districts(db: AsyncSession = Depends(get_lwsc_db)):
@@ -100,8 +118,8 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
         db_status = DistrictDB(
             # personal details
             user_id=1,
-            name=district['name'],
-            code=district['code'],
+            name=district["name"],
+            code=district["code"],
             # approval
             status_id=lwscapp.STATUS_APPROVED,
             stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
@@ -114,7 +132,9 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
         # await db.refresh(db_status)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Unable to initialize districts: f{e}")
+        raise HTTPException(
+            status_code=400, detail=f"Unable to initialize districts: f{e}"
+        )
     return {
         "succeeded": True,
         "message": "Districts have been successfully initialized",
@@ -123,7 +143,15 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/id/{district_id}", response_model=DistrictWithDetail)
 async def get__district(district_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(DistrictDB).where(DistrictDB.id == district_id))
+    result = await db.execute(
+        select(DistrictDB)
+        .options(
+            selectinload(DistrictDB.stage),
+            selectinload(DistrictDB.status),
+            selectinload(DistrictDB.user),
+        )
+        .where(DistrictDB.id == district_id)
+    )
     district = result.scalars().first()
     if not district:
         raise HTTPException(

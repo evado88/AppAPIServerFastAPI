@@ -46,8 +46,14 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         current=meterreading.current,
         previous=meterreading.previous,
         consumption_m3=meterreading.consumption_m3,
+        consumption_days=meterreading.consumption_days,
         consumption_zmw=meterreading.consumption_zmw,
+        consumption_daily=meterreading.consumption_daily,
         comments=meterreading.comments,
+        # status
+        access_status=meterreading.access_status,
+        reading_status=meterreading.reading_status,
+        condition_status=meterreading.condition_status,
         # addres
         lon=meterreading.lat,
         lat=meterreading.lon,
@@ -75,7 +81,15 @@ async def update_meterreading(
     meterreading_id: int, meterreading_update: MeterReading, db: AsyncSession
 ):
     result = await db.execute(
-        select(MeterReadingDB).where(MeterReadingDB.id == meterreading_id)
+        select(MeterReadingDB)
+        .options(
+            selectinload(MeterReadingDB.user),
+            selectinload(MeterReadingDB.customer),
+            selectinload(MeterReadingDB.attachment),
+            selectinload(MeterReadingDB.stage),
+            selectinload(MeterReadingDB.status),
+        )
+        .where(MeterReadingDB.id == meterreading_id)
     )
     config = result.scalar_one_or_none()
 
@@ -106,7 +120,15 @@ async def upload_meterreading(
 ):
     # check if reading with same uuid exists
     result = await db.execute(
-        select(MeterReadingDB).where(MeterReadingDB.uuid == meterreading.uuid)
+        select(MeterReadingDB)
+        .options(
+            selectinload(MeterReadingDB.user),
+            selectinload(MeterReadingDB.customer),
+            selectinload(MeterReadingDB.attachment),
+            selectinload(MeterReadingDB.stage),
+            selectinload(MeterReadingDB.status),
+        )
+        .where(MeterReadingDB.uuid == meterreading.uuid)
     )
     existing = result.scalars().first()
     if existing:
@@ -135,9 +157,15 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     now = assist.get_current_date(False)
 
     index = 1
+    nocustomers = 1
 
     # for each meter, add readings for all months
     for customer in customers:
+
+        nocustomers += 1
+
+        if nocustomers > 10:
+            break
 
         # get bill rates
         result = await db.execute(
@@ -179,6 +207,10 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
                         consumption_zmw=consumptionZMW,
                         consumption_daily=consumptionDaily,
                         comments="Generated",
+                        # status
+                        access_status="Accessible",
+                        reading_status="Normal",
+                        condition_status="OK",
                         # addres
                         lon=random.uniform(10.0, 11.0),
                         lat=random.uniform(10.0, 11.0),
@@ -221,24 +253,36 @@ async def get_knowledgebase_category(
     meterreading_id: int, db: AsyncSession = Depends(get_lwsc_db)
 ):
     result = await db.execute(
-        select(MeterReadingDB).where(MeterReadingDB.id == meterreading_id)
-    )
-    category = result.scalars().first()
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unable to find meterreading with id '{meterreading_id}'",
-        )
-    return category
-
-
-@router.get("/list", response_model=List[MeterReadingWithDetail])
-async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterReadingDB).options(
+        select(MeterReadingDB)
+        .options(
             selectinload(MeterReadingDB.user),
             selectinload(MeterReadingDB.customer),
             selectinload(MeterReadingDB.attachment),
             selectinload(MeterReadingDB.stage),
             selectinload(MeterReadingDB.status),
-        ).order_by(desc(MeterReadingDB.read_date)))
+        )
+        .where(MeterReadingDB.id == meterreading_id)
+    )
+    reading = result.scalars().first()
+    if not reading:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find meterreading with id '{meterreading_id}'",
+        )
+    return reading
+
+
+@router.get("/list", response_model=List[MeterReadingWithDetail])
+async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):
+    result = await db.execute(
+        select(MeterReadingDB)
+        .options(
+            selectinload(MeterReadingDB.user),
+            selectinload(MeterReadingDB.customer),
+            selectinload(MeterReadingDB.attachment),
+            selectinload(MeterReadingDB.stage),
+            selectinload(MeterReadingDB.status),
+        )
+        .order_by(desc(MeterReadingDB.id))
+    )
     return result.scalars().all()

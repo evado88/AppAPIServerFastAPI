@@ -117,7 +117,15 @@ async def post__category(category: Category, db: AsyncSession = Depends(get_lwsc
 async def update_category(
     cat_id: int, category_update: Category, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(select(CategoryDB).where(CategoryDB.id == cat_id))
+    result = await db.execute(
+        select(CategoryDB)
+        .options(
+            selectinload(CategoryDB.user),
+            selectinload(CategoryDB.stage),
+            selectinload(CategoryDB.status),
+        )
+        .where(CategoryDB.id == cat_id)
+    )
     category = result.scalar_one_or_none()
 
     if not category:
@@ -144,12 +152,17 @@ async def update_category(
 
 @router.get("/list", response_model=List[CategoryWithDetail])
 async def list__categories(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CategoryDB).options(
+    result = await db.execute(
+        select(CategoryDB)
+        .options(
             selectinload(CategoryDB.user),
             selectinload(CategoryDB.stage),
             selectinload(CategoryDB.status),
-        ).order_by(CategoryDB.cat_name))
+        )
+        .order_by(CategoryDB.cat_name)
+    )
     return result.scalars().all()
+
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
@@ -229,7 +242,15 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/id/{cat_id}", response_model=CategoryWithDetail)
 async def get__category(cat_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(CategoryDB).where(CategoryDB.id == cat_id))
+    result = await db.execute(
+        select(CategoryDB)
+        .options(
+            selectinload(CategoryDB.user),
+            selectinload(CategoryDB.stage),
+            selectinload(CategoryDB.status),
+        )
+        .where(CategoryDB.id == cat_id)
+    )
     category = result.scalars().first()
     if not category:
         raise HTTPException(

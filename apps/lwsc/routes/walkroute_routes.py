@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
+from apps.lwsc.models.district_model import DistrictDB
 from helpers import assist
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.walkroute_model import (
@@ -12,7 +13,7 @@ from apps.lwsc.models.walkroute_model import (
     WalkRouteWithSimpleDetail,
 )
 from apps.lwsc.models.user_model import UserDB
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import load_only, selectinload
 
 router = APIRouter(prefix="/walk-routes", tags=["WalkRoutes"])
 
@@ -163,5 +164,10 @@ async def list_routes(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/items", response_model=List[WalkRouteWithSimpleDetail])
 async def list_routes(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(WalkRouteDB))
+    result = await db.execute(
+        select(WalkRouteDB).options(
+            selectinload(WalkRouteDB.district),
+        )
+    )
+
     return result.scalars().all()

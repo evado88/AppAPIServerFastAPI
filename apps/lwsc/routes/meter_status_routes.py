@@ -2,16 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-
+from sqlalchemy.orm import selectinload, load_only
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.meter_status_model import MeterStatus, MeterStatusDB, MeterStatusSimple, MeterStatusWithDetail
+from apps.lwsc.models.meter_status_model import (
+    MeterStatus,
+    MeterStatusDB,
+    MeterStatusSimple,
+    MeterStatusWithDetail,
+)
 from apps.lwsc.models.user_model import UserDB
 
 router = APIRouter(prefix="/meter-statuses", tags=["MeterStatuses"])
 
 
 @router.post("/create", response_model=MeterStatusWithDetail)
-async def post_meter_status(meterstatus: MeterStatus, db: AsyncSession = Depends(get_lwsc_db)):
+async def post_meter_status(
+    meterstatus: MeterStatus, db: AsyncSession = Depends(get_lwsc_db)
+):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == meterstatus.user_id))
     user = result.scalars().first()
@@ -37,15 +44,25 @@ async def post_meter_status(meterstatus: MeterStatus, db: AsyncSession = Depends
         await db.refresh(db_tran)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Unable to create meter status: {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Unable to create meter status: {e}"
+        )
     return db_tran
 
 
 @router.put("/update/{cat_id}", response_model=MeterStatusWithDetail)
 async def update_meterstatus(
-    cat_id: int, meterstatus_update: MeterStatus, db: AsyncSession = Depends(get_lwsc_db)
+    cat_id: int,
+    meterstatus_update: MeterStatus,
+    db: AsyncSession = Depends(get_lwsc_db),
 ):
-    result = await db.execute(select(MeterStatusDB).where(MeterStatusDB.id == cat_id))
+    result = await db.execute(
+        select(MeterStatusDB)
+        .options(
+            selectinload(MeterStatusDB.user),
+        )
+        .where(MeterStatusDB.id == cat_id)
+    )
     config = result.scalar_one_or_none()
 
     if not config:
@@ -62,21 +79,33 @@ async def update_meterstatus(
         await db.refresh(config)
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=f"Unable to update meter status {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Unable to update meter status {e}"
+        )
     return config
 
 
 @router.get("/list", response_model=List[MeterStatusWithDetail])
 async def list_meter_statuses(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterStatusDB))
+    result = await db.execute(
+        select(MeterStatusDB).options(
+            selectinload(MeterStatusDB.user),
+        ).order_by(MeterStatusDB.status_type)
+    )
     queries = result.scalars().all()
     return queries
 
+
 @router.get("/list/simple", response_model=List[MeterStatusSimple])
 async def list_meter_statuses_simple(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterStatusDB))
+    result = await db.execute(
+        select(MeterStatusDB).options(
+            selectinload(MeterStatusDB.user),
+        )
+    )
     queries = result.scalars().all()
     return queries
+
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
@@ -118,7 +147,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     try:
         await db.commit()
         # await db.refresh(db_status)
-        
+
     except Exception as e:
         await db.rollback()
         raise HTTPException(
@@ -132,7 +161,13 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
 
 @router.get("/id/{status_id}", response_model=MeterStatusWithDetail)
 async def get_meter_status(status_id: int, db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(MeterStatusDB).where(MeterStatusDB.id == status_id))
+    result = await db.execute(
+        select(MeterStatusDB)
+        .options(
+            selectinload(MeterStatusDB.user),
+        )
+        .where(MeterStatusDB.id == status_id)
+    )
     meterstatus = result.scalars().first()
     if not meterstatus:
         raise HTTPException(
