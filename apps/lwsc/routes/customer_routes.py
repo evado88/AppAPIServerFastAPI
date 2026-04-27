@@ -267,6 +267,27 @@ async def get_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)
         )
     return category
 
+@router.get("/phone/{customer_phone}", response_model=CustomerWithDetail)
+async def get_customer_phone(customer_phone: str, db: AsyncSession = Depends(get_lwsc_db)):
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
+            selectinload(CustomerDB.user),
+            selectinload(CustomerDB.category),
+            selectinload(CustomerDB.district),
+            selectinload(CustomerDB.route),
+            selectinload(CustomerDB.stage),
+            selectinload(CustomerDB.status),
+        )
+        .where(CustomerDB.mobile == customer_phone)
+    )
+    category = result.scalars().first()
+    if not category:
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find customer with phone '{customer_phone}'"
+        )
+    return category
+
 
 @router.get("/edit/{customer_id}", response_model=ParamCustomer)
 async def get_edit_customer(customer_id: int, db: AsyncSession = Depends(get_lwsc_db)):
