@@ -7,10 +7,12 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
+from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.transaction_group_model import TransactionGroupDB
 from apps.lwsc.models.transaction_model import (
+    MobileTransaction,
     ParamTransactionEdit,
     Transaction,
     TransactionDB,
@@ -61,6 +63,60 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
         approval_levels=tran.approval_levels,
         # service
         created_by=user.email,
+    )
+    db.add(db_tran)
+    try:
+        await db.commit()
+        await db.refresh(db_tran)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, detail=f"Unable to create transaction: {e}"
+        )
+    return db_tran
+
+
+
+@router.post("/post", response_model=Transaction)
+async def post_customer_transaction(
+    tran: MobileTransaction,
+    db: AsyncSession = Depends(get_lwsc_db),
+):
+    # check customer exists
+    result = await db.execute(
+        select(CustomerDB)
+        .options((noload("*")))
+        .where(CustomerDB.mobile == tran.customer_phone)
+    )
+    customer = result.scalars().first()
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find customer with phone '{tran.customer_phone}'",
+        )
+
+    db_tran = TransactionDB(
+        # type of transaction
+        type_id=2,
+        # group of transaction
+        group_id=1,
+        # user
+        user_id=customer.user_id,
+        # customer
+        customer_id=customer.id,
+        # attachement
+        attachment_id=None,
+        # transaction
+        date=assist.get_current_date(),
+        amount=tran.amount,
+        comments=tran.type,
+        reference=tran.ref,
+        # approval
+        status_id=lwscapp.STATUS_APPROVED,
+        stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
+        approval_levels=1,
+        # service
+        created_by=customer.email,
     )
     db.add(db_tran)
     try:
@@ -176,8 +232,7 @@ async def update_transaction(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Unable to update transaction {e}")
-    
-    
+
     # customer list
     result = await db.execute(select(CustomerDB).options(noload("*")))
     customerList = result.scalars().all()

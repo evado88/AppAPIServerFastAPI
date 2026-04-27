@@ -145,6 +145,15 @@ class Transaction(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class MobileTransaction(BaseModel):
+    customer_phone: str
+    amount: float
+    type: str
+    ref: str
+
+    class Config:
+        orm_mode = True
 
         
 class TransactionWithDetail(Transaction):
