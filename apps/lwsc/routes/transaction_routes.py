@@ -76,7 +76,6 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
     return db_tran
 
 
-
 @router.post("/post", response_model=Transaction)
 async def post_customer_transaction(
     tran: MobileTransaction,
@@ -143,6 +142,41 @@ async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
             selectinload(TransactionDB.attachment),
             selectinload(TransactionDB.customer),
         )
+        .order_by(desc(TransactionDB.id))
+    )
+    transactions = result.scalars().all()
+    return transactions
+
+
+@router.get("/customer/{account}", response_model=List[TransactionWithDetail])
+async def list_customer_transactions(
+    account: str, db: AsyncSession = Depends(get_lwsc_db)
+):
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
+            noload('*'),
+        )
+        .where(CustomerDB.account == account)
+    )
+    customer= result.scalars().first()
+    if not customer:
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find customer with account '{account}'"
+        )
+    
+    result = await db.execute(
+        select(TransactionDB)
+        .options(
+            selectinload(TransactionDB.user),
+            selectinload(TransactionDB.type),
+            selectinload(TransactionDB.group),
+            selectinload(TransactionDB.status),
+            selectinload(TransactionDB.stage),
+            selectinload(TransactionDB.attachment),
+            selectinload(TransactionDB.customer),
+        )
+        .where(TransactionDB.customer_id == customer.id)
         .order_by(desc(TransactionDB.id))
     )
     transactions = result.scalars().all()
