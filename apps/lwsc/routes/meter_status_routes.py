@@ -122,6 +122,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
         {"name": "Dog on Premises", "type": "Access"},
         {"name": "Customer Not Available", "type": "Access"},
         {"name": "Obstructed Meter", "type": "Access"},
+        {"name": "Unavailable", "type": "Condition"},
         {"name": "OK", "type": "Condition"},
         {"name": "Damaged", "type": "Condition"},
         {"name": "Leaking", "type": "Condition"},
