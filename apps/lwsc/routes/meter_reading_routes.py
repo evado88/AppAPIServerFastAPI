@@ -48,7 +48,8 @@ async def get_consumption_zmw(meterreading: MeterReading, db: AsyncSession):
     result = await db.execute(
         select(MeterReadingDB)
         .options(noload("*"))
-        .where(MeterReadingDB.customer_id == meterreading.customer_id,
+        .where(MeterReadingDB.uuid != meterreading.uuid,
+               MeterReadingDB.customer_id == meterreading.customer_id,
                MeterReadingDB.status_id == assist.STATUS_APPROVED)
         .order_by(desc(MeterReadingDB.read_date))
         .limit(2)
