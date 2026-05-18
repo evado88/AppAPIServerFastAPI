@@ -83,9 +83,9 @@ cclapp.include_ccl_routes(app)
 async def startup():
     await init_client()
     #osawe
-    await osaweapp.init_osawe_db(app)
+    #await osaweapp.init_osawe_db(app)
     #lwsc
-    await lwscapp.init_lwsc_db(app)    
+    #await lwscapp.init_lwsc_db(app)    
     #ccl
     await cclapp.init_ccl_db(app)
         
