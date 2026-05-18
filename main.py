@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
 
 origins = [
         "http://127.0.0.1",
+        "http://si-apps.cidrz.org",
         "http://lpwsc.iom-demo.online",
         "http://localhost",
         "http://localhost:5173",
