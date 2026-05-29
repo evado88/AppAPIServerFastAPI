@@ -17,7 +17,7 @@ from sqlalchemy.orm import selectinload
 router = APIRouter(prefix="/transaction-groups", tags=["TransactionGroups"])
 
 
-@router.post("/create", response_model=TransactionGroupWithDetail)
+@router.post("/create", response_model=TransactionGroup)
 async def create_group(
     group: TransactionGroup, db: AsyncSession = Depends(get_lwsc_db)
 ):

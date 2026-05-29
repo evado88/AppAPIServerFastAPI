@@ -18,7 +18,7 @@ from sqlalchemy.orm import load_only, selectinload
 router = APIRouter(prefix="/walk-routes", tags=["WalkRoutes"])
 
 
-@router.post("/create", response_model=WalkRouteWithDetail)
+@router.post("/create", response_model=WalkRoute)
 async def create_type(route: WalkRoute, db: AsyncSession = Depends(get_lwsc_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == route.user_id))

@@ -141,7 +141,10 @@ async def import_users(
                     DistrictDB.id, DistrictDB.name, DistrictDB.code
                 ),
             )
-            .where(WalkRouteDB.name.in_(items))
+            .where(
+                WalkRouteDB.name.in_(items),
+                WalkRouteDB.district_id == customerImport.district_id,
+            )
         )
         models = result.scalars().all()
         routes = [WalkRouteWithSimpleDetail.from_orm(obj).dict() for obj in models]

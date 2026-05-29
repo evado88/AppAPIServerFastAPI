@@ -73,10 +73,10 @@ app.add_middleware(
 # osawe
 ## osaweapp.include_osawe_routes(app)
 # lwsc
-# lwscapp.include_lwsc_routes(app)
+lwscapp.include_lwsc_routes(app)
 # ccl
 
-cclapp.include_ccl_routes(app)
+# cclapp.include_ccl_routes(app)
 
 # create tables at startup
 
@@ -86,9 +86,9 @@ async def startup():
     #osawe
     #await osaweapp.init_osawe_db(app)
     #lwsc
-    #await lwscapp.init_lwsc_db(app)    
+    await lwscapp.init_lwsc_db(app)    
     #ccl
-    await cclapp.init_ccl_db(app)
+    #await cclapp.init_ccl_db(app)
         
 @app.on_event("shutdown")
 async def shutdown_event():

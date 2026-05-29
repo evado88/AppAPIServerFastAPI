@@ -92,7 +92,7 @@ class CustomerDB(Base):
     district = relationship("DistrictDB", back_populates="customer", lazy="raise")
     meterreadings = relationship("MeterReadingDB", back_populates="customer", lazy="raise") 
     transactions = relationship("TransactionDB", back_populates="customer", lazy="raise")
-    
+    complaints = relationship("ComplaintDB", back_populates="customer", lazy="raise")
 # ---------- Pydantic Schemas ----------
 class Customer(BaseModel):
     # id

@@ -16,7 +16,7 @@ from apps.lwsc import lwscapp
 router = APIRouter(prefix="/districts", tags=["Districts"])
 
 
-@router.post("/create", response_model=DistrictWithDetail)
+@router.post("/create", response_model=District)
 async def post_district(district: District, db: AsyncSession = Depends(get_lwsc_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == district.user_id))

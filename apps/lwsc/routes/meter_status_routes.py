@@ -15,7 +15,7 @@ from apps.lwsc.models.user_model import UserDB
 router = APIRouter(prefix="/meter-statuses", tags=["MeterStatuses"])
 
 
-@router.post("/create", response_model=MeterStatusWithDetail)
+@router.post("/create", response_model=MeterStatus)
 async def post_meter_status(
     meterstatus: MeterStatus, db: AsyncSession = Depends(get_lwsc_db)
 ):

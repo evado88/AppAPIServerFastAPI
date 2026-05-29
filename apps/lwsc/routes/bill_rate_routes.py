@@ -18,7 +18,7 @@ from apps.lwsc import lwscapp
 router = APIRouter(prefix="/bill-rates", tags=["BillRates"])
 
 
-@router.post("/create", response_model=BillRateWithDetail)
+@router.post("/create", response_model=BillRate)
 async def create_type(billrate: BillRate, db: AsyncSession = Depends(get_lwsc_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == billrate.user_id))

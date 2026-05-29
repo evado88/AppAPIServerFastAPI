@@ -21,6 +21,7 @@ from apps.lwsc.routes import dashboard_routes
 from apps.lwsc.routes import transaction_type_routes
 from apps.lwsc.routes import transaction_group_routes
 from apps.lwsc.routes import transaction_routes
+from apps.lwsc.routes import complaint_routes
 
 
 APP_ROUTE = "/lwsc"
@@ -79,6 +80,7 @@ def include_lwsc_routes(app):
     app.include_router(transaction_type_routes.router, prefix=APP_ROUTE)
     app.include_router(transaction_group_routes.router, prefix=APP_ROUTE)
 
+    app.include_router(complaint_routes.router, prefix=APP_ROUTE)
     
 async def init_lwsc_db(app):
     async with engine.begin() as conn:

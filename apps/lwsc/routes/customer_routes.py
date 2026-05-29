@@ -25,7 +25,7 @@ from sqlalchemy.orm import noload
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
-@router.post("/create", response_model=CustomerWithDetail)
+@router.post("/create", response_model=Customer)
 async def create_type(customer: Customer, db: AsyncSession = Depends(get_lwsc_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == customer.user_id))

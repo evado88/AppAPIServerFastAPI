@@ -78,7 +78,7 @@ async def process_bill_rates(category: Category, db: AsyncSession):
     await db.commit()
 
 
-@router.post("/create", response_model=CategoryWithDetail)
+@router.post("/create", response_model=Category)
 async def post__category(category: Category, db: AsyncSession = Depends(get_lwsc_db)):
     # check user exists
     result = await db.execute(select(UserDB).where(UserDB.id == category.user_id))
