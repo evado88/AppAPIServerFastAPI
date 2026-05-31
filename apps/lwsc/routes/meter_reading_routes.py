@@ -8,6 +8,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import selectinload, noload
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
+from apps.lwsc.models.attachment_model import AttachmentDB
 from apps.lwsc.models.bill_rate_model import BillRateDB
 from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.meter_reading_model import (
@@ -15,6 +16,7 @@ from apps.lwsc.models.meter_reading_model import (
     MeterReadingDB,
     MeterReadingWithDetail,
 )
+from apps.lwsc.models.param_models import ParamUploadTaskResult
 from apps.lwsc.models.user_model import UserDB
 from helpers import assist
 import random
@@ -48,9 +50,11 @@ async def get_consumption_zmw(meterreading: MeterReading, db: AsyncSession):
     result = await db.execute(
         select(MeterReadingDB)
         .options(noload("*"))
-        .where(MeterReadingDB.uuid != meterreading.uuid,
-               MeterReadingDB.customer_id == meterreading.customer_id,
-               MeterReadingDB.status_id == assist.STATUS_APPROVED)
+        .where(
+            MeterReadingDB.uuid != meterreading.uuid,
+            MeterReadingDB.customer_id == meterreading.customer_id,
+            MeterReadingDB.status_id == assist.STATUS_APPROVED,
+        )
         .order_by(desc(MeterReadingDB.read_date))
         .limit(2)
     )
@@ -78,11 +82,11 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
             status_code=400,
             detail=f"The user with id '{meterreading.user_id}' does not exist",
         )
-        
+
     # look for consumption
     meterreading = await get_consumption_zmw(meterreading, db)
 
-    db_user = MeterReadingDB(
+    db_reading = MeterReadingDB(
         # uuid
         uuid=meterreading.uuid,
         # user
@@ -114,17 +118,24 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         # service
         created_by=user.email,
     )
-    db.add(db_user)
+    db.add(db_reading)
     try:
         await db.commit()
-        await db.refresh(db_user)
+        await db.refresh(db_reading)
     except Exception as e:
         await db.rollback()
         raise HTTPException(
             status_code=400, detail=f"Unable to create meterreading: f{e}"
         )
 
-    return db_user
+    res = ParamUploadTaskResult(
+        succeeded=True,
+        approved=False,
+        message="The meter reading has been successfully submitted",
+        meterreading=db_reading,
+    )
+    return res
+    return db_reading
 
 
 async def update_meterreading(
@@ -140,8 +151,32 @@ async def update_meterreading(
     if not reading:
         raise HTTPException(
             status_code=404,
-            detail=f"Unable to find meterreading with id '{meterreading_id}'",
+            detail=f"Unable to find meter-reading with id '{meterreading_id}'",
         )
+
+    # check if this has already been approved
+    if reading.status_id == lwscapp.STATUS_APPROVED:
+        imgUrl = ''
+        
+        # check if has attachment
+        if reading.attachment_id != 0:
+            # attachment specified, load
+            result = await db.execute(select(AttachmentDB).where(AttachmentDB.id == reading.attachment_id))
+            attachment = result.scalars().first()
+            
+            # check if exists
+            if attachment:
+                imgUrl = attachment.path
+            
+        
+        return ParamUploadTaskResult(
+            succeeded=False,
+            approved=True,
+            imageUrl=imgUrl,
+            message="The meter reading submission has been approved and cannot be updated. Changes reverted",
+            meterreading=reading,
+        )
+
     # look for consumption
     meterreading_update = await get_consumption_zmw(meterreading_update, db)
 
@@ -157,10 +192,17 @@ async def update_meterreading(
         raise HTTPException(
             status_code=400, detail=f"Unable to update meterreading {e}"
         )
-    return reading
+    res = ParamUploadTaskResult(
+        succeeded=True,
+        approved=False,
+        message="The meter reading submission has been successfully updated",
+        meterreading=reading,
+    )
+
+    return res
 
 
-@router.post("/upload", response_model=MeterReading)
+@router.post("/upload", response_model=ParamUploadTaskResult)
 async def upload_meterreading(
     meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)
 ):
@@ -171,6 +213,7 @@ async def upload_meterreading(
         .where(MeterReadingDB.uuid == meterreading.uuid)
     )
     existing = result.scalars().first()
+
     if existing:
         # update existing record instead of creating new one
         return await update_meterreading(existing.id, meterreading, db)

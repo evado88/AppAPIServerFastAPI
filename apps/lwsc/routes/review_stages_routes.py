@@ -36,7 +36,8 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
         "Submitted",#2 after submission
         "Primary Approval",#3 first admin reviews
         "Secondary Approval",#4 second admin reviews
-        "Approved",#8 approved, third admin reviews
+        "Approved",#5 approved, third admin reviews
+        "Rejected",#6 approved, third admin reviews
     ]
     stageId = 1
 

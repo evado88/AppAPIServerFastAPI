@@ -6,8 +6,19 @@ from apps.lwsc.models.category_model import Category
 from apps.lwsc.models.configuration_model import AppConfiguration
 from apps.lwsc.models.customer_model import Customer
 from apps.lwsc.models.district_model import District, DistrictSimple
+from apps.lwsc.models.meter_reading_model import MeterReading
 from apps.lwsc.models.user_model import User, UserWithDetail, UserWithFullDetail
 from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteWithSimpleDetail
+
+class ParamUploadTaskResult(BaseModel):
+    succeeded: bool
+    approved: bool
+    message: str
+    imageUrl: Optional[str] = ''
+    meterreading: MeterReading
+
+    class Config:
+        orm_mode = True
 
 
 class ParamUserEdit(BaseModel):
