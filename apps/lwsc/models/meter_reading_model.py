@@ -126,33 +126,17 @@ class MeterReading(BaseModel):
         ...,
         description="The upload date is required",
     )
-       
+
     current: float = Field(
         ...,
         ge=0,
         description="Reading must be equal to or greater than zero",
     )
     previous: Optional[float] = None
-    consumption_m3: float = Field(
-        ...,
-        ge=0,
-        description="The consumption (M3) must be equal to or greater than zero",
-    )
-    consumption_days: int = Field(
-        ...,
-        ge=1,
-        description="The consumption (days) must be equal to or greater than one",
-    )
-    consumption_zmw: float = Field(
-        ...,
-        ge=0,
-        description="The consumption(ZMW) must be equal to or greater than zero",
-    )
-    consumption_daily: float = Field(
-        ...,
-        ge=0,
-        description="The consumption (daily) must be equal to or greater than zero",
-    )
+    consumption_m3: Optional[float] = None
+    consumption_days: Optional[int] = None
+    consumption_zmw: Optional[float] = None
+    consumption_daily: Optional[float] = None
     comments: Optional[str] = None
 
     # status
