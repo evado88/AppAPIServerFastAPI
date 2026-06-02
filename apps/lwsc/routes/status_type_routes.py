@@ -49,7 +49,7 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     return {'succeeded': True, 'message': 'Statuses have been successfully initialized'}
 
 
-@router.get("/", response_model=List[StatusType])
+@router.get("/list", response_model=List[StatusType])
 async def list_statuses(db: AsyncSession = Depends(get_lwsc_db)):
     result = await db.execute(select(StatusTypeDB))
     return result.scalars().all()

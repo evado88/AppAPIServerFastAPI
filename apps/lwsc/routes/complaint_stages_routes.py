@@ -4,15 +4,15 @@ from sqlalchemy.future import select
 from typing import List
 
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageDB
+from apps.lwsc.models.complaint_stages_model import ComplaintStage, ComplaintStageDB
 
-router = APIRouter(prefix="/review-stages", tags=["ReviewStages"])
+router = APIRouter(prefix="/complaint-stages", tags=["ComplaintStages"])
 
 
-@router.post("/create", response_model=ReviewStage)
-async def create_stage(status: ReviewStage, db: AsyncSession = Depends(get_lwsc_db)):
+@router.post("/create", response_model=ComplaintStage)
+async def create_stage(status: ComplaintStage, db: AsyncSession = Depends(get_lwsc_db)):
 
-    db_user = ReviewStageDB(
+    db_user = ComplaintStageDB(
         # personal details
         id=status.id,
         stage_name=status.stage_name,
@@ -24,7 +24,7 @@ async def create_stage(status: ReviewStage, db: AsyncSession = Depends(get_lwsc_
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=400, detail=f"Unable to create review stage: f{e}"
+            status_code=400, detail=f"Unable to create complaint stage: f{e}"
         )
     return db_user
 
@@ -32,17 +32,15 @@ async def create_stage(status: ReviewStage, db: AsyncSession = Depends(get_lwsc_
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     stageList = [
-        "Awaiting Submission", #1 before submission (all)
-        "Submitted",#2 after submission
-        "Primary Approval",#3 first admin reviews
-        "Secondary Approval",#4 second admin reviews
-        "Approved",#5 approved, third admin reviews
-        "Rejected",#6 approved, third admin reviews
+        "Open", #1 just submitted
+        "In Progress",#2 being worked on
+        "Resolved",#3 item resolved
+        "Closed",#4 item closed
     ]
     stageId = 1
 
     for value in stageList:
-        db_status = ReviewStageDB(
+        db_status = ComplaintStageDB(
             # personal details
             id=stageId,
             stage_name=value,
@@ -56,15 +54,15 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=400, detail=f"Unable to initialize review stages: f{e}"
+            status_code=400, detail=f"Unable to initialize complaint stages: f{e}"
         )
     return {
         "succeeded": True,
-        "message": "Review stages have been successfully initialized",
+        "message": f"{len(stageList)} Complaint stages have been successfully initialized",
     }
 
 
-@router.get("/list", response_model=List[ReviewStage])
+@router.get("/list", response_model=List[ComplaintStage])
 async def list_stages(db: AsyncSession = Depends(get_lwsc_db)):
-    result = await db.execute(select(ReviewStageDB))
+    result = await db.execute(select(ComplaintStageDB))
     return result.scalars().all()

@@ -36,6 +36,8 @@ async def create_type(customer_no: str, complaint: Complaint, db: AsyncSession =
         uuid=complaint.uuid,
         # customer
         customer_id=customerItem.id,
+        # complaint stage
+        complaint_stage_id = complaint.complaint_stage_id,
         # department
         department_id=complaint.department_id,
         # complaint
@@ -68,6 +70,7 @@ async def get_complaint(complaint_id: int, db: AsyncSession = Depends(get_lwsc_d
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.complaintstage),
             selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),
@@ -92,6 +95,7 @@ async def update_category(
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.complaintstage),
             selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),
@@ -124,6 +128,7 @@ async def list_complaints(db: AsyncSession = Depends(get_lwsc_db)):
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.complaintstage),
             selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),
@@ -153,6 +158,7 @@ async def list_customer_transactions(
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.complaintstage),
             selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),

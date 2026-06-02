@@ -14,6 +14,7 @@ from typing import Optional, Any
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
 from apps.lwsc.models.complaint_department_model import ComplaintDepartment
+from apps.lwsc.models.complaint_stages_model import ComplaintStage
 from apps.lwsc.models.customer_model import Customer, CustomerSimple
 from apps.lwsc.models.review_stages_model import ReviewStageItem
 from apps.lwsc.models.status_types_model import StatusTypeItem
@@ -34,6 +35,9 @@ class ComplaintDB(Base):
 
     # customer
     customer_id = Column(Integer, ForeignKey("customers.id"))
+
+    # complaint stage
+    complaint_stage_id = Column(Integer, ForeignKey("list_complaint_stages.id"))
 
     # department
     department_id = Column(Integer, ForeignKey("complaint_departments.id"))
@@ -82,6 +86,7 @@ class ComplaintDB(Base):
     updated_by = Column(String, nullable=True)
 
     # relationships
+    complaintstage = relationship("ComplaintStageDB", back_populates="complaints", lazy="raise")
     stage = relationship("ReviewStageDB", back_populates="complaints", lazy="raise")
     status = relationship("StatusTypeDB", back_populates="complaints", lazy="raise")
     customer = relationship("CustomerDB", back_populates="complaints", lazy="raise")
@@ -104,6 +109,11 @@ class Complaint(BaseModel):
 
     # customer
     customer_id: Optional[int] = None
+    
+    # complaint stage
+    complaint_stage_id: int = Field(
+        ..., ge=1, le=4, description="Complaint stage must be between 1 and 4"
+    )
 
     # department
     department_id: Optional[int] = None
@@ -130,7 +140,7 @@ class Complaint(BaseModel):
     description: str = Field(
         ...,
         min_length=2,
-        max_length=50,
+        max_length=500,
         description="Description must be between 2 and 500 characters",
     )
     preferred_contact_method: str = Field(
@@ -185,5 +195,6 @@ class Complaint(BaseModel):
 class ComplaintWithDetail(Complaint):
     customer: CustomerSimple
     department: Optional[ComplaintDepartment] = None
+    complaintstage: ComplaintStage
     stage: ReviewStageItem
     status: StatusTypeItem
