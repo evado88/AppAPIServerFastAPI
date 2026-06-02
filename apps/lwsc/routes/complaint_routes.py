@@ -14,6 +14,7 @@ from helpers import assist
 import random
 from apps.lwsc import lwscapp
 from sqlalchemy.orm import noload
+from sqlalchemy import or_, desc
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
@@ -131,3 +132,33 @@ async def list_complaints(db: AsyncSession = Depends(get_lwsc_db)):
     )
     return result.scalars().all()
 
+@router.get("/customer/{account}", response_model=List[ComplaintWithDetail])
+async def list_customer_transactions(
+    account: str, db: AsyncSession = Depends(get_lwsc_db)
+):
+    result = await db.execute(
+        select(CustomerDB)
+        .options(
+            noload('*'),
+        )
+        .where(CustomerDB.account == account)
+    )
+    customer= result.scalars().first()
+    if not customer:
+        raise HTTPException(
+            status_code=404, detail=f"Unable to find customer with account '{account}'"
+        )
+    
+    result = await db.execute(
+        select(ComplaintDB)
+        .options(
+            selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.department),
+            selectinload(ComplaintDB.stage),
+            selectinload(ComplaintDB.status),
+        )
+        .where(ComplaintDB.customer_id == customer.id)
+        .order_by(desc(ComplaintDB.id))
+    )
+    transactions = result.scalars().all()
+    return transactions

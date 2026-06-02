@@ -14,7 +14,7 @@ from typing import Optional, Any
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
 from apps.lwsc.models.complaint_department_model import ComplaintDepartment
-from apps.lwsc.models.customer_model import Customer
+from apps.lwsc.models.customer_model import Customer, CustomerSimple
 from apps.lwsc.models.review_stages_model import ReviewStageItem
 from apps.lwsc.models.status_types_model import StatusTypeItem
 from apps.lwsc.models.user_model import User, UserSimple
@@ -183,7 +183,7 @@ class Complaint(BaseModel):
 
 
 class ComplaintWithDetail(Complaint):
-    customer: Customer
+    customer: CustomerSimple
     department: Optional[ComplaintDepartment] = None
     stage: ReviewStageItem
     status: StatusTypeItem
