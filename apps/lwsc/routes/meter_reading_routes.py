@@ -214,11 +214,15 @@ async def update_meterreading(
 async def upload_meterreading(
     meterreading: MeterReading, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    # check if reading with same uuid exists
+    # check if same customer has same reading in period
+    # do not use uuid which can change when app is reinstalled
     result = await db.execute(
         select(MeterReadingDB)
         .options(noload("*"))
-        .where(MeterReadingDB.uuid == meterreading.uuid)
+        .where(
+            MeterReadingDB.customer_id == meterreading.customer_id,
+            MeterReadingDB.period_date == meterreading.period_date,
+        )
     )
     existing = result.scalars().first()
 
