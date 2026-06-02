@@ -6,7 +6,7 @@ from apps.lwsc.lwscdb import Base
 from datetime import datetime, date
 
 from apps.lwsc.models.attachment_model import Attachment
-from apps.lwsc.models.customer_model import Customer, CustomerItem
+from apps.lwsc.models.customer_model import Customer, CustomerItem, CustomerSimple
 from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
 from apps.lwsc.models.status_types_model import StatusType, StatusTypeItem
 from apps.lwsc.models.user_model import User, UserSimple
@@ -18,6 +18,9 @@ class MeterReadingDB(Base):
 
     # id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    # period
+    period_date = Column(Date, nullable=False)
 
     # uuid
     uuid = Column(String, unique=True, index=True, nullable=False)
@@ -33,6 +36,8 @@ class MeterReadingDB(Base):
 
     # details
     read_date = Column(DateTime(timezone=True), nullable=False)
+    upload_at = Column(DateTime(timezone=True), nullable=True)
+
     current = Column(Float, nullable=True)
     previous = Column(Float, nullable=True)
     consumption_m3 = Column(Float, nullable=True)
@@ -89,6 +94,13 @@ class MeterReading(BaseModel):
     # id
     id: Optional[int] = None
 
+    # period
+    period_date: date = Field(
+        ...,
+        description="The date for the period must be provided",
+    )
+
+    # uuid
     uuid: str = Field(
         ...,
         min_length=2,
@@ -106,10 +118,15 @@ class MeterReading(BaseModel):
     attachment_id: Optional[int] = None
 
     # details
-    read_date: date = Field(
+    read_date: datetime = Field(
         ...,
-        description="The date is required",
+        description="The read date is required",
     )
+    upload_at: datetime = Field(
+        ...,
+        description="The upload date is required",
+    )
+       
     current: float = Field(
         ...,
         ge=0,
@@ -190,7 +207,7 @@ class MeterReading(BaseModel):
 
 class MeterReadingWithDetail(MeterReading):
     user: UserSimple
-    customer: CustomerItem
+    customer: CustomerSimple
     attachment: Optional[Attachment] = None
     stage: ReviewStageItem
     status: StatusTypeItem

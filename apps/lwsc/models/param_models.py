@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import List, Optional, Any
 from pydantic import BaseModel
 from apps.lwsc.models.attachment_model import Attachment
-from apps.lwsc.models.category_model import Category
+from apps.lwsc.models.customer_category_model import Category
 from apps.lwsc.models.configuration_model import AppConfiguration
 from apps.lwsc.models.customer_model import Customer
 from apps.lwsc.models.district_model import District, DistrictSimple

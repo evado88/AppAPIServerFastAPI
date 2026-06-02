@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Any
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
+from apps.lwsc.models.complaint_department_model import ComplaintDepartment
 from apps.lwsc.models.customer_model import Customer
 from apps.lwsc.models.review_stages_model import ReviewStageItem
 from apps.lwsc.models.status_types_model import StatusTypeItem
@@ -27,12 +28,15 @@ class ComplaintDB(Base):
 
     # id
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    
+
     # uuid
     uuid = Column(String, unique=True, index=True, nullable=False)
 
     # customer
     customer_id = Column(Integer, ForeignKey("customers.id"))
+
+    # department
+    department_id = Column(Integer, ForeignKey("complaint_departments.id"))
 
     # complaint
     reference_number = Column(String(50), unique=True, nullable=False)
@@ -81,22 +85,28 @@ class ComplaintDB(Base):
     stage = relationship("ReviewStageDB", back_populates="complaints", lazy="raise")
     status = relationship("StatusTypeDB", back_populates="complaints", lazy="raise")
     customer = relationship("CustomerDB", back_populates="complaints", lazy="raise")
+    department = relationship(
+        "ComplaintDepartmentDB", back_populates="complaints", lazy="raise"
+    )
 
 
 # ---------- Pydantic Schemas ----------
 class Complaint(BaseModel):
     # id
     id: Optional[int] = None
-    
+
     uuid: str = Field(
         ...,
         min_length=2,
         max_length=50,
         description="The UUID must be between 2 and 50 characters",
     )
-    
+
     # customer
-    customer_id: int
+    customer_id: Optional[int] = None
+
+    # department
+    department_id: Optional[int] = None
 
     # complaint
     reference_number: str = Field(
@@ -172,9 +182,8 @@ class Complaint(BaseModel):
         orm_mode = True
 
 
-
-
 class ComplaintWithDetail(Complaint):
     customer: Customer
+    department: Optional[ComplaintDepartment] = None
     stage: ReviewStageItem
     status: StatusTypeItem

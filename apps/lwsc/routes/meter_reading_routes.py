@@ -17,6 +17,7 @@ from apps.lwsc.models.meter_reading_model import (
     MeterReadingWithDetail,
 )
 from apps.lwsc.models.param_models import ParamUploadTaskResult
+from apps.lwsc.models.review_model import AppReview
 from apps.lwsc.models.user_model import UserDB
 from helpers import assist
 import random
@@ -75,28 +76,33 @@ async def get_consumption_zmw(meterreading: MeterReading, db: AsyncSession):
 
 async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
     # check user exists
-    result = await db.execute(select(UserDB).where(UserDB.id == meterreading.user_id))
+    result = await db.execute(
+        select(UserDB).where(UserDB.email == meterreading.created_by)
+    )
     user = result.scalars().first()
     if not user:
         raise HTTPException(
             status_code=400,
-            detail=f"The user with id '{meterreading.user_id}' does not exist",
+            detail=f"The user with email '{meterreading.created_by}' does not exist",
         )
 
     # look for consumption
     meterreading = await get_consumption_zmw(meterreading, db)
 
     db_reading = MeterReadingDB(
+        # period
+        period_date=meterreading.period_date,
         # uuid
         uuid=meterreading.uuid,
         # user
-        user_id=meterreading.user_id,
+        user_id=user.id,
         # attachment
         attachment_id=meterreading.attachment_id,
         # customer
         customer_id=meterreading.customer_id,
         # details
         read_date=meterreading.read_date,
+        upload_at=meterreading.upload_at,
         current=meterreading.current,
         previous=meterreading.previous,
         consumption_m3=meterreading.consumption_m3,
@@ -116,6 +122,7 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         stage_id=meterreading.stage_id,
         approval_levels=meterreading.approval_levels,
         # service
+        updated_at=meterreading.updated_at,
         created_by=user.email,
     )
     db.add(db_reading)
@@ -156,19 +163,20 @@ async def update_meterreading(
 
     # check if this has already been approved
     if reading.status_id == lwscapp.STATUS_APPROVED:
-        imgUrl = ''
-        
+        imgUrl = ""
+
         # check if has attachment
         if reading.attachment_id != 0:
             # attachment specified, load
-            result = await db.execute(select(AttachmentDB).where(AttachmentDB.id == reading.attachment_id))
+            result = await db.execute(
+                select(AttachmentDB).where(AttachmentDB.id == reading.attachment_id)
+            )
             attachment = result.scalars().first()
-            
+
             # check if exists
             if attachment:
                 imgUrl = attachment.path
-            
-        
+
         return ParamUploadTaskResult(
             succeeded=False,
             approved=True,
@@ -369,3 +377,135 @@ async def list_meterreadings(db: AsyncSession = Depends(get_lwsc_db)):
         .order_by(desc(MeterReadingDB.id))
     )
     return result.scalars().all()
+
+
+@router.put("/review-update/{id}", response_model=MeterReading)
+async def review_posting(
+    id: int, review: AppReview, db: AsyncSession = Depends(get_lwsc_db)
+):
+    # check user exists
+    result = await db.execute(select(UserDB).where(UserDB.id == review.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The user with id '{review.user_id}' does not exist",
+        )
+
+    # check if item exists
+    result = await db.execute(select(MeterReadingDB).where(MeterReadingDB.id == id))
+    reading = result.scalar_one_or_none()
+
+    if not reading:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unable to find meter reading with specified id '{id}'",
+        )
+
+    if reading.status_id == lwscapp.STATUS_APPROVED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The meter reading with id '{id}' has already been approved",
+        )
+
+    reading.updated_by = user.email
+
+    approveMeeting = False
+
+    if reading.stage_id == lwscapp.APPROVAL_STAGE_SUBMITTED:
+        # submitted stage
+
+        if reading.created_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the primary reviewer of a meter reading you created",
+            )
+
+        reading.review1_at = assist.get_current_date(False)
+        reading.review1_by = user.email
+        reading.review1_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            reading.status_id = lwscapp.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if reading.approval_levels == 1:
+                # one level, no furthur stage approvers
+
+                # approve announcement
+                approveMeeting = True
+
+            elif reading.approval_levels == 2 or reading.approval_levels == 3:
+                # two or three levels, move to primary
+                reading.stage_id = lwscapp.APPROVAL_STAGE_PRIMARY_REVIEW
+
+    elif reading.stage_id == lwscapp.APPROVAL_STAGE_PRIMARY_REVIEW:
+        # primary stage
+
+        if reading.review1_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the secondary reviewer since you were the primary reviewer",
+            )
+
+        reading.review2_at = assist.get_current_date(False)
+        reading.review2_by = user.email
+        reading.review2_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            reading.status_id = lwscapp.STATUS_REJECTED
+        else:
+            # approve
+
+            # check number of approval levels
+            if reading.approval_levels == 2:
+                # two levels, no furthur stage approvers
+
+                approveMeeting = True
+
+            elif reading.approval_levels == 3:
+                # three levels, move to secondary
+                reading.stage_id = lwscapp.APPROVAL_STAGE_SECONDARY_REVIEW
+
+    elif reading.stage_id == lwscapp.APPROVAL_STAGE_SECONDARY_REVIEW:
+        # secondary stage
+
+        if reading.review2_by == user.email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You cannot be the final reviewer since you were the secondary reviewer",
+            )
+
+        reading.review3_at = assist.get_current_date(False)
+        reading.review3_by = user.email
+        reading.review3_comments = review.comments
+
+        if review.review_action == assist.REVIEW_ACTION_REJECT:
+            # reject
+
+            reading.status_id = lwscapp.STATUS_REJECTED
+        else:
+            # approve
+            # three levels and on last stage
+            approveMeeting = True
+
+    if approveMeeting:
+        # change announcement status
+        reading.status_id = lwscapp.STATUS_APPROVED
+        reading.stage_id = lwscapp.APPROVAL_STAGE_APPROVED
+
+    try:
+        await db.commit()
+        await db.refresh(reading)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, detail=f"Unable to update meter reading: {e}"
+        )
+    return reading

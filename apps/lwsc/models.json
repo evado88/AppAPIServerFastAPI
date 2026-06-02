@@ -1,0 +1,33 @@
+[
+    {
+        "uuid": "ae457343e4343946",
+        "reference_number": "CMNT-MSA00005-20260602-109872",
+        "category": "Incorrect Meter Reading",
+        "priority": "Medium",
+        "description": "My meter readings are not correct",
+        "preferred_contact_method": "Phone Call",
+        "is_emergency": true,
+        "assigned_to": "string",
+        "resolution_notes": "string",
+        "resolved_at": "2026-06-01T22:47:57.608Z",
+        "status_id": 2,
+        "stage_id": 2,
+        "approval_levels": 2
+    },
+    {
+        "uuid": "be457343e4343943",
+        "department_id": 2,
+        "reference_number": "CMNT-MSA00007-20260602-109872",
+        "category": "Overbilling",
+        "priority": "Medium",
+        "description": "I was charged too much last month",
+        "preferred_contact_method": "Phone Call",
+        "is_emergency": true,
+        "assigned_to": "string",
+        "resolution_notes": "string",
+        "resolved_at": "2026-06-01T22:47:57.608Z",
+        "status_id": 2,
+        "stage_id": 2,
+        "approval_levels": 2
+    }
+]

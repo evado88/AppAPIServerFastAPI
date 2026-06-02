@@ -79,7 +79,7 @@ class UserDB(Base):
     billrate = relationship("BillRateDB", back_populates="user", lazy="raise")
     groups = relationship("TransactionGroupDB", back_populates="user", lazy="raise")
     transactions = relationship("TransactionDB", back_populates="user", lazy="raise")
-
+    departments = relationship("ComplaintDepartmentDB", back_populates="user", lazy="raise")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     # id

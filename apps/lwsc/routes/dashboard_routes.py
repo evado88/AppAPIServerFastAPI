@@ -9,7 +9,7 @@ from typing import List
 from sqlalchemy import func
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.category_model import CategoryDB
+from apps.lwsc.models.customer_category_model import CategoryDB
 from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.district_model import DistrictDB
 from apps.lwsc.models.meter_reading_model import (

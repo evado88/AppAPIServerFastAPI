@@ -5,7 +5,7 @@ from typing import Optional
 from apps.lwsc.lwscdb import Base
 from datetime import date, datetime
 
-from apps.lwsc.models.category_model import Category, CategoryItem
+from apps.lwsc.models.customer_category_model import Category, CategoryItem
 from apps.lwsc.models.review_stages_model import ReviewStage, ReviewStageItem
 from apps.lwsc.models.district_model import District, DistrictItem
 from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteItem
@@ -241,6 +241,10 @@ class CustomerSimple(BaseModel):
     address_physical: Optional[str] = None
     lat: Optional[float] = None
     lon: Optional[float] = None
+    
+    # reading
+    current: Optional[float] = None
+    previous: Optional[float] = None
     
     class Config:
         orm_mode = True

@@ -9,7 +9,7 @@ from apps.lwsc.routes import walkroute_routes
 from apps.lwsc.routes import customer_routes
 from apps.lwsc.routes import meter_reading_routes
 from apps.lwsc.routes import attachment_routes
-from apps.lwsc.routes import category_routes
+from apps.lwsc.routes import customer_category_routes
 from apps.lwsc.routes import review_stages_routes
 from apps.lwsc.routes import status_type_routes
 from apps.lwsc.routes import district_routes
@@ -22,7 +22,7 @@ from apps.lwsc.routes import transaction_type_routes
 from apps.lwsc.routes import transaction_group_routes
 from apps.lwsc.routes import transaction_routes
 from apps.lwsc.routes import complaint_routes
-
+from apps.lwsc.routes import complaint_department_routes
 
 APP_ROUTE = "/lwsc"
 
@@ -72,7 +72,7 @@ def include_lwsc_routes(app):
 
     app.include_router(district_routes.router, prefix=APP_ROUTE)
     app.include_router(bill_rate_routes.router, prefix=APP_ROUTE)
-    app.include_router(category_routes.router, prefix=APP_ROUTE)
+    app.include_router(customer_category_routes.router, prefix=APP_ROUTE)
     app.include_router(customer_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_reading_routes.router, prefix=APP_ROUTE)
     app.include_router(meter_status_routes.router, prefix=APP_ROUTE)
@@ -82,7 +82,9 @@ def include_lwsc_routes(app):
     app.include_router(transaction_type_routes.router, prefix=APP_ROUTE)
     app.include_router(transaction_group_routes.router, prefix=APP_ROUTE)
 
+    app.include_router(complaint_department_routes.router, prefix=APP_ROUTE)
     app.include_router(complaint_routes.router, prefix=APP_ROUTE)
+    
     
 async def init_lwsc_db(app):
     async with engine.begin() as conn:

@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from typing import List, Any
 from sqlalchemy.orm import selectinload
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.category_model import CategoryDB
+from apps.lwsc.models.customer_category_model import CategoryDB
 from apps.lwsc.models.complaint_model import Complaint, ComplaintDB, ComplaintWithDetail
 from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.district_model import DistrictDB
@@ -35,6 +35,8 @@ async def create_type(customer_no: str, complaint: Complaint, db: AsyncSession =
         uuid=complaint.uuid,
         # customer
         customer_id=customerItem.id,
+        # department
+        department_id=complaint.department_id,
         # complaint
         reference_number=complaint.reference_number,
         category=complaint.category,
@@ -65,6 +67,7 @@ async def get_complaint(complaint_id: int, db: AsyncSession = Depends(get_lwsc_d
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),
         )
@@ -88,6 +91,7 @@ async def update_category(
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),
         )
@@ -119,6 +123,7 @@ async def list_complaints(db: AsyncSession = Depends(get_lwsc_db)):
         select(ComplaintDB)
         .options(
             selectinload(ComplaintDB.customer),
+            selectinload(ComplaintDB.department),
             selectinload(ComplaintDB.stage),
             selectinload(ComplaintDB.status),
         )

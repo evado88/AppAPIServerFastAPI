@@ -7,7 +7,7 @@ from typing import List
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.bill_rate_model import BillRateDB
-from apps.lwsc.models.category_model import Category, CategoryDB, CategoryWithDetail
+from apps.lwsc.models.customer_category_model import Category, CategoryDB, CategoryWithDetail
 from apps.lwsc.models.user_model import UserDB
 from sqlalchemy.orm import selectinload
 

@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from typing import List, Any
 from sqlalchemy.orm import selectinload
 from apps.lwsc.lwscdb import get_lwsc_db
-from apps.lwsc.models.category_model import CategoryDB
+from apps.lwsc.models.customer_category_model import CategoryDB
 from apps.lwsc.models.customer_model import (
     Customer,
     CustomerDB,

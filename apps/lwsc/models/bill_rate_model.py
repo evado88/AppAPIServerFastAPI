@@ -5,7 +5,7 @@ from typing import Optional
 from apps.lwsc.lwscdb import Base
 from datetime import datetime
 
-from apps.lwsc.models.category_model import Category
+from apps.lwsc.models.customer_category_model import Category
 from apps.lwsc.models.review_stages_model import ReviewStage
 from apps.lwsc.models.district_model import District
 from apps.lwsc.models.walkroute_model import WalkRoute
