@@ -2,11 +2,19 @@
 from typing import Any, List, Optional
 from pydantic import BaseModel
 
+from apps.ccl.models.attachment_model import Attachment
 from apps.ccl.models.instrument_model import Instrument
 from apps.ccl.models.lab_model import Lab
 from apps.ccl.models.reagent_model import Reagent
 from apps.ccl.models.test_model import TestWithDetail
 
+class ParamAttachmentDetail(BaseModel):
+    attachment: Attachment
+    items: Optional[list[dict[str, Any]]] = []
+
+    class Config:
+        orm_mode = True
+        
 class ParamTestDetail(BaseModel):
     labs: List[Lab]
     reagents: List[Reagent]

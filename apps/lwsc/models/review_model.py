@@ -11,6 +11,8 @@ class AppReview(BaseModel):
     review_action: int =  Field(..., ge=1, le=2, description="Review action must be between 1 or 2")
     comments: Optional[str]
     content: Optional[str]
+    assigned_to: Optional[str]
+    department_id: Optional[int]
     attachment_id: Optional[int]
     strw    : Optional[str]
             

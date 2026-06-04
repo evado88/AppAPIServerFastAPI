@@ -59,7 +59,7 @@ class ComplaintDB(Base):
 
     resolution_notes = Column(Text, nullable=True)
 
-    resolved_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
 
     # approval
     status_id = Column(Integer, ForeignKey("list_status_types.id"), nullable=False)

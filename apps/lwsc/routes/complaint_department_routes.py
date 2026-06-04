@@ -10,6 +10,7 @@ from apps.lwsc.models.bill_rate_model import BillRateDB
 from apps.lwsc.models.complaint_department_model import (
     ComplaintDepartment,
     ComplaintDepartmentDB,
+    ComplaintDepartmentItem,
     ComplaintDepartmentWithDetail,
 )
 from apps.lwsc.models.user_model import UserDB
@@ -101,6 +102,16 @@ async def list_categories(db: AsyncSession = Depends(get_lwsc_db)):
     )
     return result.scalars().all()
 
+@router.get("/items", response_model=List[ComplaintDepartmentItem])
+async def list_items(db: AsyncSession = Depends(get_lwsc_db)):
+    result = await db.execute(
+        select(ComplaintDepartmentDB)
+        .options(
+            selectinload(ComplaintDepartmentDB.user),
+        )
+        .order_by(ComplaintDepartmentDB.id)
+    )
+    return result.scalars().all()
 
 @router.post("/initialize")
 async def initialize(db: AsyncSession = Depends(get_lwsc_db)):

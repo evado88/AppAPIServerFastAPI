@@ -2,6 +2,8 @@ from datetime import date, datetime
 from typing import List, Optional, Any
 from pydantic import BaseModel
 from apps.lwsc.models.attachment_model import Attachment
+from apps.lwsc.models.complaint_department_model import ComplaintDepartmentItem
+from apps.lwsc.models.complaint_model import ComplaintWithDetail
 from apps.lwsc.models.customer_category_model import Category
 from apps.lwsc.models.configuration_model import AppConfiguration
 from apps.lwsc.models.customer_model import Customer
@@ -10,6 +12,13 @@ from apps.lwsc.models.meter_reading_model import MeterReading
 from apps.lwsc.models.user_model import User, UserWithDetail, UserWithFullDetail
 from apps.lwsc.models.walkroute_model import WalkRoute, WalkRouteWithSimpleDetail
 
+class ParamComplaintReview(BaseModel):
+    complaint: Optional[ComplaintWithDetail] = None
+    departments: Optional[List[ComplaintDepartmentItem]] = []
+
+    class Config:
+        orm_mode = True
+        
 class ParamUploadTaskResult(BaseModel):
     succeeded: bool
     approved: bool
