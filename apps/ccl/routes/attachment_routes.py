@@ -7,8 +7,8 @@ from sqlalchemy.future import select
 from typing import List
 
 from apps.ccl import importassist
+from apps.ccl.ccldb import get_ccl_db
 from apps.ccl.models.attachment_model import Attachment, AttachmentDB
-from apps.lwsc.lwscdb import get_lwsc_db
 from helpers import assist
 import csv
 
@@ -110,7 +110,7 @@ async def post_attachment(
     typeId: str = "Attachment",
     parentId: int = 0,
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_lwsc_db),
+    db: AsyncSession = Depends(get_ccl_db),
 ):
     try:
 
@@ -176,14 +176,14 @@ async def post_attachment(
 
 
 @router.get("/list", response_model=List[Attachment])
-async def list_attachments(db: AsyncSession = Depends(get_lwsc_db)):
+async def list_attachments(db: AsyncSession = Depends(get_ccl_db)):
     result = await db.execute(select(AttachmentDB))
     attachments = result.scalars().all()
     return attachments
 
 
 @router.get("/{id}", response_model=Attachment)
-async def get_attachment(id: int, db: AsyncSession = Depends(get_lwsc_db)):
+async def get_attachment(id: int, db: AsyncSession = Depends(get_ccl_db)):
     result = await db.execute(select(AttachmentDB).where(AttachmentDB.id == id))
     attachment = result.scalars().first()
     if not attachment:
