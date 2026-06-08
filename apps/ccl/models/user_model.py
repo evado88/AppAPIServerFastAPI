@@ -61,6 +61,7 @@ class UserDB(Base):
     tests = relationship("TestDB", back_populates="user")
     instruments = relationship("InstrumentDB", back_populates="user")
     reagents = relationship("ReagentDB", back_populates="user")
+    testpricevolumes = relationship("TestPriceVolmeDB", back_populates="user")
     #test_instrument = relationship("TestInstrumentDB", back_populates="user")
     #test_reagent = relationship("TestReagentDB", back_populates="user")
 # ---------- Pydantic Schemas ----------

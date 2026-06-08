@@ -8,6 +8,15 @@ from apps.ccl.models.lab_model import Lab
 from apps.ccl.models.reagent_model import Reagent
 from apps.ccl.models.test_model import TestWithDetail
 
+
+class ParamDataImport(BaseModel):
+    user_id: int
+    items: Optional[list[dict[str, Any]]] = []
+
+    class Config:
+        orm_mode = True
+
+
 class ParamAttachmentDetail(BaseModel):
     attachment: Attachment
     items: Optional[list[dict[str, Any]]] = []

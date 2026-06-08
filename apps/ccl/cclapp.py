@@ -9,6 +9,9 @@ from apps.ccl.routes import reagent_routes
 from apps.ccl.routes import dashboard_routes
 from apps.ccl.routes import data_routes
 from apps.ccl.routes import attachment_routes
+from apps.ccl.routes import test_price_volume_routes
+from apps.ccl.routes import month_routes
+from apps.ccl.routes import login_routes
 
 APP_ROUTE = "/ccl"
 
@@ -23,7 +26,10 @@ def include_ccl_routes(app):
     app.include_router(dashboard_routes.router, prefix=APP_ROUTE)
     app.include_router(data_routes.router, prefix=APP_ROUTE)
     app.include_router(attachment_routes.router, prefix=APP_ROUTE)
-        
+    app.include_router(test_price_volume_routes.router, prefix=APP_ROUTE)
+    app.include_router(month_routes.router, prefix=APP_ROUTE)
+    app.include_router(login_routes.router, prefix=APP_ROUTE)
+    
 async def init_ccl_db(app):
     async with engine.begin() as conn:
         print("Application CCL starting up old...")
