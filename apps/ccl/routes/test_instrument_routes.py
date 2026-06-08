@@ -7,7 +7,7 @@ from apps.ccl.ccldb import get_ccl_db
 from apps.ccl.models.test_instrument_model import TestInstrument, TestInstrumentDB, TestInstrumentWithDetail
 from apps.ccl.models.user_model import UserDB
 
-router = APIRouter(prefix="/testinstruments", tags=["TestInstruments"])
+router = APIRouter(prefix="/instruments", tags=["Instruments"])
 
 
 @router.post("/create", response_model=TestInstrumentWithDetail)
