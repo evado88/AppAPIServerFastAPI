@@ -1,0 +1,55 @@
+[
+    {
+        "name": "Domestic",
+        "bands": [
+            {
+                "name": "Band 1",
+                "order": 1,
+                "start_vol": 0.0,
+                "end_vol": 6.0,
+                "rate": 26.70
+            },
+            {
+                "name": "Band 2",
+                "order": 2,
+                "start_vol": 6.0,
+                "end_vol": 14.0,
+                "rate": 26.70
+
+            },
+            {
+                "name": "Band 3",
+                "order": 3,
+                "start_vol": 14.0,
+                "end_vol": 30.0,
+                "rate": 26.70
+            },
+            {
+                "name": "Band 4",
+                "order": 4,
+                "start_vol": 30.0,
+                "end_vol": 6.0,
+                "rate": 0
+            }
+        ]
+    },
+    {
+        "name": "Commmercial",
+        "bands": [
+            {
+                "name": "Band 1",
+                "order": 1,
+                "start_vol": 0.0,
+                "end_vol": 10.0,
+                "rate": 104.50
+            },
+            {
+                "name": "Band 2",
+                "order": 2,
+                "start_vol": 10.0,
+                "end_vol": 0.0,
+                "rate": 2318.04
+            }
+        ]
+    }
+]

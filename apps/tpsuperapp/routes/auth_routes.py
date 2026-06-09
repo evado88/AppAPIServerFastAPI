@@ -1,0 +1,85 @@
+from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from typing import List
+from jose import JWTError, jwt
+from apps.tpsuperapp.tpsuperappdb import get_tpsuperapp_db
+from apps.tpsuperapp.models.user_model import User, UserDB
+import helpers.assist as assist
+import time
+from sqlalchemy import or_
+from sqlalchemy.orm import selectinload, load_only
+
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+@router.post("/login")
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_tpsuperapp_db),
+):
+    # check user exists
+    result = await db.execute(
+        select(UserDB).where(
+            or_(UserDB.email == form_data.username, UserDB.code == form_data.username)
+        )
+    )
+    user = result.scalars().first()
+    if not user:
+        # error
+        raise HTTPException(
+            status_code=401, detail=f"The specified username or password is incorrect"
+        )
+
+    if not assist.verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=401, detail=f"The specified username or password is incorrect"
+        )
+
+    to_encode = {
+        "sub": user.email,
+        "userid": user.id,
+        "name": f"{user.fname} {user.lname}",
+        "role": user.role_id,
+        "mobile": user.mobile,
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+    }
+    token = jwt.encode(to_encode, assist.SECRET_KEY, algorithm=assist.ALGORITHM)
+
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/mobile/login")
+async def loginMobile(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_tpsuperapp_db),
+):
+    # simulate sleep for 5min: TODO: remove
+    time.sleep(2)  # Pauses execution for 5 seconds
+    # check user exists
+    result = await db.execute(
+            select(UserDB)
+            .options(
+                selectinload(UserDB.stage),
+                selectinload(UserDB.status),
+                selectinload(UserDB.role),
+            )
+            .where(UserDB.code == form_data.username)
+            .order_by(UserDB.email)
+        )
+           
+    user = result.scalars().first()
+    if not user:
+        # error
+        raise HTTPException(
+            status_code=401, detail=f"The specified username or password is incorrect"
+        )
+
+    if not form_data.password == user.pin:
+        raise HTTPException(
+            status_code=401, detail=f"The specified username or password is incorrect"
+        )
+
+    return user

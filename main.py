@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from apps.osawe import osaweapp
 from apps.lwsc import lwscapp
-from apps.ccl import cclapp
+from apps.tpsuperapp import tpsuperapp
 
 import logging
 
@@ -73,10 +73,9 @@ app.add_middleware(
 # osawe
 ## osaweapp.include_osawe_routes(app)
 # lwsc
-lwscapp.include_lwsc_routes(app)
-# ccl
-
-cclapp.include_ccl_routes(app)
+# lwscapp.include_lwsc_routes(app)
+# tpsuper app
+tpsuperapp.include_tpsuperapp_routes(app)
 
 # create tables at startup
 
@@ -86,7 +85,9 @@ async def startup():
     #osawe
     #await osaweapp.init_osawe_db(app)
     #lwsc
-    await lwscapp.init_lwsc_db(app)    
+    #await lwscapp.init_lwsc_db(app) 
+    #tpsuperapp
+    await tpsuperapp.init_tpsuperapp_db(app)   
         
 @app.on_event("shutdown")
 async def shutdown_event():
