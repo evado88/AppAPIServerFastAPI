@@ -24,6 +24,7 @@ from apps.tpsuperapp.routes import transaction_routes
 from apps.tpsuperapp.routes import complaint_routes
 from apps.tpsuperapp.routes import complaint_department_routes
 from apps.tpsuperapp.routes import complaint_stages_routes
+from apps.tpsuperapp.routes import login_routes
 
 APP_ROUTE = "/tpsuperapp"
 
@@ -91,6 +92,7 @@ def include_tpsuperapp_routes(app):
     app.include_router(complaint_department_routes.router, prefix=APP_ROUTE)
     app.include_router(complaint_routes.router, prefix=APP_ROUTE)
     app.include_router(complaint_stages_routes.router, prefix=APP_ROUTE)
+    app.include_router(login_routes.router, prefix=APP_ROUTE)
     
 async def init_tpsuperapp_db(app):
     async with engine.begin() as conn:

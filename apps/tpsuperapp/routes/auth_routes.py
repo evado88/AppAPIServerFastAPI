@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
 from jose import JWTError, jwt
+from apps.tpsuperapp.models.login_model import LoginDB
 from apps.tpsuperapp.tpsuperappdb import get_tpsuperapp_db
 from apps.tpsuperapp.models.user_model import User, UserDB
 import helpers.assist as assist
@@ -37,6 +38,18 @@ async def login(
         raise HTTPException(
             status_code=401, detail=f"The specified username or password is incorrect"
         )
+    
+    
+    db_user = LoginDB(
+        #personal details
+        username=form_data.username,
+    )
+    db.add(db_user)
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Unable to process login: f{e}")
 
     to_encode = {
         "sub": user.email,
