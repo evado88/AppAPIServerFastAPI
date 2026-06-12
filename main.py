@@ -30,6 +30,7 @@ origins = [
         "http://osawe.space",
         "https://osawe.space",
         "http://lpwsc.zam-services.online",
+        "http://tpsuperapp.iom-demo.online",
         "http://ccl.iom-demo.online"
     ]
 
