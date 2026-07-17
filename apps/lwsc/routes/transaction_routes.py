@@ -98,7 +98,7 @@ async def post_customer_transaction(
         # type of transaction
         type_id=2,
         # group of transaction
-        group_id=1,
+        group_id=tran.groupId,
         # user
         user_id=customer.user_id,
         # customer

@@ -151,6 +151,7 @@ class MobileTransaction(BaseModel):
     amount: float
     type: str
     ref: str
+    groupId: int
 
     class Config:
         orm_mode = True
