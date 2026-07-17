@@ -85,13 +85,13 @@ async def post_customer_transaction(
     result = await db.execute(
         select(CustomerDB)
         .options((noload("*")))
-        .where(CustomerDB.mobile == tran.customer_phone)
+        .where(CustomerDB.account == tran.customer_no)
     )
     customer = result.scalars().first()
     if not customer:
         raise HTTPException(
             status_code=404,
-            detail=f"Unable to find customer with phone '{tran.customer_phone}'",
+            detail=f"Unable to find customer with account no '{tran.customer_no}'",
         )
 
     db_tran = TransactionDB(

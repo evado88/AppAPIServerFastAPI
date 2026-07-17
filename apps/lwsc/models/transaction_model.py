@@ -147,7 +147,7 @@ class Transaction(BaseModel):
         orm_mode = True
         
 class MobileTransaction(BaseModel):
-    customer_phone: str
+    customer_no: str
     amount: float
     type: str
     ref: str
