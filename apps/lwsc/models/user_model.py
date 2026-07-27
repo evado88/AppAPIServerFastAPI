@@ -80,6 +80,7 @@ class UserDB(Base):
     groups = relationship("TransactionGroupDB", back_populates="user", lazy="raise")
     transactions = relationship("TransactionDB", back_populates="user", lazy="raise")
     departments = relationship("ComplaintDepartmentDB", back_populates="user", lazy="raise")
+    meters = relationship("MetersDB", back_populates="user", lazy="raise")
 # ---------- Pydantic Schemas ----------
 class User(BaseModel):
     # id

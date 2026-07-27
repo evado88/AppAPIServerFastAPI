@@ -117,3 +117,10 @@ class ParamCustomerImport(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ParamMetersImport(BaseModel):
+    user_id: int
+    items: Optional[list[dict[str, Any]]] = []
+
+    class Config:
+        orm_mode = True

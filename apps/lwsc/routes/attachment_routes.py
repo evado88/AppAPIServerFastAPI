@@ -85,6 +85,67 @@ async def processCustomers(file: UploadFile, db=AsyncSession):
 
     return newCustomers
 
+async def processMeters(file: UploadFile, db=AsyncSession):
+
+    # list
+    newMeters = []
+
+    try:
+        contents = await file.read()
+        decode_contents = contents.decode("utf-8-sig")
+
+        csv_reader = csv.DictReader(io.StringIO(decode_contents))
+
+        data = list(csv_reader)
+
+        index = 1
+
+        keys = [
+            "CustomerNumber",
+            "CustomerName",	
+            "IdentityNumber",	
+            "Address",	
+            "CustomerType",	
+            "CommunicateAddress",	
+            "InvoiceNumber",	
+            "OpenAccountFee",
+            "OpenAccountDate",	
+            "StationName",	
+            "OperatorUID",		
+            "TechnicianName",	
+            "ProvinceName",	
+            "CityName",	
+            "TownName",	
+            "VillageName"
+        ]
+
+        for row in data:
+            
+            if not any(value and value.strip() for value in row.values()):
+                continue
+            
+            meter = {}
+
+            for key in keys:
+                meter[key] = row[key]
+
+            newMeters.append(meter)
+
+            index += 1
+
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"The attached meter import list file was not found: {e}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to process the meter import list file: {e}",
+        )
+
+    return newMeters
+
 
 async def processBillRates(file: UploadFile, db=AsyncSession):
 
@@ -157,6 +218,8 @@ async def post_attachment(
 
         if typeId == "customerImport":
             itemList = await processCustomers(file, db)
+        elif typeId == "meterImport":
+            itemList = await processMeters(file, db)
         elif typeId == "billRateImport":
             itemList = await processBillRates(file, db)
         # ensure folders exist

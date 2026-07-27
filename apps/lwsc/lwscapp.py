@@ -24,6 +24,7 @@ from apps.lwsc.routes import transaction_routes
 from apps.lwsc.routes import complaint_routes
 from apps.lwsc.routes import complaint_department_routes
 from apps.lwsc.routes import complaint_stages_routes
+from apps.lwsc.routes import meters_routes
 
 APP_ROUTE = "/lwsc"
 
@@ -91,6 +92,8 @@ def include_lwsc_routes(app):
     app.include_router(complaint_department_routes.router, prefix=APP_ROUTE)
     app.include_router(complaint_routes.router, prefix=APP_ROUTE)
     app.include_router(complaint_stages_routes.router, prefix=APP_ROUTE)
+    
+    app.include_router(meters_routes.router, prefix=APP_ROUTE)
     
 async def init_lwsc_db(app):
     async with engine.begin() as conn:
