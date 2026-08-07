@@ -1,3 +1,29 @@
+
+Transaction - Post paid
+{
+  "groupId": 1,
+  "customer_type": "POST-PAID",
+  "customer_no": "MSA00011",
+  "mobile": "+260977123456",
+  "wallet": "+260977123451",
+  "amount": 30,
+  "ref": "R1-POSTPAID",
+  "comments": "EPAY APP"
+}
+
+
+Transaction - Pre paid
+{
+  "groupId": 32,
+  "customer_type": "PRE-PAID",
+  "customer_no": "0120210347973",
+  "mobile": "+260977123456",
+  "wallet": "+260977123451",
+  "amount": 40,
+  "ref": "R1-PREPAID",
+  "comments": "EPAY APP"
+}
+
 User model - 1
 {
   "type": 1,

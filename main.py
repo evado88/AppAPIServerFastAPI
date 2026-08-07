@@ -76,7 +76,7 @@ app.add_middleware(
 # lwsc
 lwscapp.include_lwsc_routes(app)
 # tpsuper app
-tpsuperapp.include_tpsuperapp_routes(app)
+# tpsuperapp.include_tpsuperapp_routes(app)
 
 # create tables at startup
 
@@ -88,7 +88,7 @@ async def startup():
     #lwsc
     await lwscapp.init_lwsc_db(app) 
     #tpsuperapp
-    await tpsuperapp.init_tpsuperapp_db(app)   
+    # await tpsuperapp.init_tpsuperapp_db(app)   
         
 @app.on_event("shutdown")
 async def shutdown_event():

@@ -8,9 +8,13 @@ from apps.lwsc.models.attachment_model import Attachment
 from apps.lwsc.models.customer_model import Customer, CustomerItem
 from apps.lwsc.models.review_stages_model import ReviewStage
 from apps.lwsc.models.status_types_model import StatusType
-from apps.lwsc.models.transaction_group_model import TransactionGroup, TransactionGroupItem
+from apps.lwsc.models.transaction_group_model import (
+    TransactionGroup,
+    TransactionGroupItem,
+)
 from apps.lwsc.models.transaction_type_model import TransactionType, TransactionTypeItem
 from apps.lwsc.models.user_model import User, UserSimple
+
 
 # ---------- SQLAlchemy Models ----------
 class TransactionDB(Base):
@@ -20,22 +24,27 @@ class TransactionDB(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     code = Column(String, nullable=True)
 
-    # type of transaction 
+    # type of transaction
     type_id = Column(Integer, ForeignKey("transaction_types.id"), nullable=False)
 
     # group of transaction
     group_id = Column(Integer, ForeignKey("transaction_groups.id"), nullable=True)
 
     # user
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    # customer
-    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    # customer type
+    customer_type = Column(String, nullable=False)
 
-    # attachment
-    attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
+    # post paid customer account no
+    customer_account_no = Column(String, nullable=True)
+
+    # pre paid customer meter no
+    customer_meter_no = Column(String, nullable=True)
 
     # transaction
+    mobile = Column(String, nullable=True)
+    wallet = Column(String, nullable=True)
     date = Column(DateTime(timezone=True), nullable=False)
 
     amount = Column(Float, nullable=False)
@@ -74,16 +83,9 @@ class TransactionDB(Base):
     group = relationship(
         "TransactionGroupDB", back_populates="transactions", lazy="raise"
     )
-    status = relationship(
-        "StatusTypeDB", back_populates="transactions", lazy="raise"
-    )
-    stage = relationship(
-        "ReviewStageDB", back_populates="transactions", lazy="raise"
-    )
-    attachment = relationship(
-        "AttachmentDB", back_populates="transactions", lazy="raise"
-    )
-    customer = relationship("CustomerDB", back_populates="transactions", lazy="raise")
+    status = relationship("StatusTypeDB", back_populates="transactions", lazy="raise")
+    stage = relationship("ReviewStageDB", back_populates="transactions", lazy="raise")
+
 
 # ---------- Pydantic Schemas ----------
 class Transaction(BaseModel):
@@ -100,16 +102,22 @@ class Transaction(BaseModel):
     group_id: Optional[int] = None
 
     # user
-    user_id: int
+    user_id: Optional[int] = None
 
-    # customer
-    customer_id: int
-    
-    # attachment
-    attachment_id: Optional[int] = None
+    # customer type
+    customer_type: str = Field(..., description="The customer type is required")
+
+    # post paid customer account no
+    customer_account_no: Optional[str] = None
+
+    # pre paid customer meter no
+    customer_meter_no: Optional[str] = None
+
 
     # transaction
-    date: datetime = Field(..., description="The date for the transaction")
+    mobile: str = Field(..., description="The mobile number registered on the app id required")
+    wallet: str = Field(..., description="The mobile wallet number used for payment is required")
+    date: datetime = Field(..., description="The date for the transaction must be provided")
 
     amount: float = Field(..., description="Transaction amount must be provided")
     comments: Optional[str] = None
@@ -145,35 +153,34 @@ class Transaction(BaseModel):
 
     class Config:
         orm_mode = True
-        
+
+
 class MobileTransaction(BaseModel):
-    customer_no: str
-    amount: float
-    type: str
-    ref: str
     groupId: int
+    customer_type: str
+    customer_no: str
+    mobile: str
+    wallet: str
+    amount: float
+    ref: str
+    comments: str
 
     class Config:
         orm_mode = True
 
-        
+
 class TransactionWithDetail(Transaction):
     user: UserSimple
     type: TransactionType
     group: TransactionGroup
     status: StatusType
     stage: ReviewStage
-    attachment: Optional[Attachment] = None
-    customer: Customer
-    
+
 
 class ParamTransactionEdit(BaseModel):
     transaction: Optional[Transaction] = None
-    customers: List[CustomerItem] = []
     types: List[TransactionTypeItem] = []
     groups: List[TransactionGroupItem] = []
-        
+
     class Config:
         orm_mode = True
-
-

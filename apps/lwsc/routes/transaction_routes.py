@@ -10,6 +10,7 @@ from typing import List
 from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.customer_model import CustomerDB
+from apps.lwsc.models.meters_model import MetersDB
 from apps.lwsc.models.transaction_group_model import TransactionGroupDB
 from apps.lwsc.models.transaction_model import (
     MobileTransaction,
@@ -49,10 +50,11 @@ async def post_transaction(tran: Transaction, db: AsyncSession = Depends(get_lws
         # user
         user_id=tran.user_id,
         # customer
-        customer_id=tran.customer_id,
-        # attachement
-        attachment_id=tran.attachment_id,
+        customer_type=tran.customer_type,
+        customer_account_no=tran.customer_account_no,
+        customer_meter_no=tran.customer_meter_no,
         # transaction
+        mobile=tran.mobile,
         date=tran.date,
         amount=tran.amount,
         comments=tran.comments,
@@ -81,19 +83,41 @@ async def post_customer_transaction(
     tran: MobileTransaction,
     db: AsyncSession = Depends(get_lwsc_db),
 ):
+    
+    customer_account_number = None
+    customer_meter_number = None
+    
     # check customer exists
-    result = await db.execute(
-        select(CustomerDB)
-        .options((noload("*")))
-        .where(CustomerDB.account == tran.customer_no)
-    )
-    customer = result.scalars().first()
-    if not customer:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unable to find customer with account no '{tran.customer_no}'",
+    if tran.customer_type == 'POST-PAID':
+        # check post paid customer
+        result = await db.execute(
+            select(CustomerDB)
+            .options((noload("*")))
+            .where(CustomerDB.account == tran.customer_no)
         )
-
+        customer = result.scalars().first()
+        if not customer:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unable to find customer with account no '{tran.customer_no}'",
+            )
+            
+        customer_account_number = customer.number
+    else:
+        # check pre paid customer
+        result = await db.execute(
+            select(MetersDB)
+            .options((noload("*")))
+            .where(MetersDB.communicate_address == tran.customer_no)
+        )
+        customer = result.scalars().first()
+        if not customer:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unable to find customer with meter no '{tran.customer_no}'",
+            )
+        customer_meter_number = customer.communicate_address
+        
     db_tran = TransactionDB(
         # type of transaction
         type_id=2,
@@ -101,22 +125,25 @@ async def post_customer_transaction(
         group_id=tran.groupId,
         # user
         user_id=customer.user_id,
-        # customer
-        customer_id=customer.id,
-        # attachement
-        attachment_id=None,
+        # customer type
+        customer_type = tran.customer_type,
+        # post paid customer account no
+        customer_account_no =  customer_account_number,
+        # pre paid customer meter no
+        customer_meter_no = customer_meter_number,
         # transaction
+        mobile = tran.mobile,
+        wallet = tran.wallet,
         date=assist.get_current_date(),
         amount=tran.amount,
-        comments=tran.type,
+        comments=tran.comments,
         reference=tran.ref,
         # approval
-        status_id=lwscapp.STATUS_APPROVED,
-        stage_id=lwscapp.APPROVAL_STAGE_APPROVED,
+        status_id=lwscapp.STATUS_SUBMITTED,
+        stage_id=lwscapp.APPROVAL_STAGE_SUBMITTED,
         approval_levels=1,
-        # service
-        created_by=customer.email,
     )
+    
     db.add(db_tran)
     try:
         await db.commit()
@@ -139,8 +166,6 @@ async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
             selectinload(TransactionDB.group),
             selectinload(TransactionDB.status),
             selectinload(TransactionDB.stage),
-            selectinload(TransactionDB.attachment),
-            selectinload(TransactionDB.customer),
         )
         .order_by(desc(TransactionDB.id))
     )
@@ -148,23 +173,10 @@ async def list_transactions(db: AsyncSession = Depends(get_lwsc_db)):
     return transactions
 
 
-@router.get("/customer/{account}", response_model=List[TransactionWithDetail])
-async def list_customer_transactions(
-    account: str, db: AsyncSession = Depends(get_lwsc_db)
+@router.get("/mobile/{mobile}", response_model=List[TransactionWithDetail])
+async def list_mobile_transactions(
+    mobile: str, db: AsyncSession = Depends(get_lwsc_db)
 ):
-    result = await db.execute(
-        select(CustomerDB)
-        .options(
-            noload('*'),
-        )
-        .where(CustomerDB.account == account)
-    )
-    customer= result.scalars().first()
-    if not customer:
-        raise HTTPException(
-            status_code=404, detail=f"Unable to find customer with account '{account}'"
-        )
-    
     result = await db.execute(
         select(TransactionDB)
         .options(
@@ -173,10 +185,8 @@ async def list_customer_transactions(
             selectinload(TransactionDB.group),
             selectinload(TransactionDB.status),
             selectinload(TransactionDB.stage),
-            selectinload(TransactionDB.attachment),
-            selectinload(TransactionDB.customer),
         )
-        .where(TransactionDB.customer_id == customer.id)
+        .where(TransactionDB.mobile == f'+{mobile}')
         .order_by(desc(TransactionDB.id))
     )
     transactions = result.scalars().all()
@@ -197,8 +207,6 @@ async def get_transaction(tran_id: int, db: AsyncSession = Depends(get_lwsc_db))
                 selectinload(TransactionDB.group),
                 selectinload(TransactionDB.status),
                 selectinload(TransactionDB.stage),
-                selectinload(TransactionDB.attachment),
-                selectinload(TransactionDB.customer),
             )
             .where(TransactionDB.id == tran_id)
         )
@@ -243,8 +251,6 @@ async def update_transaction(
             selectinload(TransactionDB.group),
             selectinload(TransactionDB.status),
             selectinload(TransactionDB.stage),
-            selectinload(TransactionDB.attachment),
-            selectinload(TransactionDB.customer),
         )
         .where(TransactionDB.id == id)
     )
