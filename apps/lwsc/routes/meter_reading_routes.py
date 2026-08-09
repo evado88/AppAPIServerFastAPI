@@ -61,15 +61,27 @@ async def get_consumption_zmw(meterreading: MeterReading, db: AsyncSession):
     )
     previousReading = result.scalars().first()
 
+    previousReadingValue  = 0
+    
+    # if previosu reading exists, use it else use value on customer file
     if previousReading:
-        # reading available. calculate consumption
-        consumptionM3 = meterreading.current - previousReading.current
-        consumptionZMW = lwscapp.get_consumption_rate(consumptionM3, rates)
+        # previous exists
+        previousReadingValue  = previousReading.current
+    else:
+        # no previous, use value on file
+        previousReadingValue  = customer.current
+    
+    if previousReadingValue == None:
+        previousReadingValue = 0.0    
+        
+    # reading available. calculate consumption
+    consumptionM3 = meterreading.current - previousReadingValue 
+    consumptionZMW = lwscapp.get_consumption_rate(consumptionM3, rates)
 
-        # update valeus for current
-        meterreading.previous = previousReading.current
-        meterreading.consumption_m3 = consumptionM3
-        meterreading.consumption_zmw = consumptionZMW
+    # update valeus for current
+    meterreading.previous = previousReadingValue 
+    meterreading.consumption_m3 = consumptionM3
+    meterreading.consumption_zmw = consumptionZMW
 
     return meterreading
 
