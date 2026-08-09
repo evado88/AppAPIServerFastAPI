@@ -71,8 +71,8 @@ async def get_consumption_zmw(meterreading: MeterReading, db: AsyncSession):
         # no previous, use value on file
         previousReadingValue  = customer.current
     
-    if previousReadingValue == None:
-        previousReadingValue = 0.0    
+
+    previousReadingValue = previousReadingValue if previousReadingValue is not None else 0  
         
     # reading available. calculate consumption
     consumptionM3 = meterreading.current - previousReadingValue 
