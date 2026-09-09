@@ -25,6 +25,7 @@ from apps.lwsc.routes import complaint_routes
 from apps.lwsc.routes import complaint_department_routes
 from apps.lwsc.routes import complaint_stages_routes
 from apps.lwsc.routes import meters_routes
+from apps.lwsc.routes import reader_walkroutes                              
 
 APP_ROUTE = "/lwsc"
 
@@ -48,6 +49,10 @@ COMPLAINT_STAGE_CLOSED = 4
 
 ROLE_ADMINISTRATOR = 1
 ROLE_METERREADER = 2
+
+# marker used on readings that have been raised but not yet submitted
+# by the meter reader
+READING_AWAITING = "Awaiting"
 
 def get_consumption_rate(consumption: float, rates: List[BillRate]):
     '''
@@ -94,6 +99,7 @@ def include_lwsc_routes(app):
     app.include_router(complaint_stages_routes.router, prefix=APP_ROUTE)
     
     app.include_router(meters_routes.router, prefix=APP_ROUTE)
+    app.include_router(reader_walkroutes.router, prefix=APP_ROUTE)
     
 async def init_lwsc_db(app):
     async with engine.begin() as conn:

@@ -30,6 +30,10 @@ class MeterReadingDB(Base):
 
     # customer
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    
+    # route and district
+    route_name = Column(String, nullable=False)
+    district_name = Column(String, nullable=False)
 
     # attachments
     attachment_id = Column(Integer, ForeignKey("attachments.id"), nullable=True)
@@ -113,6 +117,17 @@ class MeterReading(BaseModel):
 
     # customer
     customer_id: int
+    
+    # route and district
+    route_name: str = Field(
+            ...,
+            description="The route name must be specified",
+    )
+    
+    district_name: str = Field(
+            ...,
+            description="The district name must be specified",
+    )
 
     # attachments
     attachment_id: Optional[int] = None
@@ -122,13 +137,10 @@ class MeterReading(BaseModel):
         ...,
         description="The read date is required",
     )
-    upload_at: datetime = Field(
-        ...,
-        description="The upload date is required",
-    )
+    upload_at: Optional[datetime] = None
 
-    current: float = Field(
-        ...,
+    current: Optional[float] = Field(
+        None,
         ge=0,
         description="Reading must be equal to or greater than zero",
     )

@@ -34,7 +34,7 @@ async def create_type(
     if not customerItem:
         raise HTTPException(
             status_code=404,
-            detail=f"Unable to find customer with account '{customer_no}'",
+            detail=f"The customer with account '{customer_no}' is not registered. Please contact ICT",
         )
 
     db_user = ComplaintDB(

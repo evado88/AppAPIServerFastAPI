@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,14 +12,17 @@ from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.attachment_model import AttachmentDB
 from apps.lwsc.models.bill_rate_model import BillRateDB
 from apps.lwsc.models.customer_model import CustomerDB
+from apps.lwsc.models.district_model import DistrictDB
 from apps.lwsc.models.meter_reading_model import (
     MeterReading,
     MeterReadingDB,
     MeterReadingWithDetail,
 )
-from apps.lwsc.models.param_models import ParamUploadTaskResult
+from apps.lwsc.models.param_models import ParamReadingInitialize, ParamUploadTaskResult
 from apps.lwsc.models.review_model import AppReview
+from apps.lwsc.models.reader_walkroute_model import MeterReaderWalkRouteDB
 from apps.lwsc.models.user_model import UserDB
+from apps.lwsc.models.walkroute_model import WalkRouteDB
 from helpers import assist
 import random
 from sqlalchemy import or_, desc
@@ -73,9 +77,12 @@ async def get_consumption_zmw(meterreading: MeterReading, db: AsyncSession):
     
 
     previousReadingValue = previousReadingValue if previousReadingValue is not None else 0  
+    
+    # a reading that has only been raised has no current value yet
+    currentReadingValue = meterreading.current if meterreading.current is not None else 0
         
     # reading available. calculate consumption
-    consumptionM3 = meterreading.current - previousReadingValue 
+    consumptionM3 = currentReadingValue - previousReadingValue 
     consumptionZMW = lwscapp.get_consumption_rate(consumptionM3, rates)
 
     # update valeus for current
@@ -112,6 +119,9 @@ async def create_meterreading(meterreading: MeterReading, db: AsyncSession):
         attachment_id=meterreading.attachment_id,
         # customer
         customer_id=meterreading.customer_id,
+        # route and district
+        route_name = meterreading.route_name,
+        district_name = meterreading.district_name,
         # details
         read_date=meterreading.read_date,
         upload_at=meterreading.upload_at,
@@ -346,6 +356,155 @@ async def initialize(db: AsyncSession = Depends(get_lwsc_db)):
     }
 
 
+@router.post("/initialize-reader")
+async def initialize_reader_readings(
+    readingInit: ParamReadingInitialize, db: AsyncSession = Depends(get_lwsc_db)
+):
+    """
+    Creates placeholder readings for every customer on the routes assigned to
+    this meter reader so management can track which readings are still awaiting
+    submission for the period.
+    """
+
+    # check the meter reader exists
+    result = await db.execute(
+        select(UserDB).options(noload("*")).where(UserDB.id == readingInit.user_id)
+    )
+    user = result.scalars().first()
+
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The user with id '{readingInit.user_id}' does not exist",
+        )
+
+    # get the routes assigned to this reader. Route and district names are
+    # stored on the reading itself so the record keeps the route it was
+    # raised against even if the customer is moved later
+    result = await db.execute(
+        select(
+            WalkRouteDB.id,
+            WalkRouteDB.name,
+            DistrictDB.name,
+        )
+        .select_from(MeterReaderWalkRouteDB)
+        .join(WalkRouteDB, WalkRouteDB.id == MeterReaderWalkRouteDB.route_id)
+        .join(DistrictDB, DistrictDB.id == WalkRouteDB.district_id)
+        .where(MeterReaderWalkRouteDB.user_id == readingInit.user_id)
+    )
+
+    assignedRoutes = {
+        route_id: {"route": route_name, "district": district_name}
+        for route_id, route_name, district_name in result.all()
+    }
+
+    if not assignedRoutes:
+        # nothing assigned, nothing to raise
+        return {
+            "succeeded": True,
+            "message": f"The meter reader '{user.email}' has no walk routes assigned",
+        }
+
+    # get all customers sitting on those routes
+    result = await db.execute(
+        select(CustomerDB)
+        .options(noload("*"))
+        .where(CustomerDB.route_id.in_(assignedRoutes.keys()))
+    )
+    customers = result.scalars().all()
+
+    # find customers that already have a reading for this period so the
+    # endpoint can be run more than once without duplicating records
+    result = await db.execute(
+        select(MeterReadingDB.customer_id).where(
+            MeterReadingDB.period_date == readingInit.period_date,
+            MeterReadingDB.customer_id.in_([obj.id for obj in customers]),
+        )
+    )
+    existingReadings = {row[0] for row in result.all()}
+
+    # the period date is used as the placeholder read date. The record is
+    # marked as awaiting so it is not mistaken for an actual reading
+    placeholderDate = assist.get_date_tz(
+        datetime(
+            readingInit.period_date.year,
+            readingInit.period_date.month,
+            readingInit.period_date.day,
+        )
+    )
+
+    added = 0
+    skipped = 0
+
+    for customer in customers:
+        # skip customers that have already been read for this period
+        if customer.id in existingReadings:
+            skipped += 1
+            continue
+
+        route = assignedRoutes[customer.route_id]
+
+        db_reading = MeterReadingDB(
+            # period
+            period_date=readingInit.period_date,
+            # uuid
+            uuid=uuid4().hex,
+            # user
+            user_id=readingInit.user_id,
+            # customer
+            customer_id=customer.id,
+            # route and district
+            route_name=route["route"],
+            district_name=route["district"],
+            # attachment
+            attachment_id=None,
+            # details
+            read_date=placeholderDate,
+            upload_at=None,
+            current=None,
+            previous=customer.current if customer.current is not None else 0,
+            consumption_m3=None,
+            consumption_days=None,
+            consumption_zmw=None,
+            consumption_daily=None,
+            comments=None,
+            # status
+            access_status=lwscapp.READING_AWAITING,
+            reading_status=lwscapp.READING_AWAITING,
+            condition_status=lwscapp.READING_AWAITING,
+            # address
+            lat=None,
+            lon=None,
+            # approval
+            status_id=lwscapp.STATUS_DRAFT,
+            stage_id=lwscapp.APPROVAL_AWAITING_SUBMISSION,
+            approval_levels=2,
+            # service
+            created_by=user.email,
+        )
+        db.add(db_reading)
+        added += 1
+
+    # commit changes
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to initialize meter readings for the meter reader: f{e}",
+        )
+
+    return {
+        "succeeded": True,
+        "message": (
+            f"{added} meter reading(s) awaiting submission have been initialized for "
+            f"{user.email} across {len(assignedRoutes)} route(s). "
+            f"Skipped {skipped} customer(s) already read for this period"
+        ),
+    }
+
+
 @router.put("/update/{meterreading_id}", response_model=MeterReadingWithDetail)
 async def update_existing(
     meterreading_id: int,
@@ -377,6 +536,55 @@ async def get_knowledgebase_category(
             detail=f"Unable to find meterreading with id '{meterreading_id}'",
         )
     return reading
+
+
+@router.get("/reader/{user_id}/{year}/{month}", response_model=List[MeterReading])
+async def list_reader_meterreadings(
+    user_id: int, year: int, month: int, db: AsyncSession = Depends(get_lwsc_db)
+):
+    """
+    Returns the readings this meter reader has already submitted for the period
+    whatever their approval status. The mobile app uses this to restore the
+    work a reader has already done when the readings for a period are raised
+    on the device again.
+    """
+
+    if month < 1 or month > 12:
+        raise HTTPException(
+            status_code=400, detail=f"The month '{month}' is not a valid month"
+        )
+
+    # check the meter reader exists
+    result = await db.execute(
+        select(UserDB).options(noload("*")).where(UserDB.id == user_id)
+    )
+    user = result.scalars().first()
+
+    if not user:
+        raise HTTPException(
+            status_code=400, detail=f"The user with id '{user_id}' does not exist"
+        )
+
+    # work out the period range. Readings are filtered on a range rather than an
+    # exact date because a submitted reading can carry any day in the month
+    periodStart = date(year, month, 1)
+    periodEnd = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+
+    # only the readings that have actually been taken are returned. A reading
+    # that has only been raised has no current value on it yet
+    result = await db.execute(
+        select(MeterReadingDB)
+        .options(noload("*"))
+        .where(
+            MeterReadingDB.user_id == user_id,
+            MeterReadingDB.period_date >= periodStart,
+            MeterReadingDB.period_date < periodEnd,
+            MeterReadingDB.current.is_not(None),
+        )
+        .order_by(MeterReadingDB.customer_id)
+    )
+
+    return result.scalars().all()
 
 
 @router.get("/list", response_model=List[MeterReadingWithDetail])

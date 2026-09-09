@@ -76,7 +76,7 @@ app.add_middleware(
 # lwsc
 lwscapp.include_lwsc_routes(app)
 # tpsuper app
-tpsuperapp.include_tpsuperapp_routes(app)
+# tpsuperapp.include_tpsuperapp_routes(app)
 
 # create tables at startup
 

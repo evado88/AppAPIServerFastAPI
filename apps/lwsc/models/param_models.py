@@ -124,3 +124,62 @@ class ParamMetersImport(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class ParamReadingInitialize(BaseModel):
+    user_id: int
+    period_date: date
+
+    class Config:
+        orm_mode = True
+
+
+class ParamMeterReaderProgress(BaseModel):
+    # reader
+    user_id: int
+    code: Optional[str] = None
+    name: str
+    email: str
+    district_name: Optional[str] = None
+
+    # what the reader is responsible for
+    routes_assigned: int
+    customers_assigned: int
+
+    # what has happened in the period
+    readings_total: int
+    readings_awaiting: int
+    readings_submitted: int
+    readings_approved: int
+
+    # progress
+    progress_percent: float
+    last_read_date: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+
+
+class ParamDistrictProgress(BaseModel):
+    # district
+    district_id: int
+    name: str
+    code: str
+
+    # what the district is made up of
+    routes: int
+    readers_assigned: int
+    customers: int
+
+    # what has happened in the period
+    readings_total: int
+    readings_awaiting: int
+    readings_submitted: int
+    readings_approved: int
+
+    # progress
+    progress_percent: float
+    last_read_date: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True

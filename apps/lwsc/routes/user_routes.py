@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
@@ -9,6 +10,10 @@ from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.district_model import DistrictDB
 from apps.lwsc.models.param_models import ParamCustomerImport, ParamUserEdit
+from apps.lwsc.models.reader_walkroute_model import (
+    MeterReaderWalkRouteDB,
+    MeterReaderWalkRouteWithDetail,
+)
 from apps.lwsc.models.walkroute_model import (
     WalkRouteDB,
     WalkRouteItem,
@@ -75,68 +80,101 @@ async def import_users(
     customerImport: ParamCustomerImport,
     db: AsyncSession = Depends(get_lwsc_db),
 ):
-    # check user exists
+    # check user importing actually exists in system
     result = await db.execute(select(UserDB).where(UserDB.id == customerImport.user_id))
 
     userSystem = result.scalars().first()
 
     if not userSystem:
+        # user does not exist
         raise HTTPException(
             status_code=400,
             detail=f"The user with id '{customerImport.user_id}' does not exist",
         )
 
-    # existig users
+    # get all existig routes
     result = await db.execute(
         select(WalkRouteDB).where(WalkRouteDB.status_id == assist.STATUS_APPROVED)
     )
 
     existingRoutes = result.scalars().all()
 
+    # start processing
     index = 0
     added = 0
     updated = 0
 
     startProcess = assist.get_current_date(False)
 
-    importReaders = {}
+    # init an empty dictionary to store who has been processed
+    # dict makes it earsier to access details for each reader than list
+    processedImportReaders = {}
+
+    # loop through each item being imported. See below for file format.
+
+    # Account	Meter	StreetName[route name,]	ConsCode[meter reader name]
 
     for user in customerImport.items:
+        # get names and assign key for dict
         names = user["ConsCode"]
         namekey = str(names).replace(" ", "")
 
+        # assign random email
         email = f"{uuid4().hex}@lpwsc.co.zm"
+
+        # get the route
         routename = user["StreetName"]
 
-        if namekey in importReaders:
+        # check if name already processed
+        if namekey in processedImportReaders:
             # reader processed before
-            # add route
-            items = set(importReaders[namekey]["routes"])
+
+            # get existing set for routes for this reader
+            items = set(processedImportReaders[namekey]["routes"])
+
+            # add current route. Will not add anything if existing since its set
             items.add(routename)
-            importReaders[namekey]["routes"] = items
+
+            # assign updated list of routes to reader
+            processedImportReaders[namekey]["routes"] = items
         else:
             # reader not ptocessed
-            importReaders[namekey] = {}
-            importReaders[namekey]["email"] = email
-            importReaders[namekey]["names"] = names
-            importReaders[namekey]["routes"] = {routename}
 
-    keys = importReaders.keys()
+            # create empty dict to hold info about this reader
+            processedImportReaders[namekey] = {}
+
+            # assign names and email
+            processedImportReaders[namekey]["email"] = email
+            processedImportReaders[namekey]["names"] = names
+
+            # assign new set to hold routes with current route
+            processedImportReaders[namekey]["routes"] = {routename}
+
+    # get all raeder jeys
+    keys = processedImportReaders.keys()
 
     for key in keys:
+
+        # for each reader, get all routes in system that match with current
+        # list of routes for this reader and in current district
+        # routes re added when importing customers not here
 
         # update count
         index += 1
 
         # get details
-        names = importReaders[key]["names"]
-        email = importReaders[key]["email"]
-        items = importReaders[key]["routes"]
+        names = processedImportReaders[key]["names"]
+        email = processedImportReaders[key]["email"]
+        items = processedImportReaders[key]["routes"]
 
         result = await db.execute(
             select(WalkRouteDB)
             .options(
-                load_only(WalkRouteDB.id, WalkRouteDB.name),
+                load_only(
+                    WalkRouteDB.id,
+                    WalkRouteDB.name,
+                    WalkRouteDB.district_id,
+                ),
                 selectinload(WalkRouteDB.district).load_only(
                     DistrictDB.id, DistrictDB.name, DistrictDB.code
                 ),
@@ -146,10 +184,15 @@ async def import_users(
                 WalkRouteDB.district_id == customerImport.district_id,
             )
         )
-        models = result.scalars().all()
-        routes = [WalkRouteWithSimpleDetail.from_orm(obj).dict() for obj in models]
 
-        # check user
+        existingRoutes = result.scalars().all()
+
+        # create a list for this routes
+        routes = [
+            WalkRouteWithSimpleDetail.from_orm(obj).dict() for obj in existingRoutes
+        ]
+
+        # check if this reader exists
         result = await db.execute(
             select(UserDB)
             .options(
@@ -165,7 +208,7 @@ async def import_users(
         existingUser = result.scalars().first()
 
         if existingUser:
-            # update user available fields
+            # exists, update user available fields
             existingUser.fname = names
             existingUser.walk_routes = routes
             existingUser.district_id = customerImport.district_id
@@ -180,8 +223,11 @@ async def import_users(
                 raise HTTPException(
                     status_code=400, detail=f"Unable to update meter reader {e}"
                 )
+
+            # keep track of the reader we just processed
+            readerUser = existingUser
         else:
-            # add user
+            # doesnt exist, add user
 
             db_user = UserDB(
                 # id
@@ -231,6 +277,42 @@ async def import_users(
                 raise HTTPException(
                     status_code=400, detail=f"Unable to import neter readers: f{e}"
                 )
+
+            # keep track of the reader we just processed
+            readerUser = db_user
+
+        # capture the walk routes for this reader in the reader routes table
+
+        # remove the routes currently assigned to this reader first
+        await db.execute(
+            delete(MeterReaderWalkRouteDB).where(
+                MeterReaderWalkRouteDB.user_id == readerUser.id
+            )
+        )
+
+        # add the routes found for this reader. Use a set of ids so a route
+        # is not assigned twice when the same route name is repeated
+        for route_id in {obj.id for obj in existingRoutes}:
+            db.add(
+                MeterReaderWalkRouteDB(
+                    # user
+                    user_id=readerUser.id,
+                    # route
+                    route_id=route_id,
+                    # service
+                    created_by=userSystem.email,
+                )
+            )
+
+        # commit changes
+        try:
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unable to import meter reader walk routes: f{e}",
+            )
 
     endProcess = assist.get_current_date(False)
 
@@ -358,6 +440,37 @@ async def list_meter_reader_users(db: AsyncSession = Depends(get_lwsc_db)):
         .where(UserDB.role_id == lwscapp.ROLE_METERREADER)
         .order_by(UserDB.email)
     )
+    return result.scalars().all()
+
+
+@router.get(
+    "/walk-routes/{user_id}", response_model=List[MeterReaderWalkRouteWithDetail]
+)
+async def list_user_walk_routes(
+    user_id: int, db: AsyncSession = Depends(get_lwsc_db)
+):
+    # check the user exists
+    result = await db.execute(select(UserDB).where(UserDB.id == user_id))
+
+    existingUser = result.scalars().first()
+
+    if not existingUser:
+        raise HTTPException(
+            status_code=400, detail=f"The user with id '{user_id}' does not exist"
+        )
+
+    # get all routes assigned to this user
+    result = await db.execute(
+        select(MeterReaderWalkRouteDB)
+        .options(
+            selectinload(MeterReaderWalkRouteDB.user),
+            selectinload(MeterReaderWalkRouteDB.route).selectinload(
+                WalkRouteDB.district
+            ),
+        )
+        .where(MeterReaderWalkRouteDB.user_id == user_id)
+    )
+
     return result.scalars().all()
 
 

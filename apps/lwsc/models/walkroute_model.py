@@ -57,7 +57,7 @@ class WalkRouteDB(Base):
     stage = relationship("ReviewStageDB", back_populates="routes", lazy="raise")
     status = relationship("StatusTypeDB", back_populates="routes", lazy="raise")
     customer = relationship("CustomerDB", back_populates="route", lazy="raise")
-    
+    readerroutes = relationship("MeterReaderWalkRouteDB", back_populates="route", lazy="raise")
 # ---------- Pydantic Schemas ----------
 class WalkRoute(BaseModel):
     # id
