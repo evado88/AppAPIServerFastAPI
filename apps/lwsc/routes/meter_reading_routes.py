@@ -11,6 +11,7 @@ from apps.lwsc import lwscapp
 from apps.lwsc.lwscdb import get_lwsc_db
 from apps.lwsc.models.attachment_model import AttachmentDB
 from apps.lwsc.models.bill_rate_model import BillRateDB
+from apps.lwsc.models.bill_period_model import BillPeriodDB
 from apps.lwsc.models.customer_model import CustomerDB
 from apps.lwsc.models.district_model import DistrictDB
 from apps.lwsc.models.meter_reading_model import (
@@ -376,6 +377,34 @@ async def initialize_reader_readings(
         raise HTTPException(
             status_code=400,
             detail=f"The user with id '{readingInit.user_id}' does not exist",
+        )
+
+    # the period has to be open before a reader can start it on their device
+    result = await db.execute(
+        select(BillPeriodDB).where(
+            BillPeriodDB.year == readingInit.period_date.year,
+            BillPeriodDB.month == readingInit.period_date.month,
+        )
+    )
+
+    period = result.scalars().first()
+
+    if not period:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"The billing period for {readingInit.period_date.strftime('%B %Y')} "
+                "has not been set up. Please contact the administrator"
+            ),
+        )
+
+    if not period.is_open:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"The billing period '{period.name}' is closed. Please contact "
+                "the administrator to have it opened"
+            ),
         )
 
     # get the routes assigned to this reader. Route and district names are
